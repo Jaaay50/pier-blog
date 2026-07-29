@@ -1,13 +1,20 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
+import { useTranslations } from "next-intl";
+import { useSyncExternalStore } from "react";
+
+const emptySubscribe = () => () => {};
 
 export function ThemeToggle() {
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  const t = useTranslations("theme");
+  // true on client after hydration, false during SSR — no effect needed.
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   if (!mounted) {
     return (
@@ -15,11 +22,14 @@ export function ThemeToggle() {
     );
   }
 
+  const nextTheme = theme === "dark" ? "light" : "dark";
+  const ariaLabel = nextTheme === "dark" ? t("toDark") : t("toLight");
+
   return (
     <button
-      onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+      onClick={() => setTheme(nextTheme)}
       className="group relative flex h-8 w-8 items-center justify-center rounded-lg border border-[var(--border)] bg-[var(--bg-card)] transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)]"
-      aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
+      aria-label={ariaLabel}
     >
       {/* Sun */}
       <svg

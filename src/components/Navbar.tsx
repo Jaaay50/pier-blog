@@ -2,16 +2,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslations } from "next-intl";
 import { ThemeToggle } from "./ThemeToggle";
-
-const navLinks = [
-  { href: "/blog", label: "Blog" },
-  { href: "/showcase", label: "Showcase" },
-  { href: "/about", label: "About" },
-];
+import { LanguageToggle } from "./LanguageToggle";
 
 export function Navbar() {
   const pathname = usePathname();
+  const t = useTranslations("nav");
+
+  const navLinks = [
+    { href: "/blog", label: t("blog") },
+    { href: "/showcase", label: t("showcase") },
+    { href: "/about", label: t("about") },
+  ];
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-sm">
@@ -43,8 +46,9 @@ export function Navbar() {
               rel="noopener noreferrer"
               className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
             >
-              GitHub
+              {t("github")}
             </a>
+            <LanguageToggle />
             <ThemeToggle />
           </div>
         </div>

@@ -1,46 +1,47 @@
-import { GradientText } from "@/components/effects/GradientText";
-import { DecryptedText } from "@/components/effects/DecryptedText";
-import { SpotlightCard } from "@/components/effects/SpotlightCard";
+import { useTranslations } from "next-intl";
 import { Navbar } from "@/components/Navbar";
-import Link from "next/link";
-
-const skills = [
-  {
-    category: "Frontend",
-    items: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Three.js", "Framer Motion"],
-  },
-  {
-    category: "AI & Integration",
-    items: ["LLM APIs", "Streaming", "RAG", "Agent Systems", "Prompt Engineering"],
-  },
-  {
-    category: "Engineering",
-    items: ["System Design", "Performance Optimization", "CI/CD", "Node.js", "Python"],
-  },
-  {
-    category: "Design",
-    items: ["Interaction Design", "Motion Design", "Accessibility", "Design Systems"],
-  },
-];
-
-const experiences = [
-  {
-    title: "Frontend Engineer",
-    company: "Building AI-native products",
-    period: "2023 — Present",
-    description:
-      "Crafting high-performance web applications that integrate AI capabilities. Focus on streaming interfaces, real-time collaboration, and delightful micro-interactions.",
-  },
-  {
-    title: "Full-Stack Developer",
-    company: "Web Applications & Tooling",
-    period: "2021 — 2023",
-    description:
-      "Delivered production systems with React, Node.js, and cloud infrastructure. Focused on developer experience, component architecture, and build optimization.",
-  },
-];
+import GradientText from "@/components/reactbits/GradientText";
+import DecryptedText from "@/components/reactbits/DecryptedText";
+import SpotlightCard from "@/components/reactbits/SpotlightCard";
 
 export default function AboutPage() {
+  const t = useTranslations("about");
+  const tFooter = useTranslations("footer");
+
+  const skills = [
+    {
+      category: t("skills.frontend"),
+      items: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Three.js", "Framer Motion"],
+    },
+    {
+      category: t("skills.ai"),
+      items: ["LLM APIs", "Streaming", "RAG", "Agent Systems", "Prompt Engineering"],
+    },
+    {
+      category: t("skills.engineering"),
+      items: ["System Design", "Performance Optimization", "CI/CD", "Node.js", "Python"],
+    },
+    {
+      category: t("skills.design"),
+      items: ["Interaction Design", "Motion Design", "Accessibility", "Design Systems"],
+    },
+  ];
+
+  const experiences = [
+    {
+      title: t("experiences.role1Title"),
+      company: t("experiences.role1Company"),
+      period: t("experiences.role1Period"),
+      description: t("experiences.role1Desc"),
+    },
+    {
+      title: t("experiences.role2Title"),
+      company: t("experiences.role2Company"),
+      period: t("experiences.role2Period"),
+      description: t("experiences.role2Desc"),
+    },
+  ];
+
   return (
     <main className="min-h-screen">
       <Navbar />
@@ -50,19 +51,15 @@ export default function AboutPage() {
         <div className="mx-auto max-w-4xl">
           <div className="mb-4">
             <DecryptedText
-              text="About Me"
+              text={t("label")}
               className="text-sm font-medium text-[var(--accent)]"
             />
           </div>
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl">
-            <GradientText>
-              I build things for the web.
-            </GradientText>
+            <GradientText>{t("title")}</GradientText>
           </h1>
           <p className="max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)]">
-            Frontend engineer focused on crafting interactive, performant, and
-            accessible web experiences. I believe great interfaces are invisible —
-            they feel natural, responsive, and alive.
+            {t("intro")}
           </p>
         </div>
       </section>
@@ -71,11 +68,15 @@ export default function AboutPage() {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-8 text-2xl font-bold tracking-tight">
-            Technical Stack
+            {t("technicalStack")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {skills.map((skill) => (
-              <SpotlightCard key={skill.category} className="p-6">
+              <SpotlightCard
+                key={skill.category}
+                className="border-[var(--border)] bg-[var(--bg-card)] p-6"
+                spotlightColor="rgba(59, 130, 246, 0.15)"
+              >
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">
                   {skill.category}
                 </h3>
@@ -99,7 +100,7 @@ export default function AboutPage() {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-8 text-2xl font-bold tracking-tight">
-            Experience
+            {t("experience")}
           </h2>
           <div className="space-y-8">
             {experiences.map((exp) => (
@@ -127,20 +128,20 @@ export default function AboutPage() {
       <section className="px-6 py-16">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-4 text-2xl font-bold tracking-tight">
-            Get in Touch
+            {t("getInTouch")}
           </h2>
           <p className="mb-6 text-[var(--text-secondary)]">
-            Interested in working together or just want to chat about tech?
+            {t("contactPrompt")}
           </p>
           <div className="flex gap-4">
             <a
               href="mailto:contact@pier.dev"
               className="rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)]"
             >
-              Send Email
+              {t("sendEmail")}
             </a>
             <a
-              href="https://github.com/yourusername"
+              href="https://github.com/Jia-Ethan"
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-lg border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
@@ -154,7 +155,7 @@ export default function AboutPage() {
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">
         <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© 2024 Pier. Built with Next.js, React, and Tailwind CSS.</p>
+          <p>© 2024 Pier. {tFooter("builtWith")}</p>
         </div>
       </footer>
     </main>

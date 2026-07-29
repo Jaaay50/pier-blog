@@ -1,0 +1,79 @@
+{
+  "nav": {
+    "blog": "Blog",
+    "showcase": "Showcase",
+    "about": "About",
+    "github": "GitHub"
+  },
+  "home": {
+    "role": "Frontend Engineer",
+    "heroTitleLine1": "Building interfaces",
+    "heroTitleLine2": "that feel alive",
+    "heroSubtitle": "I craft interactive web experiences at the intersection of AI, design, and engineering. Currently exploring how Large Language Models reshape user interaction patterns.",
+    "readArticles": "Read Articles",
+    "aboutMe": "About Me",
+    "openSource": "Open Source",
+    "recentArticles": "Recent Articles",
+    "projects": {
+      "codex": "Enterprise-grade key management for Codex CLI",
+      "claude": "Secure key management for Claude Code CLI",
+      "pavedpath": "AI-powered development workflow framework",
+      "grok": "Key management for Grok CLI tools"
+    }
+  },
+  "blog": {
+    "label": "All Articles",
+    "title": "Blog",
+    "subtitle": "Writing about frontend engineering, AI integration, system design, and the craft of building for the web.",
+    "back": "Back",
+    "readMore": "Read more"
+  },
+  "showcase": {
+    "label": "Component Library",
+    "title": "Interactive Components",
+    "subtitle": "Animation components from React Bits, wired into the site. Built with React, TypeScript, motion, and WebGL.",
+    "textEffects": "Text Effects",
+    "cardInteractions": "Card Interactions",
+    "backgroundEffects": "Background Effects",
+    "allComponents": "All Components",
+    "hintTilt": "Move your mouse over this card to see the 3D tilt and glare effect.",
+    "hintSpotlight": "Hover to see a subtle gradient spotlight that follows your cursor."
+  },
+  "about": {
+    "label": "About Me",
+    "title": "I build things for the web.",
+    "intro": "Frontend engineer focused on crafting interactive, performant, and accessible web experiences. I believe great interfaces are invisible — they feel natural, responsive, and alive.",
+    "technicalStack": "Technical Stack",
+    "experience": "Experience",
+    "getInTouch": "Get in Touch",
+    "contactPrompt": "Interested in working together or just want to chat about tech?",
+    "sendEmail": "Send Email",
+    "skills": {
+      "frontend": "Frontend",
+      "ai": "AI & Integration",
+      "engineering": "Engineering",
+      "design": "Design"
+    },
+    "experiences": {
+      "role1Title": "Frontend Engineer",
+      "role1Company": "Building AI-native products",
+      "role1Period": "2023 — Present",
+      "role1Desc": "Crafting high-performance web applications that integrate AI capabilities. Focus on streaming interfaces, real-time collaboration, and delightful micro-interactions.",
+      "role2Title": "Full-Stack Developer",
+      "role2Company": "Web Applications & Tooling",
+      "role2Period": "2021 — 2023",
+      "role2Desc": "Delivered production systems with React, Node.js, and cloud infrastructure. Focused on developer experience, component architecture, and build optimization."
+    }
+  },
+  "footer": {
+    "builtWith": "Built with Next.js, React, and Tailwind CSS."
+  },
+  "theme": {
+    "toDark": "Switch to dark mode",
+    "toLight": "Switch to light mode"
+  },
+  "language": {
+    "label": "Language",
+    "switchTo": "切换到简体中文"
+  }
+}

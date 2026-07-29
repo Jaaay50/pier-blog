@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
+import { getLocale } from "next-intl/server";
 
 export interface BlogPost {
   slug: string;
@@ -13,38 +14,71 @@ export interface BlogPost {
 
 const contentDir = path.join(process.cwd(), "src/content/blog");
 
-export function getAllPosts(): BlogPost[] {
-  if (!fs.existsSync(contentDir)) return [];
-
-  const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"));
-
-  const posts = files.map((file) => {
-    const slug = file.replace(".mdx", "");
-    const filePath = path.join(contentDir, file);
-    const fileContent = fs.readFileSync(filePath, "utf-8");
-    const { data, content } = matter(fileContent);
-
-    return {
-      slug,
-      title: data.title || slug,
-      date: data.date || "1970-01-01",
-      description: data.description || "",
-      tags: data.tags || [],
-      content,
-    };
-  });
-
-  return posts.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+async function getLocalizedFile(slug: string): Promise<string | null> {
+  const locale = await getLocale();
+  
+  // Try locale-specific file first (e.g., xxx.zh.mdx)
+  const localizedPath = path.join(contentDir, `${slug}.${locale}.mdx`);
+  if (fs.existsSync(localizedPath)) {
+    return fs.readFileSync(localizedPath, "utf-8");
+  }
+  
+  // Fall back to English
+  const enPath = path.join(contentDir, `${slug}.en.mdx`);
+  if (fs.existsSync(enPath)) {
+    return fs.readFileSync(enPath, "utf-8");
+  }
+  
+  // Legacy: try unqualified file
+  const legacyPath = path.join(contentDir, `${slug}.mdx`);
+  if (fs.existsSync(legacyPath)) {
+    return fs.readFileSync(legacyPath, "utf-8");
+  }
+  
+  return null;
 }
 
-export function getPostBySlug(slug: string): BlogPost | null {
-  const filePath = path.join(contentDir, `${slug}.mdx`);
+export async function getAllPosts(): Promise<BlogPost[]> {
+  if (!fs.existsSync(contentDir)) return [];
 
-  if (!fs.existsSync(filePath)) return null;
+  // Get unique slugs (strip locale suffix)
+  const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"));
+  const slugSet = new Set<string>();
+  
+  files.forEach((file) => {
+    const slug = file
+      .replace(/\.(en|zh)\.mdx$/, "")
+      .replace(/\.mdx$/, "");
+    slugSet.add(slug);
+  });
 
-  const fileContent = fs.readFileSync(filePath, "utf-8");
+  const posts = await Promise.all(
+    Array.from(slugSet).map(async (slug) => {
+      const fileContent = await getLocalizedFile(slug);
+      if (!fileContent) return null;
+
+      const { data, content } = matter(fileContent);
+
+      return {
+        slug,
+        title: data.title || slug,
+        date: data.date || "1970-01-01",
+        description: data.description || "",
+        tags: data.tags || [],
+        content,
+      };
+    })
+  );
+
+  return posts
+    .filter((p): p is BlogPost => p !== null)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}
+
+export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
+  const fileContent = await getLocalizedFile(slug);
+  if (!fileContent) return null;
+
   const { data, content } = matter(fileContent);
 
   return {
@@ -59,8 +93,16 @@ export function getPostBySlug(slug: string): BlogPost | null {
 
 export function getAllSlugs(): string[] {
   if (!fs.existsSync(contentDir)) return [];
-  return fs
-    .readdirSync(contentDir)
-    .filter((f) => f.endsWith(".mdx"))
-    .map((f) => f.replace(".mdx", ""));
+  
+  const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"));
+  const slugSet = new Set<string>();
+  
+  files.forEach((file) => {
+    const slug = file
+      .replace(/\.(en|zh)\.mdx$/, "")
+      .replace(/\.mdx$/, "");
+    slugSet.add(slug);
+  });
+  
+  return Array.from(slugSet);
 }

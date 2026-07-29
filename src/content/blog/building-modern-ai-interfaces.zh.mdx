@@ -1,0 +1,94 @@
+---
+title: "构建现代 AI 界面"
+date: "2024-03-15"
+description: "探索将大语言模型接入生产环境 Web 应用的模式：流式输出、错误处理与用户反馈闭环。"
+tags: ["AI", "React", "系统设计"]
+---
+
+## 挑战在哪里
+
+把大语言模型接入生产环境的 Web 应用，远不只是调一个 API。它要求我们重新思考几件事：
+
+- **流式响应** —— 用户期待的是实时反馈，而不是盯着加载动画等十秒。
+- **错误边界** —— LLM 是非确定性的，界面必须能优雅降级。
+- **Token 管理** —— 上下文窗口有硬性上限，聪明的截断策略才能保住对话质量。
+
+## 流式架构
+
+任何 AI 界面的地基，都是一条稳固的流式管道：
+
+```typescript {4,7}
+async function* streamResponse(prompt: string) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  });
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    yield decoder.decode(value);
+  }
+}
+```
+
+这个生成器模式跟 React 的状态模型能干净地组合在一起，也为取消、重试和背压处理留出了空间。
+
+## 用状态机管理对话
+
+与其堆一堆临时的布尔标志，不如把对话状态建模成有限状态机：
+
+```typescript
+type ChatState =
+  | { status: 'idle' }
+  | { status: 'streaming'; buffer: string }
+  | { status: 'error'; error: Error; lastMessage: string }
+  | { status: 'complete'; response: string };
+```
+
+每次状态转换都是显式的、可测试的，并且直接对应一种 UI 状态。再也不用写 `isLoading && !isError && hasResponse` 这种链式判断。
+
+## React 集成模式
+
+```tsx
+function useAIStream() {
+  const [state, dispatch] = useReducer(chatReducer, { status: 'idle' });
+  const abortRef = useRef<AbortController | null>(null);
+
+  const send = useCallback(async (prompt: string) => {
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    dispatch({ type: 'START' });
+
+    try {
+      for await (const chunk of streamResponse(prompt)) {
+        dispatch({ type: 'CHUNK', payload: chunk });
+      }
+      dispatch({ type: 'COMPLETE' });
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        dispatch({ type: 'ERROR', payload: error });
+      }
+    }
+  }, []);
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+    dispatch({ type: 'CANCEL' });
+  }, []);
+
+  return { state, send, cancel };
+}
+```
+
+## 几点心得
+
+1. **第一天就上流式** —— 后期改造流式非常痛苦。
+2. **为失败而设计** —— 每次 LLM 调用都可能超时、限流或胡说八道。
+3. **按 token 测延迟**，而不只看首字节时间。
+4. **把取消写进契约** —— 用户一定会在流式输出中途离开页面。
+5. **给状态加类型** —— 状态机能从根上排除不可能的 UI 组合。

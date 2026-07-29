@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
 
 interface BlogPost {
   slug: string;
@@ -13,6 +16,9 @@ interface BlogCardProps {
 }
 
 export function BlogCard({ post }: BlogCardProps) {
+  const t = useTranslations("blog");
+  const locale = useLocale();
+
   return (
     <Link
       href={`/blog/${post.slug}`}
@@ -20,11 +26,14 @@ export function BlogCard({ post }: BlogCardProps) {
     >
       <div className="mb-3 flex items-center gap-3 text-sm text-[var(--text-muted)]">
         <time dateTime={post.date}>
-          {new Date(post.date).toLocaleDateString("en-US", {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-          })}
+          {new Date(post.date).toLocaleDateString(
+            locale === "zh" ? "zh-CN" : "en-US",
+            {
+              year: "numeric",
+              month: "short",
+              day: "numeric",
+            }
+          )}
         </time>
         <span>•</span>
         <div className="flex gap-2">
@@ -48,7 +57,7 @@ export function BlogCard({ post }: BlogCardProps) {
       </p>
 
       <div className="mt-4 flex items-center text-sm font-medium text-[var(--accent)] transition-transform group-hover:translate-x-1">
-        Read more
+        {t("readMore")}
         <svg
           className="ml-1 h-4 w-4"
           fill="none"

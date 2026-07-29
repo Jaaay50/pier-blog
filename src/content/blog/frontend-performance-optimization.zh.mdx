@@ -1,0 +1,77 @@
+---
+title: "前端性能优化实战"
+date: "2024-03-08"
+description: "深入现代 Web 性能：Core Web Vitals、懒加载、代码分割与真实世界的度量策略。"
+tags: ["性能", "Next.js", "Web Vitals"]
+---
+
+## 为什么性能很重要
+
+性能不是美学问题，而是用户留存的直接推手。每增加 100ms 延迟，转化率就会下降 1%。移动端用户在 3 秒后的跳出率超过 50%。
+
+## Core Web Vitals
+
+Google 的 Core Web Vitals 给了我们三个可量化的北极星指标：
+
+- **LCP (Largest Contentful Paint)** — 最大内容元素的渲染时间。目标 < 2.5s。
+- **FID (First Input Delay)** — 首次交互延迟。目标 < 100ms。
+- **CLS (Cumulative Layout Shift)** — 累积布局偏移。目标 < 0.1。
+
+这三个指标不是凭空定的，它们直接对应用户感知的三个维度：加载速度、响应性、视觉稳定性。
+
+## 懒加载策略
+
+不要一次性加载整个应用。Next.js 的动态导入让代码分割变得非常简单：
+
+```tsx
+import dynamic from 'next/dynamic';
+
+const HeavyChart = dynamic(() => import('@/components/Chart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false,
+});
+```
+
+关键在于：只有当组件真正需要时才加载。视口外的组件用 `IntersectionObserver` 触发。
+
+## 图片优化
+
+图片占了典型网页 50% 以上的体积。Next.js `<Image>` 组件自动处理：
+
+- 响应式尺寸
+- WebP/AVIF 格式转换
+- 懒加载与优先级提示
+- 布局稳定性（防止 CLS）
+
+```tsx
+<Image
+  src="/hero.jpg"
+  alt="Hero"
+  width={1200}
+  height={600}
+  priority
+  placeholder="blur"
+/>
+```
+
+## 字体加载
+
+字体闪烁（FOUT）会破坏视觉稳定性。使用 `next/font` 自动内联关键字体：
+
+```tsx
+import { Inter } from 'next/font/google';
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+});
+```
+
+## 实战清单
+
+1. **测量先于优化** — 用 Lighthouse、WebPageTest 和 RUM 数据建立基线。
+2. **优先优化 LCP** — 通常是首屏图片或关键字体。
+3. **代码分割要激进** — 路由级分割是最低标准，组件级分割才是常态。
+4. **CDN 不是万能药** — 静态资源走 CDN，动态 API 还得看服务端架构。
+5. **监控生产环境** — 实验室数据和真实用户数据差距很大。

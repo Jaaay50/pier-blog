@@ -1,11 +1,14 @@
+import { getTranslations } from "next-intl/server";
 import { BlogCard } from "@/components/BlogCard";
-import { DecryptedText } from "@/components/effects/DecryptedText";
-import { ScrollReveal } from "@/components/effects/ScrollReveal";
 import { Navbar } from "@/components/Navbar";
 import { getAllPosts } from "@/lib/posts";
+import DecryptedText from "@/components/reactbits/DecryptedText";
+import AnimatedContent from "@/components/reactbits/AnimatedContent";
 
-export default function BlogPage() {
-  const posts = getAllPosts();
+export default async function BlogPage() {
+  const posts = await getAllPosts();
+  const t = await getTranslations("blog");
+  const tFooter = await getTranslations("footer");
 
   return (
     <main className="min-h-screen">
@@ -16,14 +19,13 @@ export default function BlogPage() {
         <div className="mx-auto max-w-4xl">
           <div className="mb-4">
             <DecryptedText
-              text="All Articles"
+              text={t("label")}
               className="text-sm font-medium text-[var(--accent)]"
             />
           </div>
-          <h1 className="mb-4 text-4xl font-bold tracking-tight">Blog</h1>
+          <h1 className="mb-4 text-4xl font-bold tracking-tight">{t("title")}</h1>
           <p className="text-lg text-[var(--text-secondary)]">
-            Writing about frontend engineering, AI integration, system design,
-            and the craft of building for the web.
+            {t("subtitle")}
           </p>
         </div>
       </section>
@@ -32,9 +34,9 @@ export default function BlogPage() {
       <section className="px-6 pb-20">
         <div className="mx-auto max-w-4xl space-y-6">
           {posts.map((post, index) => (
-            <ScrollReveal key={post.slug} delay={index * 100}>
+            <AnimatedContent key={post.slug} delay={index * 100}>
               <BlogCard post={post} />
-            </ScrollReveal>
+            </AnimatedContent>
           ))}
         </div>
       </section>
@@ -42,7 +44,7 @@ export default function BlogPage() {
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">
         <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© 2024 Pier. Built with Next.js, React, and Tailwind CSS.</p>
+          <p>© 2024 Pier. {tFooter("builtWith")}</p>
         </div>
       </footer>
     </main>

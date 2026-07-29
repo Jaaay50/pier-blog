@@ -37,7 +37,7 @@ html {
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: "Inter", "SF Pro Display", -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: var(--font-inter), "SF Pro Display", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.3s, color 0.3s;
@@ -103,7 +103,7 @@ body {
 }
 
 [data-rehype-pretty-code-figure] code {
-  font-family: "JetBrains Mono", monospace;
+  font-family: var(--font-jetbrains-mono), monospace;
   font-size: 0.875rem;
   line-height: 1.7;
 }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { getPostBySlug, getAllSlugs } from "@/lib/posts";
 import { MDXContent } from "@/components/MDXContent";
@@ -10,7 +11,9 @@ interface PageProps {
 
 export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
-  const post = getPostBySlug(slug);
+  const post = await getPostBySlug(slug);
+  const t = await getTranslations("blog");
+  const tFooter = await getTranslations("footer");
 
   if (!post) {
     notFound();
@@ -30,7 +33,7 @@ export default async function BlogPostPage({ params }: PageProps) {
                 href="/blog"
                 className="transition-colors hover:text-[var(--accent)]"
               >
-                ← Back
+                ← {t("back")}
               </Link>
               <span>•</span>
               <time dateTime={post.date}>
@@ -66,7 +69,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">
         <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© 2024 Pier. Built with Next.js, React, and Tailwind CSS.</p>
+          <p>© 2024 Pier. {tFooter("builtWith")}</p>
         </div>
       </footer>
     </main>

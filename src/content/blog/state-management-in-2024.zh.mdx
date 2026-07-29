@@ -1,0 +1,102 @@
+---
+title: "2024 年的状态管理"
+date: "2024-02-28"
+description: "对比现代状态管理方案：Server Components、React Context、Zustand，以及各自的适用场景。"
+tags: ["React", "架构", "状态管理"]
+---
+
+## 格局已经变了
+
+React Server Components 从根本上改变了状态的归属。「一切都是客户端状态」的旧心智模型不再适用。
+
+核心洞察：**大部分状态已经不属于客户端了。**
+
+## 决策框架
+
+在引入任何库之前,先给状态分类：
+
+```
+是服务端数据？         → RSC + fetch（零打包体积）
+在 URL 里？           → useSearchParams（可分享）
+是表单？              → useFormState（渐进式）
+是局部 UI？           → useState（够简单）
+跨 3+ 组件共享？      → Zustand（够轻量）
+复杂且全局？          → 考虑 Zustand slices
+```
+
+## Server Components：默认选择
+
+在 Next.js App Router 里，组件默认就是服务端的：
+
+```tsx
+// 这个组件不会给客户端发送任何 JavaScript
+async function UserProfile({ id }: { id: string }) {
+  const user = await db.user.findUnique({ where: { id } });
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
+    </div>
+  );
+}
+```
+
+没有 `useEffect`，没有加载状态，没有过期缓存。数据永远是新鲜的，因为它在请求时在服务端运行。
+
+## URL 状态：被低估的模式
+
+```tsx
+'use client';
+
+import { useSearchParams, useRouter } from 'next/navigation';
+
+function Filters() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const setFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(key, value);
+    router.push(`?${params.toString()}`);
+  };
+
+  return (
+    <div>
+      <button onClick={() => setFilter('category', 'tech')}>
+        科技
+      </button>
+    </div>
+  );
+}
+```
+
+URL 状态可以分享、可以书签、可以前进后退。很多情况下，它比 Redux 更合适。
+
+## Zustand：够用的全局状态
+
+当真的需要跨组件共享状态时，Zustand 是最轻量的选择：
+
+```tsx
+import { create } from 'zustand';
+
+const useStore = create((set) => ({
+  theme: 'dark',
+  setTheme: (theme: string) => set({ theme }),
+}));
+
+function ThemeToggle() {
+  const { theme, setTheme } = useStore();
+  return <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}>切换</button>;
+}
+```
+
+零模板代码，零 Provider 嵌套，就这么简单。
+
+## 实战建议
+
+1. **默认用 Server Components** — 90% 的「状态」其实是服务端数据。
+2. **能用 URL 就别存客户端** — 过滤器、分页、排序都适合放 URL。
+3. **Context 只用于依赖注入** — 别用它做数据缓存。
+4. **Zustand 够轻，别想复杂了** — 大部分应用根本不需要 Redux 的复杂度。
+5. **状态要分层** — 服务端、URL、客户端全局、组件局部，各司其职。

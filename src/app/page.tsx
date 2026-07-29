@@ -1,42 +1,28 @@
 import Link from "next/link";
-import { GradientText } from "@/components/effects/GradientText";
+import { getTranslations } from "next-intl/server";
 import { BlogCard } from "@/components/BlogCard";
-import { Hyperspeed } from "@/components/effects/Hyperspeed";
 import { Navbar } from "@/components/Navbar";
+import { getAllPosts } from "@/lib/posts";
+import GradientText from "@/components/reactbits/GradientText";
+import Galaxy from "@/components/reactbits/Galaxy";
 
-const posts = [
-  {
-    slug: "building-modern-ai-interfaces",
-    title: "Building Modern AI Interfaces",
-    description:
-      "Exploring patterns for integrating LLMs into production web applications with streaming, error handling, and user feedback.",
-    date: "2024-03-15",
-    tags: ["AI", "React", "System Design"],
-  },
-  {
-    slug: "frontend-performance-optimization",
-    title: "Frontend Performance Optimization",
-    description:
-      "A deep dive into modern web performance: Core Web Vitals, lazy loading, code splitting, and real-world measurement strategies.",
-    date: "2024-03-08",
-    tags: ["Performance", "Next.js", "Web Vitals"],
-  },
-  {
-    slug: "state-management-in-2024",
-    title: "State Management in 2024",
-    description:
-      "Comparing modern state management approaches: Server Components, React Context, Zustand, and when to use each pattern.",
-    date: "2024-02-28",
-    tags: ["React", "Architecture", "State Management"],
-  },
-];
+export default async function HomePage() {
+  const t = await getTranslations("home");
+  const tFooter = await getTranslations("footer");
+  const posts = (await getAllPosts()).slice(0, 3);
 
-export default function HomePage() {
   return (
     <main className="relative min-h-screen">
-      {/* 背景动效 */}
-      <div className="fixed inset-0 -z-10 opacity-30">
-        <Hyperspeed />
+      {/* Galaxy Background */}
+      <div className="fixed inset-0 -z-10 opacity-40">
+        <Galaxy
+          mouseInteraction
+          mouseRepulsion
+          repulsionStrength={0.15}
+          density={6000}
+          glowIntensity={0.8}
+          twinkleIntensity={0.6}
+        />
       </div>
 
       <Navbar />
@@ -46,22 +32,20 @@ export default function HomePage() {
         <div className="mx-auto max-w-4xl">
           <div className="mb-6 opacity-0 animate-fade-in">
             <span className="text-sm font-medium text-[var(--accent)]">
-              Frontend Engineer
+              {t("role")}
             </span>
           </div>
 
           <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight opacity-0 animate-fade-in-up stagger-1 md:text-6xl lg:text-7xl">
             <GradientText>
-              Building interfaces
+              {t("heroTitleLine1")}
               <br />
-              that feel alive
+              {t("heroTitleLine2")}
             </GradientText>
           </h1>
 
           <p className="mb-8 max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)] opacity-0 animate-fade-in-up stagger-2">
-            I craft interactive web experiences at the intersection of AI,
-            design, and engineering. Currently exploring how Large Language
-            Models reshape user interaction patterns.
+            {t("heroSubtitle")}
           </p>
 
           <div className="flex gap-4 opacity-0 animate-fade-in-up stagger-3">
@@ -69,23 +53,23 @@ export default function HomePage() {
               href="/blog"
               className="rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-[var(--accent)]/20"
             >
-              Read Articles
+              {t("readArticles")}
             </Link>
             <Link
               href="/about"
               className="rounded-lg border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
             >
-              About Me
+              {t("aboutMe")}
             </Link>
           </div>
         </div>
       </section>
 
-      {/* 开源项目 */}
+      {/* Open Source */}
       <section className="relative px-6 py-16">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-8 text-3xl font-bold tracking-tight">
-            Open Source
+            {t("openSource")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
             <a
@@ -99,7 +83,7 @@ export default function HomePage() {
                 <span className="font-semibold group-hover:text-[var(--accent)] transition-colors">codex-keysmith</span>
               </div>
               <p className="mb-3 text-sm text-[var(--text-secondary)]">
-                Enterprise-grade key management for Codex CLI
+                {t("projects.codex")}
               </p>
               <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
                 <span className="flex items-center gap-1">
@@ -125,7 +109,7 @@ export default function HomePage() {
                 <span className="font-semibold group-hover:text-[var(--accent)] transition-colors">claude-keysmith</span>
               </div>
               <p className="mb-3 text-sm text-[var(--text-secondary)]">
-                Secure key management for Claude Code CLI
+                {t("projects.claude")}
               </p>
               <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
                 <span className="flex items-center gap-1">
@@ -151,7 +135,7 @@ export default function HomePage() {
                 <span className="font-semibold group-hover:text-[var(--accent)] transition-colors">pavedpath-code</span>
               </div>
               <p className="mb-3 text-sm text-[var(--text-secondary)]">
-                AI-powered development workflow framework
+                {t("projects.pavedpath")}
               </p>
               <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
                 <span className="flex items-center gap-1">
@@ -177,7 +161,7 @@ export default function HomePage() {
                 <span className="font-semibold group-hover:text-[var(--accent)] transition-colors">grok-keysmith</span>
               </div>
               <p className="mb-3 text-sm text-[var(--text-secondary)]">
-                Key management for Grok CLI tools
+                {t("projects.grok")}
               </p>
               <div className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
                 <span className="flex items-center gap-1">
@@ -195,11 +179,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* 文章列表 */}
+      {/* Recent Articles */}
       <section className="relative px-6 py-20">
         <div className="mx-auto max-w-4xl">
           <h2 className="mb-12 text-3xl font-bold tracking-tight">
-            Recent Articles
+            {t("recentArticles")}
           </h2>
 
           <div className="space-y-6">
@@ -221,7 +205,7 @@ export default function HomePage() {
       {/* Footer */}
       <footer className="relative border-t border-[var(--border)] px-6 py-12">
         <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© 2024 Pier. Built with Next.js, React, and Tailwind CSS.</p>
+          <p>© 2024 Pier. {tFooter("builtWith")}</p>
         </div>
       </footer>
     </main>
