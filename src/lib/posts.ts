@@ -106,3 +106,32 @@ export function getAllSlugs(): string[] {
   
   return Array.from(slugSet);
 }
+
+/**
+ * Locale-explicit post loader for contexts outside the next-intl request
+ * scope (RSS feeds, static generation). Falls back: locale -> en -> legacy.
+ */
+export function getPostsForLocale(locale: "en" | "zh"): BlogPost[] {
+  return getAllSlugs()
+    .map((slug) => {
+      const candidates = [
+        path.join(contentDir, `${slug}.${locale}.mdx`),
+        path.join(contentDir, `${slug}.en.mdx`),
+        path.join(contentDir, `${slug}.mdx`),
+      ];
+      const file = candidates.find((p) => fs.existsSync(p));
+      if (!file) return null;
+
+      const { data, content } = matter(fs.readFileSync(file, "utf-8"));
+      return {
+        slug,
+        title: data.title || slug,
+        date: data.date || "1970-01-01",
+        description: data.description || "",
+        tags: data.tags || [],
+        content,
+      } as BlogPost;
+    })
+    .filter((p): p is BlogPost => p !== null)
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+}

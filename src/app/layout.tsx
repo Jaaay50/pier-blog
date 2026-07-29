@@ -31,6 +31,14 @@ export const metadata: Metadata = {
   title: "Pier — Frontend Engineer",
   description:
     "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",
+  alternates: {
+    types: {
+      "application/rss+xml": [
+        { url: "/feed.xml", title: "Ethan Pier — Blog (English)" },
+        { url: "/feed-zh.xml", title: "Ethan Pier — 博客（中文）" },
+      ],
+    },
+  },
   openGraph: {
     title: "Pier — Frontend Engineer",
     description:
