@@ -3,7 +3,8 @@ import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { getPostBySlug, getAllSlugs } from "@/lib/posts";
-import { MDXContent } from "@/components/MDXContent";
+import { compileMDXWithHeadings } from "@/components/MDXContent";
+import { TableOfContents } from "@/components/TableOfContents";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -19,13 +20,16 @@ export default async function BlogPostPage({ params }: PageProps) {
     notFound();
   }
 
+  const { content, headings } = await compileMDXWithHeadings(post.content);
+
   return (
     <main className="min-h-screen">
       <Navbar />
 
-      {/* Article */}
-      <article className="px-6 py-16">
-        <div className="mx-auto max-w-3xl">
+      {/* Article + TOC 双栏布局 */}
+      <div className="mx-auto flex max-w-6xl gap-8 px-6 py-16">
+        <article className="min-w-0 flex-1">
+          <div className="mx-auto max-w-3xl">
           {/* Header */}
           <header className="mb-12">
             <div className="mb-4 flex items-center gap-3 text-sm text-[var(--text-muted)]">
@@ -60,11 +64,22 @@ export default async function BlogPostPage({ params }: PageProps) {
           </header>
 
           {/* MDX Content */}
-          <div className="prose max-w-none">
-            <MDXContent source={post.content} />
+          <div className="prose max-w-none">{content}</div>
+          </div>
+        </article>
+
+        {/* TOC 侧边栏（桌面端 sticky，移动端悬浮按钮） */}
+        <div className="hidden w-64 shrink-0 lg:block">
+          <div className="sticky top-24">
+            <TableOfContents headings={headings} />
           </div>
         </div>
-      </article>
+      </div>
+
+      {/* 移动端 TOC（悬浮） */}
+      <div className="lg:hidden">
+        <TableOfContents headings={headings} />
+      </div>
 
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">
