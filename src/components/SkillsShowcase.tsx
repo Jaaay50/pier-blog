@@ -116,7 +116,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
                     particleColors={
                       isDark
                         ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
-                        : ["#d97757", "#d4a27f", "#c6613f"]
+                        : ["#d97757", "#d4a27f", "#3d3d3a"]
                     }
                     moveParticlesOnHover
                     particleHoverFactor={2}
@@ -204,7 +204,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
                 <div className="flex gap-2">
                   {(isDark
                     ? ["#0f0f0f", "#1a1a1a", "#6a9bcc", "#8b7fcc", "#f5f5f5"]
-                    : ["#faf9f5", "#f0eee6", "#d97757", "#d4a27f", "#141413"]
+                    : ["#faf9f5", "#f0eee6", "#d97757", "#d4a27f", "#3d3d3a"]
                   ).map((c, i) => (
                     <motion.span
                       key={c}

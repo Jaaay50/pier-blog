@@ -10,7 +10,6 @@ import BlurText from "@/components/reactbits/BlurText";
 import ShinyText from "@/components/reactbits/ShinyText";
 
 interface ImmersiveHeroProps {
-  role: string;
   titleLine1: string;
   titleLine2: string;
   subtitle: string;
@@ -25,7 +24,6 @@ interface ImmersiveHeroProps {
  * - 滚动视差：滚出首屏时标题上浮淡出
  */
 export function ImmersiveHero({
-  role,
   titleLine1,
   titleLine2,
   subtitle,
@@ -85,18 +83,6 @@ export function ImmersiveHero({
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ y: contentY, opacity: contentOpacity }}
       >
-        {/* 角色标签 */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2 }}
-          className="mb-8"
-        >
-          <span className="rounded-full border border-[var(--border)] bg-[var(--bg-card)]/60 px-4 py-1.5 text-sm font-medium tracking-wide text-[var(--accent)] backdrop-blur-md">
-            {role}
-          </span>
-        </motion.div>
-
         {/* 主标题：深色逐字解密 / 浅色逐字模糊揭示 */}
         <h1 className="font-display mb-8 text-5xl leading-[1.1] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
           {!mounted ? (
@@ -163,9 +149,13 @@ export function ImmersiveHero({
               className="text-lg leading-relaxed md:text-xl"
             />
           ) : (
-            <p className="font-display text-lg leading-relaxed text-[var(--text-secondary)] md:text-xl">
-              {subtitle}
-            </p>
+            <ShinyText
+              text={subtitle}
+              speed={3}
+              color="#5e5d59"
+              shineColor="#d97757"
+              className="text-lg leading-relaxed md:text-xl"
+            />
           )}
         </motion.div>
 

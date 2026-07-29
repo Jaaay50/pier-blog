@@ -17,7 +17,6 @@ export default async function HomePage() {
 
       {/* 第一屏：全屏沉浸式 Hero */}
       <ImmersiveHero
-        role={t("role")}
         titleLine1={t("heroTitleLine1")}
         titleLine2={t("heroTitleLine2")}
         subtitle={t("heroSubtitle")}
