@@ -2,9 +2,9 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { BlogCard } from "@/components/BlogCard";
 import { Navbar } from "@/components/Navbar";
+import { HeroBackground } from "@/components/HeroBackground";
+import { ThemedGradientText } from "@/components/ThemedGradientText";
 import { getAllPosts } from "@/lib/posts";
-import GradientText from "@/components/reactbits/GradientText";
-import Galaxy from "@/components/reactbits/Galaxy";
 
 export default async function HomePage() {
   const t = await getTranslations("home");
@@ -13,17 +13,8 @@ export default async function HomePage() {
 
   return (
     <main className="relative min-h-screen">
-      {/* Galaxy Background */}
-      <div className="fixed inset-0 -z-10 opacity-40">
-        <Galaxy
-          mouseInteraction
-          mouseRepulsion
-          repulsionStrength={0.15}
-          density={6000}
-          glowIntensity={0.8}
-          twinkleIntensity={0.6}
-        />
-      </div>
+      {/* 双模式背景：深色 Galaxy / 浅色 Aurora */}
+      <HeroBackground />
 
       <Navbar />
 
@@ -36,12 +27,12 @@ export default async function HomePage() {
             </span>
           </div>
 
-          <h1 className="mb-6 text-5xl font-bold leading-tight tracking-tight opacity-0 animate-fade-in-up stagger-1 md:text-6xl lg:text-7xl">
-            <GradientText>
+          <h1 className="font-display mb-6 text-5xl leading-tight tracking-tight opacity-0 animate-fade-in-up stagger-1 md:text-6xl lg:text-7xl">
+            <ThemedGradientText>
               {t("heroTitleLine1")}
               <br />
               {t("heroTitleLine2")}
-            </GradientText>
+            </ThemedGradientText>
           </h1>
 
           <p className="mb-8 max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)] opacity-0 animate-fade-in-up stagger-2">
@@ -51,13 +42,13 @@ export default async function HomePage() {
           <div className="flex gap-4 opacity-0 animate-fade-in-up stagger-3">
             <Link
               href="/blog"
-              className="rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)] hover:shadow-lg hover:shadow-[var(--accent)]/20"
+              className="btn-primary rounded-xl px-6 py-3 font-medium"
             >
               {t("readArticles")}
             </Link>
             <Link
               href="/about"
-              className="rounded-lg border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
+              className="rounded-xl border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
             >
               {t("aboutMe")}
             </Link>
@@ -68,7 +59,7 @@ export default async function HomePage() {
       {/* Open Source */}
       <section className="relative px-6 py-16">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-3xl font-bold tracking-tight">
+          <h2 className="font-display mb-8 text-3xl font-semibold tracking-tight">
             {t("openSource")}
           </h2>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -76,7 +67,7 @@ export default async function HomePage() {
               href="https://github.com/Jia-Ethan/codex-keysmith"
               target="_blank"
               rel="noopener noreferrer"
-              className="group rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)]"
+              className="group card-interactive rounded-xl p-5"
             >
               <div className="mb-2 flex items-center gap-2">
                 <svg className="h-4 w-4 text-[var(--text-muted)]" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"/></svg>
@@ -102,7 +93,7 @@ export default async function HomePage() {
               href="https://github.com/Jia-Ethan/claude-keysmith"
               target="_blank"
               rel="noopener noreferrer"
-              className="group rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)]"
+              className="group card-interactive rounded-xl p-5"
             >
               <div className="mb-2 flex items-center gap-2">
                 <svg className="h-4 w-4 text-[var(--text-muted)]" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"/></svg>
@@ -128,7 +119,7 @@ export default async function HomePage() {
               href="https://github.com/Jia-Ethan/pavedpath-code"
               target="_blank"
               rel="noopener noreferrer"
-              className="group rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)]"
+              className="group card-interactive rounded-xl p-5"
             >
               <div className="mb-2 flex items-center gap-2">
                 <svg className="h-4 w-4 text-[var(--text-muted)]" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"/></svg>
@@ -154,7 +145,7 @@ export default async function HomePage() {
               href="https://github.com/Jia-Ethan/grok-keysmith"
               target="_blank"
               rel="noopener noreferrer"
-              className="group rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)]"
+              className="group card-interactive rounded-xl p-5"
             >
               <div className="mb-2 flex items-center gap-2">
                 <svg className="h-4 w-4 text-[var(--text-muted)]" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2.5A2.5 2.5 0 0 1 4.5 0h8.75a.75.75 0 0 1 .75.75v12.5a.75.75 0 0 1-.75.75h-2.5a.75.75 0 0 1 0-1.5h1.75v-2h-8a1 1 0 0 0-.714 1.7.75.75 0 1 1-1.072 1.05A2.495 2.495 0 0 1 2 11.5Zm10.5-1h-8a1 1 0 0 0-1 1v6.708A2.486 2.486 0 0 1 4.5 9h8ZM5 12.25a.25.25 0 0 1 .25-.25h3.5a.25.25 0 0 1 .25.25v3.25a.25.25 0 0 1-.4.2l-1.45-1.087a.249.249 0 0 0-.3 0L5.4 15.7a.25.25 0 0 1-.4-.2Z"/></svg>
@@ -182,7 +173,7 @@ export default async function HomePage() {
       {/* Recent Articles */}
       <section className="relative px-6 py-20">
         <div className="mx-auto max-w-4xl">
-          <h2 className="mb-12 text-3xl font-bold tracking-tight">
+          <h2 className="font-display mb-12 text-3xl font-semibold tracking-tight">
             {t("recentArticles")}
           </h2>
 

@@ -1,29 +1,64 @@
 @import "tailwindcss";
 
+/* ============================================
+   Pier Blog — 双模式 Design System
+   浅色 = Claude（暖纸张、人文、衬线）
+   深色 = Kimi（深空、科技、流光）
+   ============================================ */
+
 :root {
-  --bg-primary: #ffffff;
-  --bg-secondary: #f8f9fa;
-  --bg-card: #f1f3f5;
-  --text-primary: #111111;
-  --text-secondary: #4a4a4a;
-  --text-muted: #8b8b8b;
-  --accent: #2563eb;
-  --accent-hover: #3b82f6;
-  --border: #e5e5e5;
-  --border-hover: #d4d4d4;
+  /* ---- Claude Light: 暖纸张 ---- */
+  --bg-primary: #faf9f5;      /* Ivory canvas */
+  --bg-secondary: #f0eee6;    /* Ivory medium */
+  --bg-card: #f0eee6;         /* Card surface */
+  --bg-elevated: #e8e6dc;     /* Elevated surface */
+
+  --text-primary: #141413;    /* Warm ink */
+  --text-secondary: #3d3d3a;  /* Body */
+  --text-muted: #87867f;      /* Cloud dark */
+
+  --accent: #d97757;          /* Clay */
+  --accent-hover: #c6613f;    /* Clay deep */
+  --accent-soft: rgba(217, 119, 87, 0.1);
+
+  --border: #dedcd1;          /* Hairline soft */
+  --border-hover: #d1cfc5;    /* Hairline */
+
+  /* 语义化模式变量 */
+  --glow-color: rgba(217, 119, 87, 0.12);
+  --shadow-card: 0 2px 8px rgba(20, 20, 19, 0.06);
+  --shadow-card-hover: 0 8px 24px rgba(20, 20, 19, 0.1);
+  --gradient-brand: linear-gradient(135deg, #d97757 0%, #c6613f 50%, #d4a27f 100%);
+
+  /* 字体角色 */
+  --font-display: var(--font-serif), Georgia, "Source Serif 4", serif;
+  --font-ui: var(--font-inter), -apple-system, sans-serif;
 }
 
 .dark {
-  --bg-primary: #0a0a0a;
-  --bg-secondary: #111111;
-  --bg-card: #161616;
-  --text-primary: #ededed;
+  /* ---- Kimi Dark: 深空科技 ---- */
+  --bg-primary: #0f0f0f;      /* Deep space */
+  --bg-secondary: #161616;
+  --bg-card: #1a1a1a;
+  --bg-elevated: #252525;
+
+  --text-primary: #f5f5f5;
   --text-secondary: #a1a1a1;
   --text-muted: #6b6b6b;
-  --accent: #3b82f6;
-  --accent-hover: #60a5fa;
+
+  --accent: #6a9bcc;          /* Tech blue */
+  --accent-hover: #8ab4dd;
+  --accent-soft: rgba(106, 155, 204, 0.12);
+
   --border: #222222;
   --border-hover: #333333;
+
+  --glow-color: rgba(106, 155, 204, 0.25);
+  --shadow-card: 0 0 0 transparent;
+  --shadow-card-hover: 0 0 24px var(--glow-color);
+  --gradient-brand: linear-gradient(135deg, #6a9bcc 0%, #8b7fcc 50%, #a78bfa 100%);
+
+  /* 深色下 display 仍用衬线，但由组件层控制字重 */
 }
 
 * {
@@ -37,15 +72,26 @@ html {
 body {
   background-color: var(--bg-primary);
   color: var(--text-primary);
-  font-family: var(--font-inter), "SF Pro Display", -apple-system, BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font-family: var(--font-ui), "SF Pro Display", BlinkMacSystemFont, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  transition: background-color 0.3s, color 0.3s;
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+/* Display 层级：浅色衬线 400（Claude 编辑风），深色衬线 500（适配暗底） */
+.font-display {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+.dark .font-display {
+  font-weight: 500;
 }
 
 ::selection {
   background: var(--accent);
-  color: white;
+  color: var(--bg-primary);
 }
 
 /* Scrollbar */
@@ -66,19 +112,72 @@ body {
   background: var(--text-muted);
 }
 
+/* ============================================
+   卡片交互：浅色 lift + shadow（Claude），
+   深色 glow（Kimi）
+   ============================================ */
+.card-interactive {
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
+}
+
+.card-interactive:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateY(-3px);
+}
+
+.dark .card-interactive:hover {
+  transform: translateY(-1px) scale(1.01);
+}
+
+/* CTA 按钮：浅色纯色（Claude 克制），深色带 glow（Kimi 流光） */
+.btn-primary {
+  background: var(--accent);
+  color: #ffffff;
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+  transform: scale(1.02);
+}
+
+.dark .btn-primary:hover {
+  box-shadow: 0 0 20px var(--glow-color);
+}
+
 /* Prose for blog content */
 .prose {
   --tw-prose-body: var(--text-primary);
   --tw-prose-headings: var(--text-primary);
   --tw-prose-links: var(--accent);
   --tw-prose-code: var(--accent-hover);
-  line-height: 1.8;
+  line-height: 1.75;
+}
+
+/* 浅色模式正文用衬线（Claude 阅读体验），深色保持无衬线（Kimi 屏显） */
+.prose p,
+.prose li,
+.prose blockquote {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+}
+
+.dark .prose p,
+.dark .prose li,
+.dark .prose blockquote {
+  font-family: var(--font-ui);
+  font-size: 1rem;
 }
 
 .prose h1,
 .prose h2,
 .prose h3,
 .prose h4 {
+  font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.02em;
 }
@@ -96,7 +195,7 @@ body {
 /* Code blocks from rehype-pretty-code */
 [data-rehype-pretty-code-figure] pre {
   overflow-x: auto;
-  border-radius: 8px;
+  border-radius: 12px;
   border: 1px solid var(--border);
   padding: 1.25rem;
   margin: 1.5rem 0;
@@ -114,11 +213,13 @@ body {
 }
 
 [data-rehype-pretty-code-figure] [data-highlighted-line] {
-  background: rgba(59, 130, 246, 0.1);
+  background: var(--accent-soft);
   border-left-color: var(--accent);
 }
 
-/* Animations */
+/* ============================================
+   动画：浅色从容（Claude），深色利落（Kimi）
+   ============================================ */
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -141,15 +242,25 @@ body {
 }
 
 .animate-fade-in-up {
-  animation: fadeInUp 0.6s ease-out forwards;
+  animation: fadeInUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.dark .animate-fade-in-up {
+  animation-duration: 0.6s;
 }
 
 .animate-fade-in {
-  animation: fadeIn 0.4s ease-out forwards;
+  animation: fadeIn 0.5s ease-out forwards;
 }
 
 .stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-.stagger-5 { animation-delay: 0.5s; }
+.stagger-2 { animation-delay: 0.25s; }
+.stagger-3 { animation-delay: 0.4s; }
+.stagger-4 { animation-delay: 0.55s; }
+.stagger-5 { animation-delay: 0.7s; }
+
+.dark .stagger-1 { animation-delay: 0.05s; }
+.dark .stagger-2 { animation-delay: 0.15s; }
+.dark .stagger-3 { animation-delay: 0.25s; }
+.dark .stagger-4 { animation-delay: 0.35s; }
+.dark .stagger-5 { animation-delay: 0.45s; }
