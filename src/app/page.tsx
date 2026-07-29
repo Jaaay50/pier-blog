@@ -2,8 +2,8 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { BlogCard } from "@/components/BlogCard";
 import { Navbar } from "@/components/Navbar";
-import { HeroBackground } from "@/components/HeroBackground";
-import { ThemedGradientText } from "@/components/ThemedGradientText";
+import { ImmersiveHero } from "@/components/ImmersiveHero";
+import { SkillsShowcase } from "@/components/SkillsShowcase";
 import { getAllPosts } from "@/lib/posts";
 
 export default async function HomePage() {
@@ -13,48 +13,49 @@ export default async function HomePage() {
 
   return (
     <main className="relative min-h-screen">
-      {/* 双模式背景：深色 Galaxy / 浅色 Aurora */}
-      <HeroBackground />
-
       <Navbar />
 
-      {/* Hero Section */}
-      <section className="relative px-6 py-32">
-        <div className="mx-auto max-w-4xl">
-          <div className="mb-6 opacity-0 animate-fade-in">
-            <span className="text-sm font-medium text-[var(--accent)]">
-              {t("role")}
-            </span>
-          </div>
+      {/* 第一屏：全屏沉浸式 Hero */}
+      <ImmersiveHero
+        role={t("role")}
+        titleLine1={t("heroTitleLine1")}
+        titleLine2={t("heroTitleLine2")}
+        subtitle={t("heroSubtitle")}
+        scrollHint={t("scrollHint")}
+      >
+        <Link
+          href="/blog"
+          className="btn-primary rounded-xl px-6 py-3 font-medium"
+        >
+          {t("readArticles")}
+        </Link>
+        <Link
+          href="/about"
+          className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/60 px-6 py-3 font-medium backdrop-blur-md transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
+        >
+          {t("aboutMe")}
+        </Link>
+      </ImmersiveHero>
 
-          <h1 className="font-display mb-6 text-5xl leading-tight tracking-tight opacity-0 animate-fade-in-up stagger-1 md:text-6xl lg:text-7xl">
-            <ThemedGradientText>
-              {t("heroTitleLine1")}
-              <br />
-              {t("heroTitleLine2")}
-            </ThemedGradientText>
-          </h1>
-
-          <p className="mb-8 max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)] opacity-0 animate-fade-in-up stagger-2">
-            {t("heroSubtitle")}
-          </p>
-
-          <div className="flex gap-4 opacity-0 animate-fade-in-up stagger-3">
-            <Link
-              href="/blog"
-              className="btn-primary rounded-xl px-6 py-3 font-medium"
-            >
-              {t("readArticles")}
-            </Link>
-            <Link
-              href="/about"
-              className="rounded-xl border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
-            >
-              {t("aboutMe")}
-            </Link>
-          </div>
-        </div>
-      </section>
+      {/* 第二屏：技能展示（活动效 demo 卡片） */}
+      <SkillsShowcase
+        title={t("skillsTitle")}
+        subtitle={t("skillsSubtitle")}
+        skills={{
+          webgl: {
+            title: t("skills.webgl.title"),
+            desc: t("skills.webgl.desc"),
+          },
+          motion: {
+            title: t("skills.motion.title"),
+            desc: t("skills.motion.desc"),
+          },
+          craft: {
+            title: t("skills.craft.title"),
+            desc: t("skills.craft.desc"),
+          },
+        }}
+      />
 
       {/* Open Source */}
       <section className="relative px-6 py-16">

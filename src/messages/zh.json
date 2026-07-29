@@ -19,6 +19,23 @@
       "claude": "Claude Code CLI 的安全密钥管理",
       "pavedpath": "AI 驱动的开发工作流框架",
       "grok": "Grok CLI 工具的密钥管理"
+    },
+    "scrollHint": "向下滚动",
+    "skillsTitle": "不只是写代码",
+    "skillsSubtitle": "每一张卡片都是一个运行中的动效引擎",
+    "skills": {
+      "webgl": {
+        "title": "WebGL 粒子系统",
+        "desc": "实时渲染数千粒子，鼠标交互驱动的物理斥力场"
+      },
+      "motion": {
+        "title": "动效工程",
+        "desc": "GSAP + Motion 驱动的滚动叙事与微交互"
+      },
+      "craft": {
+        "title": "像素级打磨",
+        "desc": "设计系统、主题切换、暗色美学与可访问性"
+      }
     }
   },
   "blog": {

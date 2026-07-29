@@ -19,6 +19,23 @@
       "claude": "Secure key management for Claude Code CLI",
       "pavedpath": "AI-powered development workflow framework",
       "grok": "Key management for Grok CLI tools"
+    },
+    "scrollHint": "Scroll to explore",
+    "skillsTitle": "More Than Just Code",
+    "skillsSubtitle": "Every card below is a live motion engine",
+    "skills": {
+      "webgl": {
+        "title": "WebGL Particles",
+        "desc": "Thousands of particles in real time, driven by mouse repulsion physics"
+      },
+      "motion": {
+        "title": "Motion Engineering",
+        "desc": "Scroll-driven storytelling and micro-interactions with GSAP + Motion"
+      },
+      "craft": {
+        "title": "Pixel-Perfect Craft",
+        "desc": "Design systems, theming, dark aesthetics and accessibility"
+      }
     }
   },
   "blog": {

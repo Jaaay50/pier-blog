@@ -1,0 +1,236 @@
+"use client";
+
+import { useTheme } from "next-themes";
+import { useEffect, useRef, useState } from "react";
+import { motion, useInView } from "motion/react";
+import SpotlightCard from "@/components/reactbits/SpotlightCard";
+import Particles from "@/components/reactbits/Particles";
+import Aurora from "@/components/reactbits/Aurora";
+import GradientText from "@/components/reactbits/GradientText";
+import BlurText from "@/components/reactbits/BlurText";
+
+interface Skill {
+  title: string;
+  desc: string;
+}
+
+interface SkillsShowcaseProps {
+  title: string;
+  subtitle: string;
+  skills: {
+    webgl: Skill;
+    motion: Skill;
+    craft: Skill;
+  };
+}
+
+/**
+ * 第二屏：技能展示
+ * 3 张 SpotlightCard，每张内嵌一个「活的」动效 demo：
+ * 1. WebGL 粒子 — 卡片内跑实时 Particles
+ * 2. 动效工程 — 卡片内跑 Aurora 流光
+ * 3. 像素级打磨 — 迷你双主题切换 demo
+ * 滚动进入视口时 3D 飞入（rotateX + translateY + stagger）
+ */
+export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps) {
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  const sectionRef = useRef<HTMLDivElement>(null);
+  const inView = useInView(sectionRef, { once: true, margin: "-20% 0px" });
+
+  useEffect(() => setMounted(true), []);
+  const isDark = mounted && resolvedTheme === "dark";
+
+  const spotlight = isDark
+    ? ("rgba(106, 155, 204, 0.22)" as const)
+    : ("rgba(217, 119, 87, 0.18)" as const);
+
+  const cardVariants = {
+    hidden: { opacity: 0, y: 120, rotateX: 18, scale: 0.92 },
+    show: (i: number) => ({
+      opacity: 1,
+      y: 0,
+      rotateX: 0,
+      scale: 1,
+      transition: {
+        duration: 0.9,
+        delay: i * 0.18,
+        ease: [0.22, 1, 0.36, 1] as const,
+      },
+    }),
+  };
+
+  return (
+    <section
+      ref={sectionRef}
+      className="relative flex min-h-screen items-center px-6 py-24"
+    >
+      <div className="mx-auto w-full max-w-6xl">
+        {/* 标题 */}
+        <div className="mb-16 text-center">
+          <h2 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
+            {inView ? (
+              <BlurText
+                text={title}
+                delay={60}
+                animateBy="letters"
+                direction="top"
+                className="justify-center"
+              />
+            ) : (
+              <span className="opacity-0">{title}</span>
+            )}
+          </h2>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={inView ? { opacity: 1 } : {}}
+            transition={{ delay: 0.6, duration: 0.8 }}
+            className="text-[var(--text-muted)]"
+          >
+            {subtitle}
+          </motion.p>
+        </div>
+
+        {/* 3D 飞入卡片，透视容器 */}
+        <div
+          className="grid gap-6 md:grid-cols-3"
+          style={{ perspective: "1200px" }}
+        >
+          {/* Card 1: WebGL 粒子（活 demo） */}
+          <motion.div
+            custom={0}
+            variants={cardVariants}
+            initial="hidden"
+            animate={inView ? "show" : "hidden"}
+          >
+            <SpotlightCard
+              spotlightColor={spotlight}
+              className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
+            >
+              <div className="relative h-44 overflow-hidden">
+                {mounted && (
+                  <Particles
+                    particleCount={160}
+                    particleSpread={8}
+                    speed={0.25}
+                    particleColors={
+                      isDark
+                        ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
+                        : ["#d97757", "#d4a27f", "#c6613f"]
+                    }
+                    moveParticlesOnHover
+                    particleHoverFactor={2}
+                    particleBaseSize={80}
+                    alphaParticles
+                    className="absolute inset-0"
+                  />
+                )}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[var(--bg-card)] to-transparent" />
+              </div>
+              <div className="p-6">
+                <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">
+                  {skills.webgl.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+                  {skills.webgl.desc}
+                </p>
+              </div>
+            </SpotlightCard>
+          </motion.div>
+
+          {/* Card 2: 动效工程（Aurora 活 demo） */}
+          <motion.div
+            custom={1}
+            variants={cardVariants}
+            initial="hidden"
+            animate={inView ? "show" : "hidden"}
+            className="md:-translate-y-6"
+          >
+            <SpotlightCard
+              spotlightColor={spotlight}
+              className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
+            >
+              <div className="relative h-44 overflow-hidden">
+                {mounted && (
+                  <div className="absolute inset-0">
+                    <Aurora
+                      colorStops={
+                        isDark
+                          ? ["#6a9bcc", "#8b7fcc", "#a78bfa"]
+                          : ["#d97757", "#e8c4a0", "#c6613f"]
+                      }
+                      amplitude={1.4}
+                      blend={0.8}
+                    />
+                  </div>
+                )}
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[var(--bg-card)] to-transparent" />
+              </div>
+              <div className="p-6">
+                <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">
+                  {skills.motion.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+                  {skills.motion.desc}
+                </p>
+              </div>
+            </SpotlightCard>
+          </motion.div>
+
+          {/* Card 3: 像素级打磨（GradientText + 微型色板 demo） */}
+          <motion.div
+            custom={2}
+            variants={cardVariants}
+            initial="hidden"
+            animate={inView ? "show" : "hidden"}
+          >
+            <SpotlightCard
+              spotlightColor={spotlight}
+              className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
+            >
+              <div className="relative flex h-44 flex-col items-center justify-center gap-4 overflow-hidden">
+                <GradientText
+                  colors={
+                    isDark
+                      ? ["#6a9bcc", "#8b7fcc", "#a78bfa", "#6a9bcc"]
+                      : ["#d97757", "#c6613f", "#d4a27f", "#d97757"]
+                  }
+                  animationSpeed={4}
+                  className="text-3xl font-bold"
+                >
+                  Aa
+                </GradientText>
+                {/* 微型色板：hover 时依次点亮 */}
+                <div className="flex gap-2">
+                  {(isDark
+                    ? ["#0f0f0f", "#1a1a1a", "#6a9bcc", "#8b7fcc", "#f5f5f5"]
+                    : ["#faf9f5", "#f0eee6", "#d97757", "#d4a27f", "#141413"]
+                  ).map((c, i) => (
+                    <motion.span
+                      key={c}
+                      className="h-6 w-6 rounded-full border border-[var(--border)]"
+                      style={{ backgroundColor: c }}
+                      initial={{ scale: 0 }}
+                      animate={inView ? { scale: 1 } : {}}
+                      transition={{ delay: 1 + i * 0.1, type: "spring", stiffness: 300 }}
+                      whileHover={{ scale: 1.35, y: -4 }}
+                    />
+                  ))}
+                </div>
+                <div className="pointer-events-none absolute inset-x-0 bottom-0 h-10 bg-gradient-to-t from-[var(--bg-card)] to-transparent" />
+              </div>
+              <div className="p-6">
+                <h3 className="mb-2 text-lg font-semibold text-[var(--text-primary)]">
+                  {skills.craft.title}
+                </h3>
+                <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+                  {skills.craft.desc}
+                </p>
+              </div>
+            </SpotlightCard>
+          </motion.div>
+        </div>
+      </div>
+    </section>
+  );
+}
