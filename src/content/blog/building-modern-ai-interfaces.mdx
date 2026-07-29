@@ -1,0 +1,94 @@
+---
+title: "Building Modern AI Interfaces"
+date: "2024-03-15"
+description: "Exploring patterns for integrating LLMs into production web applications with streaming, error handling, and user feedback loops."
+tags: ["AI", "React", "System Design"]
+---
+
+## The Challenge
+
+Integrating Large Language Models into production web applications isn't just about calling an API. It requires rethinking how we handle:
+
+- **Streaming responses** — Users expect real-time feedback, not a loading spinner for 10 seconds.
+- **Error boundaries** — LLMs are non-deterministic. Your UI needs graceful degradation.
+- **Token management** — Context windows have hard limits. Smart truncation preserves conversation quality.
+
+## Streaming Architecture
+
+The foundation of any AI interface is a robust streaming pipeline:
+
+```typescript {4,7}
+async function* streamResponse(prompt: string) {
+  const response = await fetch('/api/chat', {
+    method: 'POST',
+    body: JSON.stringify({ prompt }),
+  });
+
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+
+  while (reader) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    yield decoder.decode(value);
+  }
+}
+```
+
+This generator pattern composes cleanly with React's state model and allows for cancellation, retry, and backpressure handling.
+
+## State Machine for Chat
+
+Rather than ad-hoc boolean flags, model conversation state as a finite state machine:
+
+```typescript
+type ChatState =
+  | { status: 'idle' }
+  | { status: 'streaming'; buffer: string }
+  | { status: 'error'; error: Error; lastMessage: string }
+  | { status: 'complete'; response: string };
+```
+
+Each state transition is explicit, testable, and maps directly to UI states. No more `isLoading && !isError && hasResponse` chains.
+
+## React Integration Pattern
+
+```tsx
+function useAIStream() {
+  const [state, dispatch] = useReducer(chatReducer, { status: 'idle' });
+  const abortRef = useRef<AbortController | null>(null);
+
+  const send = useCallback(async (prompt: string) => {
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
+    dispatch({ type: 'START' });
+
+    try {
+      for await (const chunk of streamResponse(prompt)) {
+        dispatch({ type: 'CHUNK', payload: chunk });
+      }
+      dispatch({ type: 'COMPLETE' });
+    } catch (error) {
+      if (error instanceof Error && error.name !== 'AbortError') {
+        dispatch({ type: 'ERROR', payload: error });
+      }
+    }
+  }, []);
+
+  const cancel = useCallback(() => {
+    abortRef.current?.abort();
+    dispatch({ type: 'CANCEL' });
+  }, []);
+
+  return { state, send, cancel };
+}
+```
+
+## Key Takeaways
+
+1. **Stream from day one** — retrofitting streaming is painful.
+2. **Design for failure** — every LLM call can timeout, rate-limit, or hallucinate.
+3. **Measure latency per-token**, not just time-to-first-byte.
+4. **Build cancellation into the contract** — users will navigate away mid-stream.
+5. **Type your states** — state machines prevent impossible UI combinations.

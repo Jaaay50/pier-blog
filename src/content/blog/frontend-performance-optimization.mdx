@@ -1,0 +1,139 @@
+---
+title: "Frontend Performance Optimization"
+date: "2024-03-08"
+description: "A deep dive into modern web performance: Core Web Vitals, lazy loading, code splitting, and real-world measurement strategies."
+tags: ["Performance", "Next.js", "Web Vitals"]
+---
+
+## Why Performance Matters
+
+Every 100ms of latency costs 1% of revenue. But more importantly, performance is a UX feature — fast apps feel responsive, trustworthy, and professional.
+
+The three numbers that matter:
+
+| Metric | Target | What It Measures |
+|--------|--------|-----------------|
+| LCP | < 2.5s | Visual completeness |
+| FID/INP | < 100ms | Interactivity |
+| CLS | < 0.1 | Visual stability |
+
+## Core Web Vitals in Practice
+
+### LCP — Largest Contentful Paint
+
+The most impactful optimizations:
+
+```tsx
+// 1. Preload critical images
+<link rel="preload" as="image" href="/hero.webp" />
+
+// 2. Use Next.js priority flag
+<Image
+  src={hero}
+  alt="Hero"
+  priority                       // preload above-fold
+  sizes="(max-width: 768px) 100vw, 50vw"
+  placeholder="blur"             // instant perceived load
+/>
+
+// 3. Inline critical CSS (Next.js does this automatically)
+```
+
+### INP — Interaction to Next Paint
+
+Break up long tasks:
+
+```typescript
+// Bad: blocking the main thread
+function processLargeList(items: Item[]) {
+  items.forEach(item => heavyComputation(item));
+}
+
+// Good: yield to the browser between chunks
+async function processLargeList(items: Item[]) {
+  const chunks = chunkArray(items, 50);
+
+  for (const chunk of chunks) {
+    chunk.forEach(item => heavyComputation(item));
+    // Yield to browser for rendering and input
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+}
+```
+
+### CLS — Cumulative Layout Shift
+
+The most common culprits:
+
+```css
+/* Reserve space for dynamic content */
+.hero-image {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+
+/* Prevent font swap shift */
+@font-face {
+  font-family: 'Inter';
+  font-display: optional; /* or 'swap' with size-adjust */
+  size-adjust: 100%;
+}
+```
+
+## Code Splitting Strategy
+
+```typescript
+import dynamic from 'next/dynamic';
+
+// Route-level: automatic in App Router
+// Component-level: for heavy libraries
+const Chart = dynamic(() => import('@/components/Chart'), {
+  loading: () => <ChartSkeleton />,
+  ssr: false,
+});
+
+// Library-level: import only what you need
+import { format } from 'date-fns/format';  // not 'date-fns'
+```
+
+## Bundle Analysis
+
+```bash
+# Weekly audit command
+ANALYZE=true next build
+
+# Or use next-bundle-analyzer
+npm install @next/bundle-analyzer
+```
+
+Rules of thumb:
+- If a dependency adds >50KB gzipped, it needs justification
+- Check for duplicate dependencies with `npm ls <pkg>`
+- Use `import cost` VS Code extension for instant feedback
+
+## Measurement Strategy
+
+Don't optimize blind. Set up Real User Monitoring:
+
+```typescript
+// Report Web Vitals to your analytics
+export function reportWebVitals(metric: NextWebVitalsMetric) {
+  const body = {
+    name: metric.name,
+    value: metric.value,
+    rating: metric.rating,
+    delta: metric.delta,
+    id: metric.id,
+  };
+
+  // Use sendBeacon for reliability
+  navigator.sendBeacon('/api/vitals', JSON.stringify(body));
+}
+```
+
+## Key Takeaways
+
+1. **Measure first** — profiling before optimizing prevents wasted effort.
+2. **LCP is usually an image** — optimize your hero image pipeline.
+3. **Bundle size is a feature** — treat it like memory usage.
+4. **Progressive enhancement** — the fastest code is code that doesn't ship.

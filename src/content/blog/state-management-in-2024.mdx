@@ -1,0 +1,150 @@
+---
+title: "State Management in 2024"
+date: "2024-02-28"
+description: "Comparing modern state management approaches: Server Components, React Context, Zustand, and when to use each pattern."
+tags: ["React", "Architecture", "State Management"]
+---
+
+## The Landscape Has Changed
+
+React Server Components fundamentally shift where state lives. The old mental model of "everything is client state" no longer applies.
+
+The key insight: **most state doesn't belong on the client anymore.**
+
+## Decision Framework
+
+Before reaching for a library, classify your state:
+
+```
+Is it server data?         → RSC + fetch (zero bundle)
+Is it in the URL?          → useSearchParams (shareable)
+Is it a form?              → useFormState (progressive)
+Is it local UI?            → useState (simple)
+Is it shared across 3+?   → Zustand (minimal)
+Is it complex + global?    → Consider Zustand slices
+```
+
+## Server Components: The Default
+
+In Next.js App Router, components are server-first:
+
+```tsx
+// This component ships ZERO JavaScript to the client
+async function UserProfile({ id }: { id: string }) {
+  const user = await db.user.findUnique({ where: { id } });
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
+    </div>
+  );
+}
+```
+
+No `useEffect`. No loading state. No stale cache. The data is always fresh because it runs on the server at request time.
+
+## URL State: The Underrated Pattern
+
+```tsx
+'use client';
+
+import { useSearchParams, useRouter } from 'next/navigation';
+
+function Filters() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const setFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(key, value);
+    router.push(`?${params.toString()}`);
+  };
+
+  return (
+    <select
+      value={searchParams.get('sort') || 'newest'}
+      onChange={(e) => setFilter('sort', e.target.value)}
+    >
+      <option value="newest">Newest</option>
+      <option value="popular">Popular</option>
+    </select>
+  );
+}
+```
+
+Benefits: shareable URLs, browser back/forward works, SSR-compatible, survives refresh.
+
+## When NOT to Use a State Library
+
+Most apps don't need Redux, Jotai, or Recoil. Ask yourself:
+
+1. Does this state need to be shared across 3+ distant components?
+2. Does it need to survive navigation?
+3. Does it need middleware (logging, persistence, devtools)?
+
+If no to all three → `useState` is your answer. Seriously.
+
+## Zustand: The Right Amount of Library
+
+When you *do* need shared client state:
+
+```typescript
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface AppStore {
+  theme: 'light' | 'dark';
+  sidebarOpen: boolean;
+  toggleTheme: () => void;
+  toggleSidebar: () => void;
+}
+
+export const useAppStore = create<AppStore>()(
+  persist(
+    (set) => ({
+      theme: 'dark',
+      sidebarOpen: true,
+      toggleTheme: () => set((s) => ({
+        theme: s.theme === 'dark' ? 'light' : 'dark'
+      })),
+      toggleSidebar: () => set((s) => ({
+        sidebarOpen: !s.sidebarOpen
+      })),
+    }),
+    { name: 'app-store' }
+  )
+);
+```
+
+Why Zustand wins:
+- No Provider wrapper
+- No context re-render issues
+- TypeScript-first
+- Tiny bundle (1KB)
+- Built-in persistence, devtools, immer middleware
+
+## The Anti-Pattern: Over-Engineering
+
+```typescript
+// ❌ Don't do this for a toggle
+const ThemeContext = createContext();
+const ThemeProvider = ({ children }) => { ... };
+const useTheme = () => useContext(ThemeContext);
+// + 3 files, 1 provider, re-renders entire tree
+
+// ✅ Do this instead
+const useTheme = create((set) => ({
+  theme: 'dark',
+  toggle: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }))
+}));
+// 1 file, no provider, surgical re-renders
+```
+
+## Key Takeaways
+
+1. **Server Components eliminate most client state** — let the platform work.
+2. **URL state is free** — use it for filters, pagination, modals.
+3. **useState is underrated** — most UI state is local.
+4. **Zustand for the rest** — minimal API, maximum ergonomics.
+5. **The best state management is no state management** — derive, don't store.
