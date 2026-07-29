@@ -20,6 +20,7 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://ethanpier.com"),
   title: "Pier — Frontend Engineer",
   description:
     "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",

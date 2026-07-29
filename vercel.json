@@ -1,0 +1,16 @@
+{
+  "redirects": [
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "www.ethanpier.com" }],
+      "destination": "https://ethanpier.com/$1",
+      "permanent": true
+    },
+    {
+      "source": "/(.*)",
+      "has": [{ "type": "host", "value": "pier-blog.vercel.app" }],
+      "destination": "https://ethanpier.com/$1",
+      "permanent": true
+    }
+  ]
+}
