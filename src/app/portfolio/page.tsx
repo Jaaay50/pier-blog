@@ -31,7 +31,7 @@ const PROJECTS: Project[] = [
     url: "https://github.com/Jia-Ethan/codex-keysmith",
     repo: "Jia-Ethan/codex-keysmith",
     tech: ["TypeScript", "Node.js", "CLI"],
-    launched: "2025",
+    launched: "2026",
     status: "live",
     featured: true,
     statsIndex: 0,
@@ -43,21 +43,10 @@ const PROJECTS: Project[] = [
     url: "https://github.com/Jia-Ethan/claude-keysmith",
     repo: "Jia-Ethan/claude-keysmith",
     tech: ["TypeScript", "Node.js", "CLI"],
-    launched: "2025",
-    status: "live",
-    featured: true,
-    statsIndex: 1,
-  },
-  {
-    id: "pier-blog",
-    name: "ethanpier.com",
-    tagline: { key: "projects.pier" },
-    url: "https://ethanpier.com",
-    repo: "Jaaay50/pier-blog",
-    tech: ["Next.js", "Tailwind CSS", "WebGL", "MDX"],
     launched: "2026",
     status: "live",
     featured: true,
+    statsIndex: 1,
   },
   {
     id: "pavedpath-code",
@@ -66,7 +55,7 @@ const PROJECTS: Project[] = [
     url: "https://github.com/Jia-Ethan/pavedpath-code",
     repo: "Jia-Ethan/pavedpath-code",
     tech: ["TypeScript", "AI Workflow"],
-    launched: "2025",
+    launched: "2026",
     status: "live",
     featured: false,
     statsIndex: 2,
@@ -78,7 +67,7 @@ const PROJECTS: Project[] = [
     url: "https://github.com/Jia-Ethan/grok-keysmith",
     repo: "Jia-Ethan/grok-keysmith",
     tech: ["TypeScript", "Node.js", "CLI"],
-    launched: "2025",
+    launched: "2026",
     status: "live",
     featured: false,
     statsIndex: 3,
@@ -106,10 +95,7 @@ export default async function PortfolioPage() {
     wip: t("status.wip"),
   };
 
-  const taglineOf = (p: Project) =>
-    p.tagline.key === "projects.pier"
-      ? t("pierTagline")
-      : tHome(p.tagline.key);
+  const taglineOf = (p: Project) => tHome(p.tagline.key);
 
   return (
     <main className="min-h-screen">
@@ -145,7 +131,7 @@ export default async function PortfolioPage() {
           <h2 className="mb-10 text-2xl font-bold tracking-wide">
             {t("featured")}
           </h2>
-          <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-2">
             {featured.map((project) => {
               const stats =
                 project.statsIndex !== undefined
