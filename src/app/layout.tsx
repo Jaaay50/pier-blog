@@ -66,6 +66,11 @@ export default async function RootLayout({
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
+        <div className="ambient-bg" aria-hidden="true">
+          <div className="ambient-glow ambient-glow-1" />
+          <div className="ambient-glow ambient-glow-2" />
+          <div className="ambient-glow ambient-glow-3" />
+        </div>
         <NextIntlClientProvider messages={messages}>
           <ThemeProvider>
             <AnimationProvider>

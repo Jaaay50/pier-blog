@@ -7,12 +7,14 @@ import { HorizontalArticles } from "@/components/HorizontalArticles";
 import { TransitionLink } from "@/components/TransitionLink";
 import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { getAllPosts } from "@/lib/posts";
+import { getGitHubStats } from "@/lib/github";
 
 export default async function HomePage() {
   const t = await getTranslations("home");
   const tBlog = await getTranslations("blog");
   const tFooter = await getTranslations("footer");
   const posts = (await getAllPosts()).slice(0, 3);
+  const githubStats = await getGitHubStats();
 
   return (
     <main className="relative min-h-screen">
@@ -70,32 +72,32 @@ export default async function HomePage() {
           {
             name: "codex-keysmith",
             desc: t("projects.codex"),
-            stars: "1.9k",
-            forks: "320",
+            stars: githubStats[0].stars,
+            forks: githubStats[0].forks,
             url: "https://github.com/Jia-Ethan/codex-keysmith",
             size: "large",
           },
           {
             name: "claude-keysmith",
             desc: t("projects.claude"),
-            stars: "435",
-            forks: "83",
+            stars: githubStats[1].stars,
+            forks: githubStats[1].forks,
             url: "https://github.com/Jia-Ethan/claude-keysmith",
             size: "medium",
           },
           {
             name: "pavedpath-code",
             desc: t("projects.pavedpath"),
-            stars: "381",
-            forks: "34",
+            stars: githubStats[2].stars,
+            forks: githubStats[2].forks,
             url: "https://github.com/Jia-Ethan/pavedpath-code",
             size: "medium",
           },
           {
             name: "grok-keysmith",
             desc: t("projects.grok"),
-            stars: "126",
-            forks: "19",
+            stars: githubStats[3].stars,
+            forks: githubStats[3].forks,
             url: "https://github.com/Jia-Ethan/grok-keysmith",
             size: "large",
           },

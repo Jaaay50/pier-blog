@@ -142,7 +142,7 @@ export default async function AboutPage() {
           </p>
           <div className="flex gap-4">
             <a
-              href="mailto:contact@pier.dev"
+              href="mailto:ethan_pier@icloud.com"
               className="rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)]"
             >
               {t("sendEmail")}

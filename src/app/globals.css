@@ -81,6 +81,79 @@ body {
   overscroll-behavior: none;
 }
 
+/* ===== 全站环境背景层（Ambient Background）=====
+   首页 Hero 之外的页面/屏幕共享：两团主题色光晕缓慢漂移
+   - 纯 radial-gradient，不用 filter blur（避免 GPU 大面积模糊开销）
+   - transform-only 动画，合成器友好；reduced-motion 下静止
+   - z-index: -1 + pointer-events: none，不影响交互与内容 */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.ambient-glow {
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform;
+}
+
+.ambient-glow-1 {
+  width: 65vmax;
+  height: 65vmax;
+  top: -25vmax;
+  right: -18vmax;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 65%);
+  animation: ambient-drift-1 26s ease-in-out infinite alternate;
+}
+
+.ambient-glow-2 {
+  width: 55vmax;
+  height: 55vmax;
+  bottom: -22vmax;
+  left: -14vmax;
+  background: radial-gradient(circle, var(--accent-soft) 0%, transparent 65%);
+  animation: ambient-drift-2 32s ease-in-out infinite alternate;
+}
+
+/* 第三团：中部极淡中性提亮，避免长页中段纯色死板 */
+.ambient-glow-3 {
+  width: 45vmax;
+  height: 45vmax;
+  top: 35%;
+  left: 30%;
+  background: radial-gradient(
+    circle,
+    color-mix(in srgb, var(--text-muted) 5%, transparent) 0%,
+    transparent 60%
+  );
+  animation: ambient-drift-3 40s ease-in-out infinite alternate;
+}
+
+@keyframes ambient-drift-1 {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(-7vmax, 5vmax, 0); }
+}
+
+@keyframes ambient-drift-2 {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(6vmax, -6vmax, 0); }
+}
+
+@keyframes ambient-drift-3 {
+  from { transform: translate3d(0, 0, 0) scale(1); }
+  to { transform: translate3d(4vmax, 3vmax, 0) scale(1.15); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient-glow {
+    animation: none;
+    will-change: auto;
+  }
+}
+
 @media (max-width: 768px) {
   body {
     cursor: auto; /* 移动端恢复默认光标 */
