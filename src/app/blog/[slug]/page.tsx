@@ -2,7 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
-import { getPostBySlug, getAllSlugs } from "@/lib/posts";
+import { getPostBySlug, getAllSlugs, getAllPosts } from "@/lib/posts";
+import { getRelatedPosts } from "@/lib/search";
+import { BlogCard } from "@/components/BlogCard";
 import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
 import { ScrollProgress } from "@/components/ScrollProgress";
@@ -23,6 +25,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   }
 
   const { content, headings } = await compileMDXWithHeadings(post.content);
+  const related = getRelatedPosts(post, await getAllPosts());
 
   return (
     <main className="min-h-screen">
@@ -87,6 +90,31 @@ export default async function BlogPostPage({ params }: PageProps) {
       <div className="lg:hidden">
         <TableOfContents headings={headings} />
       </div>
+
+      {/* 相关阅读（Phase 7：tag 交集 + 日期接近度打分） */}
+      {related.length > 0 && (
+        <section className="px-6 py-16">
+          <div className="mx-auto max-w-4xl">
+            <h2 className="mb-8 text-2xl font-bold tracking-tight">
+              {t("related")}
+            </h2>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {related.map((p) => (
+                <BlogCard
+                  key={p.slug}
+                  post={{
+                    slug: p.slug,
+                    title: p.title,
+                    description: p.description,
+                    date: p.date,
+                    tags: p.tags,
+                  }}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">

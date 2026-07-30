@@ -5,6 +5,7 @@ import { useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
+import { SearchModal } from "./SearchModal";
 import { TransitionLink } from "./TransitionLink";
 import { MagneticWrapper } from "./MagneticWrapper";
 
@@ -64,6 +65,7 @@ export function Navbar() {
             >
               {t("github")}
             </a>
+            <SearchModal />
             <LanguageToggle />
             <ThemeToggle />
           </div>

@@ -264,3 +264,37 @@ Performance 97 / A11y 95 / BP 100 / SEO 100；LCP 0.9s / CLS 0.014 / TBT 120ms /
 
 ## 下一步：Phase 7
 AI 增强（语义搜索、AI 摘要）
+
+---
+
+# Phase 7: AI 增强 ✅
+
+详见 PHASE7-PLAN.md。核心决策：新增唯一依赖 flexsearch（~8KB gzip），拒绝运行时 LLM API（静态零密钥架构）。
+
+### 1. FlexSearch 全文搜索
+- `lib/search.ts`：MDX → 纯文本索引数据（去 frontmatter/import/markdown 标记，截 800 字符）
+- `/api/search-index`：force-static 双语索引端点（en+zh 共 ~11KB）
+- `SearchModal`：⌘K/Ctrl+K 唤起，懒加载 flexsearch + 索引 JSON，
+  标题/描述/标签/正文联合搜索，关键词高亮，↑↓+Enter 键盘导航，
+  最近搜索（localStorage ×5），无结果兼容热门 tag 兕底
+- 接入 Navbar（带 ⌘K 提示按钮）
+
+### 2. 相关文章推荐
+- `getRelatedPosts`：tag 交集 ×10 + 日期接近度（同年+2/相邻年+1）打分，最多 3 篇
+- 文章页底部「相关阅读」区（至少 1 篇时显示）
+
+### 3. i18n
+- 新增 search.*（6 条）与 blog.related（en/zh）
+
+### 主动裁则
+- 构建时 AI 摘要：需在 CI 引入 LLM API key（与零密钥架构冲突），
+  且现有手写 description 质量已足，收益为负，裁掉
+- 向量语义搜索：需运行时 API，同理裁掉；FlexSearch fuzzy 前缀匹配已覆盖实际需求
+
+## 验证
+- `npx eslint src` 全通过；`npm run build` 通过（/api/search-index 静态生成）
+- 全路由 200；索引端点 en/zh 各 3 篇、总 11KB（目标 <100KB）
+- 文章页渲染 Related Reading；Navbar 渲染 ⌘K 搜索按钮
+
+## 下一步：Phase 8
+性能优化与打磨（八阶段收官）

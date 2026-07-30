@@ -45,7 +45,8 @@
     "subtitle": "记录前端工程、AI 集成、系统设计，以及 Web 开发的思考与实践。",
     "back": "返回",
     "readMore": "阅读更多",
-    "allTag": "全部"
+    "allTag": "全部",
+    "related": "相关阅读"
   },
   "showcase": {
     "label": "组件库",
@@ -96,5 +97,13 @@
   "language": {
     "label": "语言",
     "switchTo": "Switch to English"
+  },
+  "search": {
+    "open": "搜索",
+    "title": "搜索文章",
+    "placeholder": "搜索文章…",
+    "noResults": "没有找到结果，试试热门标签：",
+    "recent": "最近搜索",
+    "hint": "输入以搜索标题、标签与正文"
   }
 }

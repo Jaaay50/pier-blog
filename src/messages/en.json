@@ -45,7 +45,8 @@
     "subtitle": "Writing about frontend engineering, AI integration, system design, and the craft of building for the web.",
     "back": "Back",
     "readMore": "Read more",
-    "allTag": "All"
+    "allTag": "All",
+    "related": "Related Reading"
   },
   "showcase": {
     "label": "Component Library",
@@ -96,5 +97,13 @@
   "language": {
     "label": "Language",
     "switchTo": "切换到简体中文"
+  },
+  "search": {
+    "open": "Search",
+    "title": "Search articles",
+    "placeholder": "Search articles...",
+    "noResults": "No results. Try a popular tag:",
+    "recent": "Recent searches",
+    "hint": "Type to search titles, tags, and content"
   }
 }
