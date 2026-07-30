@@ -104,6 +104,8 @@ function ProjectCard({
 
   const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!cardRef.current) return;
+    // Phase 4：触控设备不做磁吸偏移（tap 无 hover 语义）
+    if (window.matchMedia("(pointer: coarse)").matches) return;
     const rect = cardRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
@@ -127,6 +129,8 @@ function ProjectCard({
       onMouseMove={handleMouseMove}
       onMouseEnter={onHover}
       onMouseLeave={handleMouseLeave}
+      onTouchStart={onHover}
+      onTouchEnd={handleMouseLeave}
       initial={{ opacity: 0, y: 60, scale: 0.95 }}
       animate={
         inView

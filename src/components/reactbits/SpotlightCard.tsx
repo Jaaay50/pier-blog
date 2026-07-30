@@ -1,11 +1,7 @@
 'use client';
 
 import React, { useRef, useState } from 'react';
-
-interface Position {
-  x: number;
-  y: number;
-}
+import { useMotionValue, useSpring, useMotionTemplate, motion } from 'motion/react';
 
 interface SpotlightCardProps extends React.PropsWithChildren {
   className?: string;
@@ -19,14 +15,21 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
 }) => {
   const divRef = useRef<HTMLDivElement>(null);
   const [isFocused, setIsFocused] = useState<boolean>(false);
-  const [position, setPosition] = useState<Position>({ x: 0, y: 0 });
   const [opacity, setOpacity] = useState<number>(0);
+
+  // Phase 4：弹簧插值追踪，聚光灯带惯性跟随而非线性贴合
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const springX = useSpring(mouseX, { stiffness: 200, damping: 25 });
+  const springY = useSpring(mouseY, { stiffness: 200, damping: 25 });
+  const background = useMotionTemplate`radial-gradient(circle at ${springX}px ${springY}px, ${spotlightColor}, transparent 80%)`;
 
   const handleMouseMove: React.MouseEventHandler<HTMLDivElement> = e => {
     if (!divRef.current || isFocused) return;
 
     const rect = divRef.current.getBoundingClientRect();
-    setPosition({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    mouseX.set(e.clientX - rect.left);
+    mouseY.set(e.clientY - rect.top);
   };
 
   const handleFocus = () => {
@@ -57,12 +60,9 @@ const SpotlightCard: React.FC<SpotlightCardProps> = ({
       onMouseLeave={handleMouseLeave}
       className={`relative rounded-3xl border border-[var(--border)] bg-[var(--bg-card)] overflow-hidden p-8 ${className}`}
     >
-      <div
+      <motion.div
         className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-500 ease-in-out"
-        style={{
-          opacity,
-          background: `radial-gradient(circle at ${position.x}px ${position.y}px, ${spotlightColor}, transparent 80%)`
-        }}
+        style={{ opacity, background }}
       />
       {children}
     </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
+import { getLenis } from "@/lib/animations/lenis";
 import type { Heading } from "@/components/MDXContent";
 
 interface TableOfContentsProps {
@@ -46,7 +47,15 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
   if (headings.length === 0) return null;
 
   const handleClick = (id: string) => {
-    document.getElementById(id)?.scrollIntoView({ behavior: "smooth" });
+    const el = document.getElementById(id);
+    if (!el) return;
+    // Phase 4：优先用 Lenis 平滑滚动（带 easing），降级原生 smooth
+    const lenis = getLenis();
+    if (lenis) {
+      lenis.scrollTo(el, { offset: -96, duration: 1 });
+    } else {
+      el.scrollIntoView({ behavior: "smooth" });
+    }
     setIsOpen(false);
   };
 
@@ -94,17 +103,30 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
             On This Page
           </h2>
-          <ul className="space-y-2">
+          <ul className="space-y-1">
             {headings.map((heading) => (
               <li
                 key={heading.id}
+                className="relative"
                 style={{
                   paddingLeft: heading.level === 3 ? "1rem" : "0",
                 }}
               >
+                {/* Phase 4：果冻高亮背景，layoutId 共享实现弹性滑动 */}
+                {activeId === heading.id && (
+                  <motion.span
+                    layoutId="toc-active"
+                    className="absolute inset-0 rounded-md bg-[var(--accent-soft)]"
+                    transition={{
+                      type: "spring",
+                      stiffness: 380,
+                      damping: 28,
+                    }}
+                  />
+                )}
                 <button
                   onClick={() => handleClick(heading.id)}
-                  className={`block w-full text-left text-sm transition-colors ${
+                  className={`relative block w-full rounded-md px-2 py-1 text-left text-sm transition-colors ${
                     activeId === heading.id
                       ? "font-medium text-[var(--accent)]"
                       : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"

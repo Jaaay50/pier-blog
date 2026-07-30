@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AnimationProvider } from "@/components/AnimationProvider";
 import { CustomCursor } from "@/components/CustomCursor";
 import { PerformanceMonitor } from "@/components/PerformanceMonitor";
+import { RippleProvider } from "@/components/RippleProvider";
 import "./globals.css";
 
 const inter = Inter({
@@ -70,6 +71,7 @@ export default async function RootLayout({
             <AnimationProvider>
               <CustomCursor />
               <PerformanceMonitor />
+              <RippleProvider />
               <div className="relative">{children}</div>
             </AnimationProvider>
           </ThemeProvider>

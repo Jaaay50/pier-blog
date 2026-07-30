@@ -2,6 +2,7 @@
 
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
+import { motion } from "motion/react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
 import { TransitionLink } from "./TransitionLink";
@@ -30,19 +31,31 @@ export function Navbar() {
             </TransitionLink>
           </MagneticWrapper>
           <div className="flex items-center gap-6">
-            {navLinks.map((link) => (
-              <TransitionLink
-                key={link.href}
-                href={link.href}
-                className={`text-sm transition-colors ${
-                  pathname.startsWith(link.href)
-                    ? "text-[var(--text-primary)]"
-                    : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                }`}
-              >
-                {link.label}
-              </TransitionLink>
-            ))}
+            {navLinks.map((link) => {
+              const isActive = pathname.startsWith(link.href);
+              return (
+                <span key={link.href} className="relative">
+                  <TransitionLink
+                    href={link.href}
+                    className={`text-sm transition-colors ${
+                      isActive
+                        ? "text-[var(--text-primary)]"
+                        : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {link.label}
+                  </TransitionLink>
+                  {/* Phase 4：当前路由弹性下划线（layoutId 跨链接滑动） */}
+                  {isActive && (
+                    <motion.span
+                      layoutId="nav-underline"
+                      className="absolute -bottom-1.5 left-0 right-0 h-0.5 rounded-full bg-[var(--accent)]"
+                      transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                    />
+                  )}
+                </span>
+              );
+            })}
             <a
               href="https://github.com/Jia-Ethan"
               target="_blank"

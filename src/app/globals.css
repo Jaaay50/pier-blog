@@ -346,6 +346,67 @@ body {
   to { opacity: 0; }
 }
 
+/* 主题切换时禁用默认 fade，改由 JS 控制 clip-path 圆形扩散
+   （html.theme-transitioning 由 ThemeToggle 在切换期间添加） */
+html.theme-transitioning::view-transition-old(root),
+html.theme-transitioning::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+html.theme-transitioning::view-transition-new(root) {
+  z-index: 10;
+}
+
+html.theme-transitioning::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* ============================================
+   Phase 4：极端微交互
+   ============================================ */
+
+/* 涟漪扩散（RippleProvider 注入） */
+.ripple-effect {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.18;
+  pointer-events: none;
+  transform: scale(0);
+  animation: ripple-expand 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  z-index: 0;
+}
+
+@keyframes ripple-expand {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* 按压形变：所有可点击元素 active 时轻微回陷 */
+button:active,
+a:active,
+[data-ripple]:active {
+  transform: scale(0.98);
+  filter: brightness(0.96);
+  transition: transform 0.1s cubic-bezier(0.22, 1, 0.36, 1), filter 0.1s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ripple-effect {
+    display: none;
+  }
+
+  button:active,
+  a:active,
+  [data-ripple]:active {
+    transform: none;
+    filter: none;
+  }
+}
+
 /* ============================================
    粒子轨迹容器
    ============================================ */

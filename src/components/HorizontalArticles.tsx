@@ -1,9 +1,20 @@
 "use client";
 
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { motion, useScroll, useTransform, useInView } from "motion/react";
 import BlurText from "@/components/reactbits/BlurText";
+
+const emptySubscribe = () => () => {};
+
+/** 触控设备检测（SSR 返回 false） */
+function useCoarsePointer() {
+  return useSyncExternalStore(
+    emptySubscribe,
+    () => window.matchMedia("(pointer: coarse)").matches,
+    () => false
+  );
+}
 
 interface BlogPost {
   slug: string;
@@ -77,14 +88,18 @@ interface ArticleCardProps {
 
 function ArticleCard({ post, index, readMore }: ArticleCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const coarse = useCoarsePointer();
   const { scrollYProgress } = useScroll({
     target: cardRef,
     offset: ["start end", "end start"],
   });
 
   // 视差：背景装饰慢（-30px → 30px），前景文字快（-60px → 60px）
-  const bgY = useTransform(scrollYProgress, [0, 1], [-30, 30]);
-  const contentY = useTransform(scrollYProgress, [0, 1], [-60, 60]);
+  // Phase 4：触控设备关闭视差（竖向滚动 + 视差会抖动）
+  const bgYRange = useTransform(scrollYProgress, [0, 1], [-30, 30]);
+  const contentYRange = useTransform(scrollYProgress, [0, 1], [-60, 60]);
+  const bgY = coarse ? 0 : bgYRange;
+  const contentY = coarse ? 0 : contentYRange;
 
   return (
     <motion.div
