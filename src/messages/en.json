@@ -1,8 +1,8 @@
 {
   "nav": {
-    "blog": "Blog",
-    "showcase": "Showcase",
-    "about": "About",
+    "blog": "Tides",
+    "portfolio": "Harbor Lights",
+    "about": "Ashore",
     "github": "GitHub"
   },
   "home": {
@@ -41,27 +41,33 @@
   },
   "blog": {
     "label": "All Articles",
-    "title": "Blog",
+    "title": "Tides",
     "subtitle": "Writing about frontend engineering, AI integration, system design, and the craft of building for the web.",
     "back": "Back",
     "readMore": "Read more",
     "allTag": "All",
     "related": "Related Reading"
   },
-  "showcase": {
-    "label": "Component Library",
-    "title": "Interactive Components",
-    "subtitle": "Animation components from React Bits, wired into the site. Built with React, TypeScript, motion, and WebGL.",
-    "textEffects": "Text Effects",
-    "cardInteractions": "Card Interactions",
-    "backgroundEffects": "Background Effects",
-    "allComponents": "All Components",
-    "hintTilt": "Move your mouse over this card to see the 3D tilt and glare effect.",
-    "hintSpotlight": "Hover to see a subtle gradient spotlight that follows your cursor."
+  "portfolio": {
+    "label": "Portfolio",
+    "title": "Harbor Lights",
+    "subtitle": "Each project is a light moored on the water—a record of design, engineering, and launch.",
+    "featured": "Featured Work",
+    "allProjects": "All Projects",
+    "viewProject": "View Project",
+    "pierTagline": "This site itself — four-screen immersive scroll narrative, WebGL star field, dual-theme design system",
+    "viewCode": "Source",
+    "techStack": "Tech Stack",
+    "launched": "Launched",
+    "status": {
+      "live": "Live",
+      "archived": "Archived",
+      "wip": "In Progress"
+    }
   },
   "about": {
     "label": "About Me",
-    "title": "I build things for the web.",
+    "title": "Ashore",
     "intro": "Frontend engineer focused on crafting interactive, performant, and accessible web experiences. I believe great interfaces are invisible — they feel natural, responsive, and alive.",
     "technicalStack": "Technical Stack",
     "experience": "Experience",
