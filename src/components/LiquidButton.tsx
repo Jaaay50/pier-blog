@@ -18,11 +18,13 @@ export function LiquidButton({
   href,
   type = 'button',
 }: LiquidButtonProps) {
-  const buttonRef = useRef<HTMLButtonElement | HTMLAnchorElement>(null);
+  // 拆分 ref：联合类型 ref 会导致 JSX 属性不兼容，只能 as any 绕过
+  const anchorRef = useRef<HTMLAnchorElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const liquidRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const button = buttonRef.current as HTMLElement | null;
+    const button: HTMLElement | null = anchorRef.current ?? buttonRef.current;
     const liquid = liquidRef.current;
     if (!button || !liquid) return;
 
@@ -84,7 +86,7 @@ export function LiquidButton({
   if (href) {
     return (
       <a
-        ref={buttonRef as any}
+        ref={anchorRef}
         href={href}
         className={baseClasses}
         onClick={onClick}
@@ -96,7 +98,7 @@ export function LiquidButton({
 
   return (
     <button
-      ref={buttonRef as any}
+      ref={buttonRef}
       type={type}
       className={baseClasses}
       onClick={onClick}

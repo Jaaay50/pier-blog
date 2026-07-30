@@ -4,7 +4,6 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { gsap } from 'gsap';
 
 export function ScrollProgress() {
   const [progress, setProgress] = useState(0);

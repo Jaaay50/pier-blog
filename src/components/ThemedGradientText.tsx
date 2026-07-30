@@ -1,8 +1,10 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState, ReactNode } from "react";
+import { useSyncExternalStore, ReactNode } from "react";
 import GradientText from "@/components/reactbits/GradientText";
+
+const emptySubscribe = () => () => {};
 
 /**
  * 主题感知的渐变文字：
@@ -11,9 +13,12 @@ import GradientText from "@/components/reactbits/GradientText";
  */
 export function ThemedGradientText({ children }: { children: ReactNode }) {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
+  // 水合门：SSR 返回 false，客户端挂载后返回 true，无 setState-in-effect
+  const mounted = useSyncExternalStore(
+    emptySubscribe,
+    () => true,
+    () => false
+  );
 
   const colors =
     mounted && resolvedTheme === "dark"

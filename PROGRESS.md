@@ -150,3 +150,29 @@ WebGL 视觉系统（3D 粒子星空、Shader 渐变、3D 卡片堆叠）
 
 ## 下一步：Phase 4（待定）
 候选：存量 lint 告警清理、移动端体验打磨、Lighthouse 性能基线、真机验收
+
+---
+
+# 遗留问题清理 ✅
+
+## 已完成
+
+### 1. ESLint 全部清零（`npx eslint src` 无任何告警/错误）
+- ✅ TransitionLink：`[key: string]: any` → 继承 `ComponentProps<typeof Link>`；`(document as any).startViewTransition` → 直接调用（@types/dom-view-transitions 已提供类型）
+- ✅ LiquidButton：联合 ref + `as any` → 拆分为 anchorRef/buttonRef 两个独立 ref
+- ✅ MDXContent：`(child: any)` → 类型谓词收窄 `child is { type: "text"; value: string }`
+- ✅ ScrollProgress：移除未使用的 gsap 导入
+- ✅ ThemedGradientText：`useEffect(setMounted)` → `useSyncExternalStore` 水合门（无 setState-in-effect）
+
+### 2. 废弃依赖清理
+- ✅ 移除 `@studio-freight/lenis`（代码只导入新包名 `lenis`，package.json / package-lock.json 均已无引用）
+
+## 验证
+- `npx eslint src` 全通过（0 error / 0 warning）
+- `npm run build` 通过
+- 生产构建运行时全路由 200（/ /blog /about /showcase）
+
+## 仍未触及（需真实环境）
+- 真机低端设备降级路径实测
+- Lighthouse 性能基线
+- 移动端体验打磨

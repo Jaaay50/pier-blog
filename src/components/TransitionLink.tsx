@@ -2,6 +2,12 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import type { ComponentProps } from 'react';
+
+interface TransitionLinkProps
+  extends Omit<ComponentProps<typeof Link>, 'href' | 'onClick'> {
+  href: string;
+}
 
 /**
  * 支持 View Transitions 的增强 Link 组件
@@ -11,12 +17,7 @@ export function TransitionLink({
   children,
   className,
   ...props
-}: {
-  href: string;
-  children: React.ReactNode;
-  className?: string;
-  [key: string]: any;
-}) {
+}: TransitionLinkProps) {
   const router = useRouter();
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
@@ -33,8 +34,8 @@ export function TransitionLink({
 
     e.preventDefault();
 
-    // 使用 View Transitions API
-    (document as any).startViewTransition(() => {
+    // 使用 View Transitions API（类型由 @types/dom-view-transitions 提供）
+    document.startViewTransition(() => {
       router.push(href);
     });
   };

@@ -30,8 +30,8 @@ function rehypeExtractHeadings(headings: Heading[]) {
       if (node.tagName === "h2" || node.tagName === "h3") {
         const id = node.properties?.id as string | undefined;
         const text = node.children
-          .filter((child) => child.type === "text")
-          .map((child: any) => child.value)
+          .filter((child): child is { type: "text"; value: string } => child.type === "text")
+          .map((child) => child.value)
           .join("");
 
         if (id && text) {
