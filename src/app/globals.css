@@ -77,8 +77,12 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.4s ease, color 0.4s ease;
-  cursor: none; /* 隐藏默认光标，使用自定义光标 */
   overscroll-behavior: none;
+}
+
+/* 自定义光标激活时隐藏原生光标（由 CustomCursor 组件在能力检测通过后添加） */
+html.custom-cursor-on body {
+  cursor: none;
 }
 
 /* ===== 全站环境背景层（Ambient Background）=====
@@ -154,18 +158,11 @@ body {
   }
 }
 
-@media (max-width: 768px) {
-  body {
-    cursor: auto; /* 移动端恢复默认光标 */
-  }
-}
 
-/* 系统级减弱动效：恢复默认光标，压缩所有过渡/动画时长
+
+/* 系统级减弱动效：压缩所有过渡/动画时长
    （WebGL 组件层另有 useWebGLQuality 门控，不会创建 context） */
 @media (prefers-reduced-motion: reduce) {
-  body {
-    cursor: auto;
-  }
 
   *,
   *::before,
