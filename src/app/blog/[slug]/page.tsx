@@ -5,6 +5,8 @@ import { Navbar } from "@/components/Navbar";
 import { getPostBySlug, getAllSlugs } from "@/lib/posts";
 import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
+import { ScrollProgress } from "@/components/ScrollProgress";
+import { ScrollReveal } from "@/components/ScrollReveal";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -24,6 +26,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen">
+      <ScrollProgress />
       <Navbar />
 
       {/* Article + TOC 双栏布局 */}
@@ -31,6 +34,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         <article className="min-w-0 flex-1">
           <div className="mx-auto max-w-3xl">
           {/* Header */}
+          <ScrollReveal>
           <header className="mb-12">
             <div className="mb-4 flex items-center gap-3 text-sm text-[var(--text-muted)]">
               <Link
@@ -62,9 +66,12 @@ export default async function BlogPostPage({ params }: PageProps) {
               ))}
             </div>
           </header>
+          </ScrollReveal>
 
           {/* MDX Content */}
+          <ScrollReveal delay={0.2}>
           <div className="prose max-w-none">{content}</div>
+          </ScrollReveal>
           </div>
         </article>
 

@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
+import { TransitionLink } from "./TransitionLink";
+import { MagneticWrapper } from "./MagneticWrapper";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -20,15 +21,17 @@ export function Navbar() {
     <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-sm">
       <div className="mx-auto max-w-6xl px-6 py-4">
         <div className="flex items-center justify-between">
-          <Link
-            href="/"
-            className="text-lg font-semibold tracking-tight transition-colors hover:text-[var(--accent)]"
-          >
-            Pier
-          </Link>
+          <MagneticWrapper strength={0.2}>
+            <TransitionLink
+              href="/"
+              className="text-lg font-semibold tracking-tight transition-colors hover:text-[var(--accent)]"
+            >
+              Pier
+            </TransitionLink>
+          </MagneticWrapper>
           <div className="flex items-center gap-6">
             {navLinks.map((link) => (
-              <Link
+              <TransitionLink
                 key={link.href}
                 href={link.href}
                 className={`text-sm transition-colors ${
@@ -38,7 +41,7 @@ export function Navbar() {
                 }`}
               >
                 {link.label}
-              </Link>
+              </TransitionLink>
             ))}
             <a
               href="https://github.com/Jia-Ethan"

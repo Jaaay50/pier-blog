@@ -1,7 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
+import { TransitionLink } from "@/components/TransitionLink";
+import { AnimatedCard } from "@/components/AnimatedCard";
 
 interface BlogPost {
   slug: string;
@@ -20,10 +21,11 @@ export function BlogCard({ post }: BlogCardProps) {
   const locale = useLocale();
 
   return (
-    <Link
-      href={`/blog/${post.slug}`}
-      className="group block rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)] hover:shadow-xl"
-    >
+    <AnimatedCard className="h-full">
+      <TransitionLink
+        href={`/blog/${post.slug}`}
+        className="group block h-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)] hover:shadow-xl"
+      >
       <div className="mb-3 flex items-center gap-3 text-sm text-[var(--text-muted)]">
         <time dateTime={post.date}>
           {new Date(post.date).toLocaleDateString(
@@ -72,6 +74,7 @@ export function BlogCard({ post }: BlogCardProps) {
           />
         </svg>
       </div>
-    </Link>
+      </TransitionLink>
+    </AnimatedCard>
   );
 }

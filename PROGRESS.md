@@ -61,3 +61,39 @@
 ---
 构建时间：约 30 分钟
 状态：✅ 已完成并验证
+
+---
+
+# Phase 2: 页面转场与流体动画 ✅
+
+## 已完成的功能
+
+### 1. View Transitions 页面转场
+- ✅ TransitionLink 组件（View Transitions API + 修饰键/不支持时降级）
+- ✅ Navbar 与首页 CTA 全部接入转场链接
+- ✅ BlogCard 点击进入文章页平滑过渡
+
+### 2. 卡片流体动画
+- ✅ AnimatedCard：入场淡入上升 + 鼠标 3D 倾斜（elastic 回弹）
+- ✅ BlogCard 已包裹 3D 悬停效果
+
+### 3. 液态按钮
+- ✅ LiquidButton 组件（鼠标入点液态扩散填充）
+- ✅ 首页主 CTA 按钮应用 liquid-button 效果类
+
+### 4. 磁性交互
+- ✅ MagneticWrapper 组件（封装 Phase 1 magneticEffect）
+- ✅ Navbar Logo 与首页 CTA 磁性吸附
+
+### 5. 滚动动画系统
+- ✅ ScrollReveal：ScrollTrigger 驱动的方向性滚动显示（支持 stagger）
+- ✅ ScrollProgress：文章页顶部渐变阅读进度条（RAF 节流）
+- ✅ 文章页 header 与正文分段进场
+
+## 验证
+- `npm run build` 通过（TypeScript 严格检查通过）
+- 全路由运行时 200（/ /blog /blog/[slug] /about /showcase）
+- 修复：LiquidButton 联合 ref 类型导致的 addEventListener 类型错误
+
+## 下一步：Phase 3
+WebGL 视觉系统（3D 粒子星空、Shader 渐变、3D 卡片堆叠）

@@ -1,10 +1,11 @@
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { ImmersiveHero } from "@/components/ImmersiveHero";
 import { SkillsShowcase } from "@/components/SkillsShowcase";
 import { ProjectsBento } from "@/components/ProjectsBento";
 import { HorizontalArticles } from "@/components/HorizontalArticles";
+import { TransitionLink } from "@/components/TransitionLink";
+import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { getAllPosts } from "@/lib/posts";
 
 export default async function HomePage() {
@@ -24,18 +25,22 @@ export default async function HomePage() {
         subtitle={t("heroSubtitle")}
         scrollHint={t("scrollHint")}
       >
-        <Link
-          href="/blog"
-          className="btn-primary rounded-xl px-6 py-3 font-medium"
-        >
-          {t("readArticles")}
-        </Link>
-        <Link
-          href="/about"
-          className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/60 px-6 py-3 font-medium backdrop-blur-md transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
-        >
-          {t("aboutMe")}
-        </Link>
+        <MagneticWrapper strength={0.25}>
+          <TransitionLink
+            href="/blog"
+            className="btn-primary liquid-button rounded-xl px-6 py-3 font-medium"
+          >
+            {t("readArticles")}
+          </TransitionLink>
+        </MagneticWrapper>
+        <MagneticWrapper strength={0.25}>
+          <TransitionLink
+            href="/about"
+            className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/60 px-6 py-3 font-medium backdrop-blur-md transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
+          >
+            {t("aboutMe")}
+          </TransitionLink>
+        </MagneticWrapper>
       </ImmersiveHero>
 
       {/* 第二屏：技能展示（活动效 demo 卡片） */}
