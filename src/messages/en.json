@@ -57,12 +57,7 @@
     "viewProject": "View Project",
     "viewCode": "Source",
     "techStack": "Tech Stack",
-    "launched": "Launched",
-    "status": {
-      "live": "Live",
-      "archived": "Archived",
-      "wip": "In Progress"
-    }
+    "launched": "Launched"
   },
   "about": {
     "label": "About Me",

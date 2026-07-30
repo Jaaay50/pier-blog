@@ -57,12 +57,7 @@
     "viewProject": "查看项目",
     "viewCode": "源码",
     "techStack": "技術棧",
-    "launched": "上線日期",
-    "status": {
-      "live": "運行中",
-      "archived": "已歸檔",
-      "wip": "開發中"
-    }
+    "launched": "上線日期"
   },
   "about": {
     "label": "关于我",

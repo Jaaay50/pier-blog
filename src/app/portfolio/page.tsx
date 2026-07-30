@@ -6,8 +6,6 @@ import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { getGitHubStats } from "@/lib/github";
 
-type ProjectStatus = "live" | "archived" | "wip";
-
 interface Project {
   id: string;
   name: string;
@@ -16,7 +14,6 @@ interface Project {
   repo?: string;
   tech: string[];
   launched: string;
-  status: ProjectStatus;
   featured: boolean;
   /** 对应 getGitHubStats() 返回数组的下标；无则不显示 star/fork */
   statsIndex?: number;
@@ -32,7 +29,6 @@ const PROJECTS: Project[] = [
     repo: "Jia-Ethan/codex-keysmith",
     tech: ["TypeScript", "Node.js", "CLI"],
     launched: "2026",
-    status: "live",
     featured: true,
     statsIndex: 0,
   },
@@ -44,7 +40,6 @@ const PROJECTS: Project[] = [
     repo: "Jia-Ethan/claude-keysmith",
     tech: ["TypeScript", "Node.js", "CLI"],
     launched: "2026",
-    status: "live",
     featured: true,
     statsIndex: 1,
   },
@@ -56,7 +51,6 @@ const PROJECTS: Project[] = [
     repo: "Jia-Ethan/pavedpath-code",
     tech: ["TypeScript", "AI Workflow"],
     launched: "2026",
-    status: "live",
     featured: false,
     statsIndex: 2,
   },
@@ -68,17 +62,10 @@ const PROJECTS: Project[] = [
     repo: "Jia-Ethan/grok-keysmith",
     tech: ["TypeScript", "Node.js", "CLI"],
     launched: "2026",
-    status: "live",
     featured: false,
     statsIndex: 3,
   },
 ];
-
-const STATUS_STYLE: Record<ProjectStatus, string> = {
-  live: "bg-emerald-500/10 text-emerald-500 border-emerald-500/30",
-  archived: "bg-zinc-500/10 text-zinc-400 border-zinc-500/30",
-  wip: "bg-amber-500/10 text-amber-500 border-amber-500/30",
-};
 
 export default async function PortfolioPage() {
   const t = await getTranslations("portfolio");
@@ -88,12 +75,6 @@ export default async function PortfolioPage() {
 
   const featured = PROJECTS.filter((p) => p.featured);
   const rest = PROJECTS.filter((p) => !p.featured);
-
-  const statusLabel: Record<ProjectStatus, string> = {
-    live: t("status.live"),
-    archived: t("status.archived"),
-    wip: t("status.wip"),
-  };
 
   const taglineOf = (p: Project) => tHome(p.tagline.key);
 
@@ -143,13 +124,8 @@ export default async function PortfolioPage() {
                   className="group flex h-full flex-col border-[var(--border)] bg-[var(--bg-card)] p-8"
                   spotlightColor="rgba(217, 119, 87, 0.12)"
                 >
-                  {/* 顶部：状态徽章 + 年份 */}
-                  <div className="mb-6 flex items-center justify-between">
-                    <span
-                      className={`rounded-full border px-2.5 py-0.5 text-[11px] font-medium tracking-wider ${STATUS_STYLE[project.status]}`}
-                    >
-                      {statusLabel[project.status]}
-                    </span>
+                  {/* 顶部：年份 */}
+                  <div className="mb-6 flex items-center justify-end">
                     <span className="text-xs tracking-[0.2em] text-[var(--text-muted)]">
                       {project.launched}
                     </span>
