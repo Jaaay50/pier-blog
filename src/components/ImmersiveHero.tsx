@@ -6,6 +6,7 @@ import { motion, useScroll, useTransform } from "motion/react";
 import Galaxy from "@/components/reactbits/Galaxy";
 import Aurora from "@/components/reactbits/Aurora";
 import { StaticHeroFallback } from "@/components/StaticHeroFallback";
+import { FloatingShapes } from "@/components/FloatingShapes";
 import { useWebGLQuality } from "@/lib/webgl";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import BlurText from "@/components/reactbits/BlurText";
@@ -81,6 +82,9 @@ export function ImmersiveHero({
           </div>
         )}
       </motion.div>
+
+      {/* Phase 5：前景浮动几何层（三层视差最快层，低端/reduced-motion 不渲染） */}
+      {mounted && <FloatingShapes />}
 
       {/* 底部渐隐，衔接下一屏 */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[var(--bg-primary)] to-transparent" />

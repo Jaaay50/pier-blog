@@ -10,6 +10,7 @@ import Particles from "@/components/reactbits/Particles";
 import Galaxy from "@/components/reactbits/Galaxy";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { CardStack3D } from "@/components/webgl/CardStack3D";
+import { FlipCard } from "@/components/FlipCard";
 
 export default function ShowcasePage() {
   const t = useTranslations("showcase");
@@ -64,6 +65,11 @@ export default function ShowcasePage() {
     {
       name: "CardStack3D",
       description: "Draggable 3D perspective card stack",
+      category: "Card",
+    },
+    {
+      name: "FlipCard",
+      description: "Click-to-flip 3D card with keyboard support",
       category: "Card",
     },
   ];
@@ -196,6 +202,40 @@ export default function ShowcasePage() {
                 Click or drag the top card to cycle the stack.
               </p>
             </div>
+
+            {/* FlipCard demo（Phase 5） */}
+            <FlipCard
+              className="h-56"
+              front={
+                <div className="flex h-full flex-col justify-between rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-8">
+                  <div>
+                    <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+                      FlipCard
+                    </div>
+                    <h3 className="mb-2 text-xl font-bold">3D Flip</h3>
+                    <p className="text-sm text-[var(--text-secondary)]">
+                      Click to flip and reveal the usage snippet on the back.
+                    </p>
+                  </div>
+                  <span className="text-xs text-[var(--text-muted)]">
+                    Tap / Enter to flip →
+                  </span>
+                </div>
+              }
+              back={
+                <div className="flex h-full flex-col rounded-xl border border-[var(--accent)]/40 bg-[var(--bg-elevated)] p-8">
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+                    Usage
+                  </div>
+                  <pre className="overflow-auto rounded-lg bg-[var(--bg-primary)] p-4 text-xs leading-relaxed text-[var(--text-secondary)]">
+{`<FlipCard
+  front={<Preview />}
+  back={<Code />}
+/>`}
+                  </pre>
+                </div>
+              }
+            />
           </div>
         </div>
       </section>

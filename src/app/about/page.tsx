@@ -3,6 +3,7 @@ import { Navbar } from "@/components/Navbar";
 import GradientText from "@/components/reactbits/GradientText";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
+import { ExperienceJourney } from "@/components/ExperienceJourney";
 
 export default function AboutPage() {
   const t = useTranslations("about");
@@ -96,33 +97,8 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Experience */}
-      <section className="px-6 py-16">
-        <div className="mx-auto max-w-4xl">
-          <h2 className="mb-8 text-2xl font-bold tracking-tight">
-            {t("experience")}
-          </h2>
-          <div className="space-y-8">
-            {experiences.map((exp) => (
-              <div
-                key={exp.title}
-                className="group border-l-2 border-[var(--border)] pl-6 transition-colors hover:border-[var(--accent)]"
-              >
-                <div className="mb-1 text-sm text-[var(--text-muted)]">
-                  {exp.period}
-                </div>
-                <h3 className="mb-1 text-lg font-semibold">{exp.title}</h3>
-                <div className="mb-2 text-sm text-[var(--accent)]">
-                  {exp.company}
-                </div>
-                <p className="text-[var(--text-secondary)] leading-relaxed">
-                  {exp.description}
-                </p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Experience（Phase 5：桌面横向滚动叙事 + SVG 路径绘制，移动端竖向降级） */}
+      <ExperienceJourney title={t("experience")} experiences={experiences} />
 
       {/* Contact */}
       <section className="px-6 py-16">

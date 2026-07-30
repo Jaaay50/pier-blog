@@ -176,3 +176,55 @@ WebGL 视觉系统（3D 粒子星空、Shader 渐变、3D 卡片堆叠）
 - 真机低端设备降级路径实测
 - Lighthouse 性能基线
 - 移动端体验打磨
+
+---
+
+# Phase 4: 极端微交互 ✅
+
+详见 PHASE4-PLAN.md。核心交付：
+- 主题切换圆形扩散（View Transitions + clip-path，从 ThemeToggle 按钮中心，reduced-motion 降级直切）
+- RippleProvider 全局涟漪（事件委托 pointerdown，超大区域/data-no-ripple 跳过）+ 按压形变
+- TableOfContents 果冻高亮（motion layoutId）+ Lenis.scrollTo 平滑锚点
+- Navbar 弹性下划线（layoutId 跨链接滑动）
+- SpotlightCard useSpring 弹簧聚光灯
+- HorizontalArticles 触控关视差；ProjectsBento 触控 tap 高亮
+
+**Lighthouse 桌面首页基线**（docs/lighthouse/desktop-home.json）：
+Performance 97 / A11y 95 / BP 100 / SEO 100；LCP 0.9s / CLS 0.014 / TBT 120ms / TTI 1.0s
+
+提交：`71ce191`，已推送并部署。
+
+---
+
+# Phase 5: 实验性布局 ✅
+
+详见 PHASE5-PLAN.md。核心交付：
+
+### 1. 经历横向滚动叙事（ExperienceJourney）
+- 桌面端：sticky 钉住 + 竖向滚动驱动卡片横移（useScroll + useSpring 惯性）
+- SVG 波浪路径随滚动进度绘制（motion pathLength）
+- 顶部进度指示点（当前卡拉长高亮），背景大字年份装饰
+- 降级：移动端 / 触控 / reduced-motion → 传统竖向时间线（whileInView 淡入）
+- 接入 /about 替换原 Experience 区块
+
+### 2. Hero 三层视差（FloatingShapes）
+- 前景浮动几何层（ring/dot/cross/triangle 六个 SVG 形状）
+- 滚动速度快于标题（-220~-340px vs 标题 -120px），制造纵深
+- idle 浮动动画错峰；低端设备 / 触控 / reduced-motion 不渲染（quality gate）
+
+### 3. FlipCard 3D 翻转卡片
+- 点击翻转 rotateY 180°（preserve-3d + backface-visibility）
+- 键盘可达（button + aria-pressed），data-no-ripple 避免涟漪冲突
+- reduced-motion 时无旋转直切
+- 接入 /showcase Card Interactions 区（正面预览/背面代码片段）
+
+### 未实现（主动裁则）
+- Blog 文章页分段钉住：与长文阅读体验冲突，放弃
+
+## 验证
+- `npx eslint src` 全通过（0 error / 0 warning）
+- `npm run build` 通过
+- 生产构建运行时全路由 200；/showcase 渲染 FlipCard，/about 渲染时间线内容
+
+## 下一步：Phase 6
+数据可视化（D3.js、Sandpack、雷达图）
