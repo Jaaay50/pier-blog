@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+<title>沉光 · BIOLUME</title>
+<style>
+:root { --ink: #dce8f2; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 100%; height: 100%; overflow: hidden;
+  background: #010407; color: var(--ink);
+  font-family: "Avenir Next", "Futura", "PingFang SC", "Noto Sans SC", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  touch-action: none;
+}
+#gl { position: fixed; inset: 0; width: 100%; height: 100%; display: block; cursor: crosshair; }
+
+/* ---------- 开场 ---------- */
+#start-mask {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 50% 130%, #07131f 0%, #010407 72%);
+  transition: opacity 2.4s ease;
+}
+#start-mask.hidden { opacity: 0; pointer-events: none; }
+#start-mask h1 {
+  font-size: clamp(2.2rem, 6vw, 3.4rem); font-weight: 300;
+  letter-spacing: 0.62em; text-indent: 0.62em;
+  text-shadow: 0 0 42px rgba(92,170,255,0.35);
+}
+#start-mask .en {
+  margin-top: 1rem; font-size: 0.66rem; letter-spacing: 0.55em; text-indent: 0.55em; opacity: 0.5;
+}
+#start-mask .desc {
+  margin-top: 2.6rem; font-size: 0.68rem; letter-spacing: 0.28em; text-indent: 0.28em;
+  opacity: 0.4; line-height: 2.2; text-align: center;
+}
+#time-picker { display: flex; gap: 0.7rem; margin-top: 2.7rem; }
+.time-opt {
+  padding: 0.55rem 1.35rem; font: inherit; font-size: 0.68rem; letter-spacing: 0.28em; text-indent: 0.28em;
+  color: var(--ink); background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(160,200,255,0.14); border-radius: 999px;
+  cursor: pointer; opacity: 0.5; transition: all 0.35s;
+}
+.time-opt:hover { opacity: 0.85; }
+.time-opt.on { opacity: 1; background: rgba(110,180,255,0.10); border-color: rgba(140,200,255,0.45); }
+#dive-btn {
+  margin-top: 2.4rem; padding: 0.95rem 2.6rem 0.95rem 2.9rem;
+  font: inherit; font-size: 0.78rem; letter-spacing: 0.42em;
+  color: var(--ink); background: rgba(110,180,255,0.06);
+  border: 1px solid rgba(150,205,255,0.32); border-radius: 999px;
+  cursor: pointer; transition: all 0.4s; backdrop-filter: blur(4px);
+}
+#dive-btn:hover { letter-spacing: 0.52em; background: rgba(110,180,255,0.13); }
+#err {
+  display: none; margin-top: 2rem; max-width: 74%; font-size: 0.7rem; line-height: 1.9;
+  letter-spacing: 0.12em; opacity: 0.8; color: #ffb0a0; text-align: center; white-space: pre-wrap;
+}
+
+/* ---------- HUD ---------- */
+.hud { position: fixed; z-index: 20; user-select: none; pointer-events: none; opacity: 0; transition: opacity 2.4s ease 1.2s; }
+body.diving .hud { opacity: 1; }
+#mark { top: 26px; left: 4vw; font-size: 11px; letter-spacing: 0.4em; font-weight: 600; }
+#mark small { display: block; margin-top: 7px; font-size: 8.5px; letter-spacing: 0.34em; opacity: 0.45; font-weight: 400; }
+#meter { top: 26px; right: 4vw; text-align: right; }
+#meter .d {
+  font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 200; letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+#meter .z { margin-top: 5px; font-size: 9px; letter-spacing: 0.32em; opacity: 0.5; }
+#hint {
+  left: 50%; bottom: 4.5vh; transform: translateX(-50%);
+  font-size: 9.5px; letter-spacing: 0.3em; text-indent: 0.3em; opacity: 0;
+  transition: opacity 2s ease 3s;
+}
+body.diving #hint { opacity: 0.4; }
+body.diving.moved #hint { opacity: 0; transition: opacity 1.4s ease; }
+
+/* ---------- 诗句 ---------- */
+#verse {
+  position: fixed; left: 50%; bottom: 10vh; transform: translateX(-50%);
+  z-index: 20; max-width: 84vw; text-align: center;
+  font-size: clamp(0.78rem, 1.6vw, 0.95rem); font-weight: 300;
+  letter-spacing: 0.34em; text-indent: 0.34em; line-height: 2;
+  opacity: 0; transition: opacity 2.4s ease;
+  text-shadow: 0 0 24px rgba(0,0,0,0.9);
+  pointer-events: none; white-space: nowrap;
+}
+#verse.show { opacity: 0.85; }
+#verse::after {
+  content: ""; display: block; margin: 14px auto 0; height: 1px; width: 0;
+  background: currentColor; opacity: 0.35; transition: width 3s ease;
+}
+#verse.show::after { width: 56%; }
+
+@media (max-width: 768px) {
+  #mark { left: 5vw; } #meter { right: 5vw; }
+  #verse { white-space: normal; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="gl"></canvas>
+
+<div id="start-mask">
+  <h1>沉　光</h1>
+  <div class="en">BIOLUME · A PROCEDURAL DESCENT</div>
+  <div class="desc">从月光触及的水面，下潜到光的尽头<br>滚轮控制潜速 · 移动光标环顾这片海</div>
+  <div id="time-picker">
+    <button class="time-opt on" data-t="night">月夜</button>
+    <button class="time-opt" data-t="dusk">暮色</button>
+    <button class="time-opt" data-t="dawn">黎明</button>
+  </div>
+  <button id="dive-btn">潜入 →</button>
+  <div id="err"></div>
+</div>
+
+<div class="hud" id="mark">沉光 BIOLUME<small id="diveNo">DIVE 01</small></div>
+<div class="hud" id="meter"><div class="d">0 m</div><div class="z">SURFACE</div></div>
+<div class="hud" id="hint">移动光标环顾 · 滚轮改变潜速</div>
+<div id="verse"></div>
+
+<script>
+'use strict';
+/* =========================================================
+   沉光 · BIOLUME — 第一章：光的衰减
+   零依赖 · 单文件 · 原生 WebGL2
+   水体光场 = 波长吸收物理；每个深度的颜色都是算出来的
+   ========================================================= */
+
+// ---------- 状态 ----------
+const S = {
+  started: false,
+  t: 0,                    // 全局时间（秒）
+  depth: 0,                // 当前深度（米）
+  vBase: 0,                // 基础潜速（由深度决定）
+  vMul: 1,                 // 滚轮临时倍率（回弹到 1）
+  yaw: 0, pitch: 0,        // 相机当前姿态
+  tYaw: 0, tPitch: 0,      // 目标姿态（鼠标驱动）
+  timeMode: 'night',
+  lastFrame: performance.now(),
+  frameAvg: 16.7,          // 滚动平均帧时
+  quality: 2,              // 2=高 1=中 0=低
+};
+
+// 时刻参数：水下光色 / 天空两端色 / 光斑色 / 光轴方向偏移 / 强度
+const TIMES = {
+  night: { sun: [0.50,0.74,1.00], skyLo: [0.06,0.12,0.26], skyHi: [0.01,0.03,0.09],
+           glint: [0.92,0.96,1.00], tilt: [0.14,0.06],  power: 0.85 },
+  dusk:  { sun: [1.00,0.72,0.42], skyLo: [0.66,0.26,0.11], skyHi: [0.10,0.08,0.24],
+           glint: [1.00,0.60,0.28], tilt: [0.46,0.12],  power: 1.05 },
+  dawn:  { sun: [0.90,0.86,0.74], skyLo: [0.60,0.50,0.47], skyHi: [0.15,0.22,0.38],
+           glint: [1.00,0.92,0.70], tilt: [0.34,-0.16], power: 0.95 },
+};
+
+// 海洋分层（真实海洋学分层）
+const ZONES = [
+  { d: 0,    n: 'SUNLIGHT · 透光层' },
+  { d: 200,  n: 'TWILIGHT · 暮光层' },
+  { d: 1000, n: 'MIDNIGHT · 午夜层' },
+  { d: 4000, n: 'ABYSS · 深渊平原' },
+];
+
+// 深度锚定诗句：科学事实即诗
+const VERSES = [
+  { d: 14,   t: '你离开了空气的国度' },
+  { d: 46,   t: '红色最先告别——它在十五米处溺水' },
+  { d: 130,  t: '光开始变得昂贵' },
+  { d: 210,  t: '−200m · 透光层之底，植物到此为止' },
+  { d: 460,  t: '绿光也交出了它的波长' },
+  { d: 740,  t: '这里的蓝，是光最后的遗嘱' },
+  { d: 1020, t: '−1000m · 最后一个光子死在这里' },
+  { d: 1600, t: '从此，光只属于生命' },
+  { d: 2700, t: '寂静有重量——雪落了一万年' },
+  { d: 4020, t: '−4000m · 深渊平原，比月背更少人抵达' },
+];
+VERSES.forEach(v => v.shown = false);
+
+// ---------- WebGL 初始化 ----------
+const canvas = document.getElementById('gl');
+const gl = canvas.getContext('webgl2', { alpha: false, antialias: false, powerPreference: 'high-performance' });
+
+const errBox = document.getElementById('err');
+function fatal(msg) {
+  errBox.style.display = 'block';
+  errBox.textContent = msg;
+  const b = document.getElementById('dive-btn'); if (b) b.style.display = 'none';
+  throw new Error(msg);
+}
+if (!gl) fatal('这片海需要 WebGL2 才能发光。\n请更换支持 WebGL2 的浏览器（Chrome / Edge / Safari 16+）。');
+
+const IS_MOBILE = /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent) || navigator.maxTouchPoints > 2;
+const DPR_CAP = IS_MOBILE ? 1.5 : 2;
+let W = 0, H = 0, dpr = 1;
+function resize() {
+  dpr = Math.min(window.devicePixelRatio || 1, DPR_CAP);
+  W = canvas.width  = Math.max(2, Math.round(innerWidth  * dpr));
+  H = canvas.height = Math.max(2, Math.round(innerHeight * dpr));
+  gl.viewport(0, 0, W, H);
+}
+addEventListener('resize', resize);
+resize();
+
+function sh(type, src) {
+  const s = gl.createShader(type);
+  gl.shaderSource(s, src); gl.compileShader(s);
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) fatal('Shader 编译失败：\n' + gl.getShaderInfoLog(s));
+  return s;
+}
+function prog(vs, fs) {
+  const p = gl.createProgram();
+  gl.attachShader(p, sh(gl.VERTEX_SHADER, vs));
+  gl.attachShader(p, sh(gl.FRAGMENT_SHADER, fs));
+  gl.linkProgram(p);
+  if (!gl.getProgramParameter(p, gl.LINK_STATUS)) fatal('链接失败：\n' + gl.getProgramInfoLog(p));
+  return p;
+}
+
+// 全屏三角形
+const quadVAO = gl.createVertexArray();
+gl.bindVertexArray(quadVAO);
+const quadBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, quadBuf);
+gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
+gl.enableVertexAttribArray(0);
+gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+gl.bindVertexArray(null);
+
+/* =========================================================
+   PASS 1 — 水体全屏 shader
+   ========================================================= */
+const quadVS = `#version 300 es
+layout(location=0) in vec2 aP;
+void main(){ gl_Position = vec4(aP, 0.0, 1.0); }`;
+
+const waterFS = `#version 300 es
+precision highp float;
+out vec4 o;
+uniform vec2  uRes;
+uniform float uT;
+uniform float uDepth;
+uniform float uYaw, uPitch;
+uniform vec3  uSun, uSkyLo, uSkyHi, uGlint;
+uniform vec2  uTilt;
+uniform float uPower;
+
+// ---- 噪声 ----
+float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+float vnoise(vec2 p){
+  vec2 i=floor(p), f=fract(p); f=f*f*(3.0-2.0*f);
+  return mix(mix(hash(i),hash(i+vec2(1,0)),f.x),
+             mix(hash(i+vec2(0,1)),hash(i+vec2(1,1)),f.x), f.y);
+}
+float fbm(vec2 p){
+  float s=0.0, a=0.5; mat2 m=mat2(1.6,1.2,-1.2,1.6);
+  for(int i=0;i<5;i++){ s+=a*vnoise(p); p=m*p; a*=0.5; }
+  return s;
+}
+
+// ---- 视线方向（带鼠标环顾） ----
+vec3 rayDir(vec2 uv){
+  vec3 d = normalize(vec3(uv.x, uv.y, -1.35));
+  float cy=cos(uYaw),  sy=sin(uYaw);
+  float cp=cos(uPitch),sp=sin(uPitch);
+  d = mat3(1,0,0, 0,cp,-sp, 0,sp,cp) * d;         // pitch
+  d = mat3(cy,0,sy, 0,1,0, -sy,0,cy) * d;         // yaw
+  return normalize(d);
+}
+
+// 波长吸收：每米对 RGB 的透过率（红最先死）
+vec3 absorb(float dist){
+  return exp(-dist * vec3(0.30, 0.055, 0.020));
+}
+
+void main(){
+  vec2 uv = (gl_FragCoord.xy*2.0 - uRes) / uRes.y;
+  vec3 rd = rayDir(uv);
+
+  // 环境光衰减：0-200m 保持可见，200-1000m 滑入黑暗，1000m+ 全黑
+  float depthAtten = exp(-uDepth * 0.0028);
+  depthAtten = max(depthAtten, 0.18 * exp(-uDepth * 0.0009));
+  float nearSurface = smoothstep(300.0, 0.0, uDepth);
+
+  // ---------- 水体基色（体积散射的蓝绿，向上亮向下暗） ----------
+  vec3 water = mix(uSkyHi*1.4, uSkyLo*2.2, smoothstep(-0.4, 0.8, rd.y));
+  water *= (0.5 + 0.8*uPower);
+  vec3 col = water * depthAtten;
+
+  // ---------- 向上看：Snell 窗 + 水面波光 ----------
+  if(rd.y > 0.0){
+    float up = rd.y;
+    // 水面方向的投影坐标
+    vec2 sp = rd.xz / max(up, 0.08) * 2.2;
+    float t = uT*0.6;
+    float caustic = fbm(sp*1.6 + vec2(t*0.3, -t*0.2));
+    caustic += 0.5*fbm(sp*3.3 - vec2(t*0.15, t*0.25));
+    caustic = pow(smoothstep(0.55, 1.35, caustic), 2.0);
+
+    // Snell 窗：只有接近正上方才能看到"外面"
+    float snell = smoothstep(0.55, 0.95, up);
+    vec3 sky = mix(uSkyLo*1.6, uSkyHi, up*0.7) * (1.1+uPower);
+    vec3 surf = sky + uGlint * caustic * 1.6;
+
+    // 水面只在浅处可见
+    col = mix(col, surf, snell * nearSurface);
+    // 近水面的散射辉光（更宽的扩散）
+    col += uGlint * caustic * 0.35 * nearSurface * pow(up, 1.5);
+    col += uSun * 0.18 * nearSurface * up;
+  }
+
+  // ---------- 体积光柱（God rays） ----------
+  // 光从水面斜射，方向由时刻 tilt 决定
+  vec3 lightDir = normalize(vec3(uTilt.x, 1.0, uTilt.y));
+  float align = max(dot(rd, lightDir), 0.0);
+  float shafts = pow(align, 3.5);
+  // 光柱的条纹（随时间流动，双层）
+  vec2 sc = rd.xz / max(rd.y*0.5+0.55, 0.15);
+  float stripes = fbm(sc*2.2 + vec2(0.0, -uT*0.30));
+  stripes = 0.45 + 0.8*smoothstep(0.30, 0.95, stripes);
+  float rayFade = smoothstep(750.0, 0.0, uDepth);
+  col += uSun * shafts * stripes * 1.5 * rayFade * uPower;
+  // 顶部整体的下沉光（宽泛的亮区）
+  col += uSun * pow(max(rd.y*0.6+0.4, 0.0), 2.0) * 0.45 * rayFade * uPower;
+
+  // ---------- 应用波长吸收（越往下看、越深，红绿越少） ----------
+  // 视线越向下穿过越多水；叠加绝对深度
+  float pathDepth = uDepth*0.55 + (0.5 - rd.y*0.5) * 60.0;
+  col *= mix(vec3(1.0), absorb(pathDepth), 0.5);
+
+  // ---------- 深处：一点冷微光，避免死黑 ----------
+  float deep = smoothstep(1200.0, 4000.0, uDepth);
+  col += vec3(0.002,0.004,0.010) * (1.0-deep*0.5);
+
+  // ---------- 暗角 ----------
+  float vig = 1.0 - 0.32*dot(uv,uv);
+  col *= clamp(vig, 0.0, 1.0);
+
+  // 轻微颗粒，避免色带
+  float g = (hash(gl_FragCoord.xy + uT) - 0.5) * 0.012;
+  col += g;
+
+  // 色调映射
+  col = col / (col + vec3(0.55));
+  col = pow(max(col,0.0), vec3(0.82));
+  o = vec4(col, 1.0);
+}`;
+
+const waterProg = prog(quadVS, waterFS);
+const wl = {
+  res: gl.getUniformLocation(waterProg,'uRes'),
+  t: gl.getUniformLocation(waterProg,'uT'),
+  depth: gl.getUniformLocation(waterProg,'uDepth'),
+  yaw: gl.getUniformLocation(waterProg,'uYaw'),
+  pitch: gl.getUniformLocation(waterProg,'uPitch'),
+  sun: gl.getUniformLocation(waterProg,'uSun'),
+  skyLo: gl.getUniformLocation(waterProg,'uSkyLo'),
+  skyHi: gl.getUniformLocation(waterProg,'uSkyHi'),
+  glint: gl.getUniformLocation(waterProg,'uGlint'),
+  tilt: gl.getUniformLocation(waterProg,'uTilt'),
+  power: gl.getUniformLocation(waterProg,'uPower'),
+};
+
+/* =========================================================
+   PASS 2 — 海洋雪（marine snow）
+   持续下沉的有机碎屑；越深越大越稀疏
+   相机固定原点，粒子在一个绕相机的盒子里循环，
+   世界随 uDepth 下移，制造"不断下潜穿过雪"的错觉
+   ========================================================= */
+const SNOW_MAX = IS_MOBILE ? 900 : 1800;
+let SNOW_N = SNOW_MAX;
+
+// 每颗粒子：位置(xyz) 相位 大小 —— 随机分布在相机周围的体积里
+const snowData = new Float32Array(SNOW_MAX * 5);
+const BOX = 46;          // 粒子盒半径
+for (let i = 0; i < SNOW_MAX; i++) {
+  snowData[i*5+0] = (Math.random()*2-1) * BOX;        // x
+  snowData[i*5+1] = (Math.random()*2-1) * BOX;        // y
+  snowData[i*5+2] = -Math.random() * BOX * 1.6 - 3;   // z（相机前方）
+  snowData[i*5+3] = Math.random() * 6.28;             // phase
+  snowData[i*5+4] = 0.4 + Math.random()*Math.random(); // size seed
+}
+
+const snowVAO = gl.createVertexArray();
+gl.bindVertexArray(snowVAO);
+const snowBuf = gl.createBuffer();
+gl.bindBuffer(gl.ARRAY_BUFFER, snowBuf);
+gl.bufferData(gl.ARRAY_BUFFER, snowData, gl.STATIC_DRAW);
+// a_pos(3)
+gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0,3,gl.FLOAT,false,20,0);
+// a_phase(1)
+gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1,1,gl.FLOAT,false,20,12);
+// a_size(1)
+gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2,1,gl.FLOAT,false,20,16);
+gl.bindVertexArray(null);
+
+const snowVS = `#version 300 es
+layout(location=0) in vec3 aPos;
+layout(location=1) in float aPhase;
+layout(location=2) in float aSize;
+uniform vec2  uRes;
+uniform float uT;
+uniform float uFall;     // 累计下落量（米→局部单位）
+uniform float uYaw, uPitch;
+uniform float uDepth;
+uniform float uBox;
+out float vA;
+
+mat3 rotView(){
+  float cy=cos(uYaw), sy=sin(uYaw), cp=cos(uPitch), sp=sin(uPitch);
+  mat3 ry = mat3(cy,0,-sy, 0,1,0, sy,0,cy);   // 逆向：把世界转到相机
+  mat3 rx = mat3(1,0,0, 0,cp,sp, 0,-sp,cp);
+  return rx * ry;
+}
+
+void main(){
+  vec3 p = aPos;
+  // 下落 + 横向缓漂
+  float fall = uFall + aPhase*3.0;
+  p.y = mod(aPos.y - fall, uBox*2.0) - uBox;      // 在盒子里循环
+  p.x += sin(uT*0.15 + aPhase*6.0) * 1.2;
+  p.z += cos(uT*0.12 + aPhase*5.0) * 1.0;
+
+  vec3 v = rotView() * p;                          // 视图空间
+  if(v.z > -0.15) v.z = -0.15;                     // 别跑到相机后
+  // 透视投影
+  float f = 1.35;
+  float aspect = uRes.x/uRes.y;
+  gl_Position = vec4(v.x*f/aspect, v.y*f, v.z*0.02, -v.z);
+
+  // 深度越深，粒子越大（有机絮凝）
+  float sizeDepth = 1.0 + uDepth/2200.0;
+  float sz = aSize * (3.0 + 7.0*aSize) * sizeDepth;
+  gl_PointSize = clamp(sz * (uRes.y/900.0) / (-v.z*0.085+1.0), 1.5, 44.0);
+
+  // 距离淡出 + 深度稀疏
+  float distFade = smoothstep(uBox*1.9, 3.0, -v.z);
+  float depthFade = 1.0 - smoothstep(3200.0, 6000.0, uDepth)*0.7;
+  vA = distFade * depthFade * (0.45 + 0.55*aSize);
+}`;
+
+const snowFS = `#version 300 es
+precision highp float;
+in float vA;
+out vec4 o;
+uniform vec3 uTint;
+void main(){
+  vec2 c = gl_PointCoord - 0.5;
+  float d = length(c);
+  if(d > 0.5) discard;
+  // 柔软絮状：中心亮边缘散
+  float a = vA * pow(1.0 - d*2.0, 1.6);
+  // 一点内部结构
+  a *= 0.75 + 0.25*step(d, 0.28);
+  o = vec4(uTint * (0.6+0.4*a), a);
+}`;
+
+const snowProg = prog(snowVS, snowFS);
+const sl = {
+  res: gl.getUniformLocation(snowProg,'uRes'),
+  t: gl.getUniformLocation(snowProg,'uT'),
+  fall: gl.getUniformLocation(snowProg,'uFall'),
+  yaw: gl.getUniformLocation(snowProg,'uYaw'),
+  pitch: gl.getUniformLocation(snowProg,'uPitch'),
+  depth: gl.getUniformLocation(snowProg,'uDepth'),
+  box: gl.getUniformLocation(snowProg,'uBox'),
+  tint: gl.getUniformLocation(snowProg,'uTint'),
+};
+
+/* =========================================================
+   工具：颜色插值 / 分层 / 潜速曲线
+   ========================================================= */
+function currentZone(d){
+  let z = ZONES[0];
+  for (const zone of ZONES) if (d >= zone.d) z = zone;
+  return z;
+}
+
+// 潜速随深度变化：透光层快，午夜层慢，接近深渊极慢（叙事节奏）
+function descentSpeed(d){
+  if (d < 200)   return 7.5;
+  if (d < 1000)  return 6.0;
+  if (d < 2600)  return 4.2;
+  if (d < 4000)  return 2.6;
+  return 1.4;
+}
+
+const T = TIMES[S.timeMode];
+let curSun   = T.sun.slice();
+let curSkyLo = T.skyLo.slice();
+let curSkyHi = T.skyHi.slice();
+let curGlint = T.glint.slice();
+let curTilt  = T.tilt.slice();
+let curPower = T.power;
+let snowFall = 0;
+
+// snow tint 随深度：浅处偏白，深处偏冷蓝灰
+function snowTint(d){
+  const t = Math.min(d/2500, 1);
+  return [ 0.72 - t*0.28, 0.80 - t*0.22, 0.90 - t*0.10 ];
+}
+
+/* =========================================================
+   UI 更新
+   ========================================================= */
+const meterD = document.querySelector('#meter .d');
+const meterZ = document.querySelector('#meter .z');
+const verseEl = document.getElementById('verse');
+let verseTimer = null;
+
+function updateHUD(){
+  meterD.textContent = '−' + Math.floor(S.depth).toLocaleString() + ' m';
+  const z = currentZone(S.depth);
+  meterZ.textContent = z.n;
+  // 深度越深 HUD 越亮（对抗黑暗）
+  const meter = document.getElementById('meter');
+  meter.style.opacity = Math.min(0.55 + S.depth/4000, 1);
+}
+
+function checkVerse(){
+  for (const v of VERSES){
+    if (!v.shown && S.depth >= v.d){
+      v.shown = true;
+      verseEl.classList.remove('show');
+      // 强制重排以重启动画
+      void verseEl.offsetWidth;
+      verseEl.textContent = v.t;
+      // 诗句颜色随深度：浅处墨蓝，深处月白
+      const deep = Math.min(S.depth/1500, 1);
+      verseEl.style.color = `rgb(${Math.round(180+deep*40)},${Math.round(205+deep*35)},${Math.round(220+deep*35)})`;
+      requestAnimationFrame(()=> verseEl.classList.add('show'));
+      clearTimeout(verseTimer);
+      verseTimer = setTimeout(()=> verseEl.classList.remove('show'), 6200);
+      break;
+    }
+  }
+}
+
+/* =========================================================
+   主循环
+   ========================================================= */
+gl.enable(gl.BLEND);
+gl.disable(gl.DEPTH_TEST);
+
+function frame(now){
+  requestAnimationFrame(frame);
+
+  const rawDt = Math.min((now - S.lastFrame)/1000, 0.05);
+  S.lastFrame = now;
+  S.frameAvg = S.frameAvg*0.94 + (rawDt*1000)*0.06;
+  S.t += rawDt;
+
+  if (!S.started){ 
+    // 开场也渲染一帧静态水面（预热）
+    renderScene(0.016);
+    return; 
+  }
+
+  // 下潜
+  const base = descentSpeed(S.depth);
+  S.vMul += (1 - S.vMul) * 0.04;                 // 滚轮倍率缓慢回弹
+  S.depth += base * S.vMul * rawDt * 3.0;
+  snowFall += base * S.vMul * rawDt * 0.9;       // 雪的相对下落
+
+  // 相机姿态朝目标缓动
+  S.yaw   += (S.tYaw   - S.yaw)   * 0.045;
+  S.pitch += (S.tPitch - S.pitch) * 0.045;
+
+  // 时刻颜色（固定，不插值——一次潜水一个时刻）
+  renderScene(rawDt);
+  updateHUD();
+  checkVerse();
+}
+
+function renderScene(dt){
+  const depth = S.depth;
+  const tint = snowTint(depth);
+
+  // ---- 清屏为最深的水色（作为兜底） ----
+  gl.clearColor(0.004, 0.008, 0.016, 1);
+  gl.clear(gl.COLOR_BUFFER_BIT);
+
+  // ---- PASS 1 水体 ----
+  gl.blendFunc(gl.ONE, gl.ZERO);
+  gl.useProgram(waterProg);
+  gl.uniform2f(wl.res, W, H);
+  gl.uniform1f(wl.t, S.t);
+  gl.uniform1f(wl.depth, depth);
+  gl.uniform1f(wl.yaw, S.yaw);
+  gl.uniform1f(wl.pitch, S.pitch);
+  gl.uniform3fv(wl.sun, curSun);
+  gl.uniform3fv(wl.skyLo, curSkyLo);
+  gl.uniform3fv(wl.skyHi, curSkyHi);
+  gl.uniform3fv(wl.glint, curGlint);
+  gl.uniform2fv(wl.tilt, curTilt);
+  gl.uniform1f(wl.power, curPower);
+  gl.bindVertexArray(quadVAO);
+  gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+  // ---- PASS 2 海洋雪（加色混合） ----
+  gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+  gl.useProgram(snowProg);
+  gl.uniform2f(sl.res, W, H);
+  gl.uniform1f(sl.t, S.t);
+  gl.uniform1f(sl.fall, snowFall);
+  gl.uniform1f(sl.yaw, S.yaw);
+  gl.uniform1f(sl.pitch, S.pitch);
+  gl.uniform1f(sl.depth, depth);
+  gl.uniform1f(sl.box, BOX);
+  gl.uniform3fv(sl.tint, tint);
+  gl.bindVertexArray(snowVAO);
+  gl.drawArrays(gl.POINTS, 0, SNOW_N);
+  gl.bindVertexArray(null);
+}
+
+/* =========================================================
+   交互：鼠标 = 环顾；滚轮 = 潜速
+   ========================================================= */
+let moved = false;
+function onMove(nx, ny){
+  // nx, ny ∈ [-1,1]
+  S.tYaw   = nx * 0.55;
+  S.tPitch = ny * 0.42;
+  if (!moved){ moved = true; document.body.classList.add('moved'); }
+}
+addEventListener('mousemove', e=>{
+  onMove((e.clientX/innerWidth)*2-1, -((e.clientY/innerHeight)*2-1));
+});
+addEventListener('touchmove', e=>{
+  if (!e.touches[0]) return;
+  const t = e.touches[0];
+  onMove((t.clientX/innerWidth)*2-1, -((t.clientY/innerHeight)*2-1));
+}, {passive:true});
+
+addEventListener('wheel', e=>{
+  // 上滚加速下潜，下滚减速（甚至悬停）
+  S.vMul = Math.max(0, Math.min(4, S.vMul - e.deltaY*0.0016));
+}, {passive:true});
+
+/* =========================================================
+   开场
+   ========================================================= */
+document.querySelectorAll('.time-opt').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.time-opt').forEach(b=>b.classList.remove('on'));
+    btn.classList.add('on');
+    S.timeMode = btn.dataset.t;
+    const tm = TIMES[S.timeMode];
+    curSun=tm.sun.slice(); curSkyLo=tm.skyLo.slice(); curSkyHi=tm.skyHi.slice();
+    curGlint=tm.glint.slice(); curTilt=tm.tilt.slice(); curPower=tm.power;
+  });
+});
+
+document.getElementById('dive-btn').addEventListener('click', async ()=>{
+  try { if (document.documentElement.requestFullscreen) await document.documentElement.requestFullscreen(); } catch(e){}
+  try { if (screen.orientation && screen.orientation.lock) await screen.orientation.lock('landscape').catch(()=>{}); } catch(e){}
+  try { if ('wakeLock' in navigator) await navigator.wakeLock.request('screen'); } catch(e){}
+
+  document.getElementById('start-mask').classList.add('hidden');
+  document.body.classList.add('diving');
+  S.started = true;
+});
+
+// 应用初始时刻
+(function initTime(){
+  const tm = TIMES[S.timeMode];
+  curSun=tm.sun.slice(); curSkyLo=tm.skyLo.slice(); curSkyHi=tm.skyHi.slice();
+  curGlint=tm.glint.slice(); curTilt=tm.tilt.slice(); curPower=tm.power;
+})();
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
