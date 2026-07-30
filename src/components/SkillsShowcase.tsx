@@ -2,13 +2,16 @@
 
 import { useTheme } from "next-themes";
 import { useRef } from "react";
+import dynamic from "next/dynamic";
 import { motion, useInView } from "motion/react";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
-import Particles from "@/components/reactbits/Particles";
-import Aurora from "@/components/reactbits/Aurora";
 import { useWebGLQuality } from "@/lib/webgl";
 import GradientText from "@/components/reactbits/GradientText";
 import BlurText from "@/components/reactbits/BlurText";
+
+// WebGL demo 懒加载（ogl 不进主 chunk）
+const Particles = dynamic(() => import("@/components/reactbits/Particles"), { ssr: false });
+const Aurora = dynamic(() => import("@/components/reactbits/Aurora"), { ssr: false });
 
 interface Skill {
   title: string;

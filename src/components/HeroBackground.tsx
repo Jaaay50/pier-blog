@@ -1,10 +1,17 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import Galaxy from "@/components/reactbits/Galaxy";
-import Aurora from "@/components/reactbits/Aurora";
+import dynamic from "next/dynamic";
 import { StaticHeroFallback } from "@/components/StaticHeroFallback";
 import { useWebGLQuality } from "@/lib/webgl";
+
+// WebGL 背景懒加载（ogl 不进首屏主 chunk）
+const Galaxy = dynamic(() => import("@/components/reactbits/Galaxy"), {
+  ssr: false,
+});
+const Aurora = dynamic(() => import("@/components/reactbits/Aurora"), {
+  ssr: false,
+});
 
 /**
  * 双模式 Hero 背景：

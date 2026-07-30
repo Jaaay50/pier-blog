@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { useRef, useSyncExternalStore } from "react";
 import { motion, useScroll, useTransform, useInView } from "motion/react";
 import BlurText from "@/components/reactbits/BlurText";
@@ -88,6 +89,7 @@ interface ArticleCardProps {
 
 function ArticleCard({ post, index, readMore }: ArticleCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
+  const locale = useLocale();
   const coarse = useCoarsePointer();
   const { scrollYProgress } = useScroll({
     target: cardRef,
@@ -125,7 +127,7 @@ function ArticleCard({ post, index, readMore }: ArticleCardProps) {
           {/* 日期 + 标签 */}
           <div className="mb-4 flex flex-wrap items-center gap-2 text-xs text-[var(--text-muted)]">
             <time dateTime={post.date}>
-              {new Date(post.date).toLocaleDateString("en-US", {
+              {new Date(post.date).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", {
                 year: "numeric",
                 month: "short",
                 day: "numeric",

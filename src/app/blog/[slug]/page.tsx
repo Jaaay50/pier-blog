@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { getPostBySlug, getAllSlugs, getAllPosts } from "@/lib/posts";
 import { getRelatedPosts } from "@/lib/search";
@@ -19,6 +19,7 @@ export default async function BlogPostPage({ params }: PageProps) {
   const post = await getPostBySlug(slug);
   const t = await getTranslations("blog");
   const tFooter = await getTranslations("footer");
+  const locale = await getLocale();
 
   if (!post) {
     notFound();
@@ -48,7 +49,7 @@ export default async function BlogPostPage({ params }: PageProps) {
               </Link>
               <span>•</span>
               <time dateTime={post.date}>
-                {new Date(post.date).toLocaleDateString("en-US", {
+                {new Date(post.date).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", {
                   year: "numeric",
                   month: "long",
                   day: "numeric",
@@ -119,7 +120,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">
         <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© 2024 Pier. {tFooter("builtWith")}</p>
+          <p>© {new Date().getFullYear()} Pier. {tFooter("builtWith")}</p>
         </div>
       </footer>
     </main>

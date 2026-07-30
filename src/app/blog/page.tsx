@@ -54,7 +54,7 @@ export default async function BlogPage() {
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">
         <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© 2024 Pier. {tFooter("builtWith")}</p>
+          <p>© {new Date().getFullYear()} Pier. {tFooter("builtWith")}</p>
         </div>
       </footer>
     </main>

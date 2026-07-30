@@ -298,3 +298,39 @@ AI 增强（语义搜索、AI 摘要）
 
 ## 下一步：Phase 8
 性能优化与打磨（八阶段收官）
+
+---
+
+# Phase 8: 性能优化与打磨 ✅（八阶段收官）
+
+## 性能优化（移动端 74 → 90）
+
+### 1. WebGL 懒加载（ogl 移出首屏主 chunk）
+- ImmersiveHero / HeroBackground / SkillsShowcase 中的 Galaxy/Aurora/Particles
+  全部改 `next/dynamic` + `ssr: false`（它们本就客户端挂载后才渲染）
+- 效果：TBT 390ms → 40ms，FCP 2.4s → 0.9s，bootup 主线程脉冲消失
+
+### 2. LCP 修复（标题 SSR 可见渲染）
+- Hero 主标题水合前占位从 `opacity-0` 改为可见文本
+- 原问题：LCP 被推迟到 JS 挂载 + 逐字动画完成（移动端 4.5s）
+- 效果：LCP 4.5s → 3.6s（剩余成分是字体加载，已有 display:swap）
+
+### 3. Lighthouse 最终基线（docs/lighthouse/）
+| | Performance | LCP | TBT | CLS |
+|---|---|---|---|---|
+| Desktop | **100** | 0.7s | 0ms | ~0.01 |
+| Mobile | **90** | 3.6s | 40ms | 0.022 |
+
+## 打磨修缮
+- ✅ Footer 年份：硬编码 2024 → `new Date().getFullYear()`（5 处）
+- ✅ 文章页/横向画廊日期 locale：硬编码 en-US → 跟随 next-intl locale（zh → zh-CN，实测「2024年3月」）
+- ✅ README 重写：create-next-app 模板 → 项目实态（亮点/技术栈/性能表/开发指引）
+
+## 验证
+- ESLint 0/0；build 通过；全路由 + /api/search-index 200
+- 动态年份渲染 2026；中文日期格式生效
+
+## 八阶段全部完成 🎉
+Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验布局 → 6 数据可视化 → 7 搜索/推荐 → 8 性能收官
+
+待真机验收：移动端交互手感、WebGL 分级参数、主题扩散视觉效果

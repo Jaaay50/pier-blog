@@ -2,15 +2,22 @@
 
 import { useTheme } from "next-themes";
 import { ReactNode } from "react";
+import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "motion/react";
-import Galaxy from "@/components/reactbits/Galaxy";
-import Aurora from "@/components/reactbits/Aurora";
 import { StaticHeroFallback } from "@/components/StaticHeroFallback";
 import { FloatingShapes } from "@/components/FloatingShapes";
 import { useWebGLQuality } from "@/lib/webgl";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import BlurText from "@/components/reactbits/BlurText";
 import ShinyText from "@/components/reactbits/ShinyText";
+
+// WebGL 背景懒加载（ogl 不进首屏主 chunk）
+const Galaxy = dynamic(() => import("@/components/reactbits/Galaxy"), {
+  ssr: false,
+});
+const Aurora = dynamic(() => import("@/components/reactbits/Aurora"), {
+  ssr: false,
+});
 
 interface ImmersiveHeroProps {
   titleLine1: string;
@@ -97,7 +104,9 @@ export function ImmersiveHero({
         {/* 主标题：深色逐字解密 / 浅色逐字模糊揭示 */}
         <h1 className="font-display mb-8 text-5xl leading-[1.1] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
           {!mounted ? (
-            <span className="opacity-0">
+            /* SSR/水合前可见渲染：LCP 元素立即成像（不可用 opacity-0，
+               否则 LCP 被推迟到动画完成，移动端实测差 3s+） */
+            <span className="text-[var(--text-primary)]">
               {titleLine1}
               <br />
               {titleLine2}
