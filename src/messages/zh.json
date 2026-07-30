@@ -44,7 +44,8 @@
     "title": "博客",
     "subtitle": "记录前端工程、AI 集成、系统设计，以及 Web 开发的思考与实践。",
     "back": "返回",
-    "readMore": "阅读更多"
+    "readMore": "阅读更多",
+    "allTag": "全部"
   },
   "showcase": {
     "label": "组件库",
@@ -81,7 +82,9 @@
       "role2Company": "Web 应用与工具",
       "role2Period": "2021 — 2023",
       "role2Desc": "交付基于 React、Node.js 和云基础设施的生产系统。专注开发体验、组件架构与构建优化。"
-    }
+    },
+    "radarTitle": "技能雷达",
+    "activityTitle": "写作活跃度"
   },
   "footer": {
     "builtWith": "使用 Next.js、React 和 Tailwind CSS 构建。"

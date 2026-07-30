@@ -228,3 +228,39 @@ Performance 97 / A11y 95 / BP 100 / SEO 100；LCP 0.9s / CLS 0.014 / TBT 120ms /
 
 ## 下一步：Phase 6
 数据可视化（D3.js、Sandpack、雷达图）
+
+---
+
+# Phase 6: 数据可视化 ✅
+
+详见 PHASE6-PLAN.md。核心决策：**零新增依赖**（评估后放弃 D3.js 与 Sandpack，SVG + motion 自绘）。
+
+### 1. SkillRadar 技能雷达图（viz/SkillRadar.tsx）
+- 六维雷达（Frontend/Motion/AI/Engineering/Design/Performance）
+- 数据多边形从中心弹性展开（spring scale），顶点 stagger 淡入
+- hover 顶点显示 tooltip；颜色全走 CSS 变量自动适配双主题
+- reduced-motion 无动画直接显示；接入 /about
+
+### 2. BlogStatsFilter tag 条形图 + 过滤（viz/BlogStatsFilter.tsx）
+- 按 tag 聚合文章数，横向条形弹性伸长入场（stagger）
+- 点击条形客户端过滤文章；AnimatePresence popLayout 平滑重排
+- 替换 /blog 原静态列表；传入前裁剪 content 字段（不把全文送到客户端）
+
+### 3. ActivityHeatmap 活动热力图（viz/ActivityHeatmap.tsx）
+- GitHub 风格 26 周格子；文章发布日固定最高强度，其余确定性伪随机（同日同值，无水合问题）
+- 颜色用 color-mix + --accent 透明度阶梯，双主题自动适配
+- hover 显示日期与强度；接入 /about
+
+### 4. i18n
+- 新增 about.radarTitle / about.activityTitle / blog.allTag（en/zh）
+- About 页改为 async server component（getTranslations + getAllPosts）
+
+### 主动裁则
+- Showcase 代码演练场：FlipCard 模式（Phase 5）已覆盖此需求，不引入 Sandpack
+
+## 验证
+- `npx eslint src` 全通过；`npm run build` 通过
+- 全路由 200；/about 英文渲染 Skill Radar / Writing Activity，中文渲染技能雷达/写作活跃度；/blog tag 聚合数据 SSR 正常
+
+## 下一步：Phase 7
+AI 增强（语义搜索、AI 摘要）

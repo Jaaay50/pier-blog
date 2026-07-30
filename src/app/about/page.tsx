@@ -1,13 +1,17 @@
-import { useTranslations } from "next-intl";
+import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import GradientText from "@/components/reactbits/GradientText";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { ExperienceJourney } from "@/components/ExperienceJourney";
+import { SkillRadar } from "@/components/viz/SkillRadar";
+import { ActivityHeatmap } from "@/components/viz/ActivityHeatmap";
+import { getAllPosts } from "@/lib/posts";
 
-export default function AboutPage() {
-  const t = useTranslations("about");
-  const tFooter = useTranslations("footer");
+export default async function AboutPage() {
+  const t = await getTranslations("about");
+  const tFooter = await getTranslations("footer");
+  const posts = await getAllPosts();
 
   const skills = [
     {
@@ -93,6 +97,33 @@ export default function AboutPage() {
                 </div>
               </SpotlightCard>
             ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Skill Radar + Activity（Phase 6：数据可视化） */}
+      <section className="px-6 py-16">
+        <div className="mx-auto grid max-w-4xl items-start gap-12 md:grid-cols-2">
+          <div>
+            <h2 className="mb-6 text-2xl font-bold tracking-tight">
+              {t("radarTitle")}
+            </h2>
+            <SkillRadar
+              axes={[
+                { label: "Frontend", value: 92 },
+                { label: "Motion", value: 88 },
+                { label: "AI", value: 80 },
+                { label: "Engineering", value: 85 },
+                { label: "Design", value: 75 },
+                { label: "Performance", value: 86 },
+              ]}
+            />
+          </div>
+          <div>
+            <h2 className="mb-6 text-2xl font-bold tracking-tight">
+              {t("activityTitle")}
+            </h2>
+            <ActivityHeatmap postDates={posts.map((p) => p.date)} />
           </div>
         </div>
       </section>

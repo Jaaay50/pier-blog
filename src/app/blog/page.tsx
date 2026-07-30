@@ -1,10 +1,9 @@
 import { getTranslations } from "next-intl/server";
-import { BlogCard } from "@/components/BlogCard";
 import { Navbar } from "@/components/Navbar";
 import { getAllPosts } from "@/lib/posts";
 import DecryptedText from "@/components/reactbits/DecryptedText";
-import AnimatedContent from "@/components/reactbits/AnimatedContent";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
+import { BlogStatsFilter } from "@/components/viz/BlogStatsFilter";
 
 export default async function BlogPage() {
   const posts = await getAllPosts();
@@ -36,14 +35,19 @@ export default async function BlogPage() {
         </div>
       </section>
 
-      {/* Article List */}
+      {/* Tag 统计条形图 + 可过滤文章列表（Phase 6） */}
       <section className="px-6 pb-20">
-        <div className="mx-auto max-w-4xl space-y-6">
-          {posts.map((post, index) => (
-            <AnimatedContent key={post.slug} delay={index * 100}>
-              <BlogCard post={post} />
-            </AnimatedContent>
-          ))}
+        <div className="mx-auto max-w-4xl">
+          <BlogStatsFilter
+            posts={posts.map(({ slug, title, description, date, tags }) => ({
+              slug,
+              title,
+              description,
+              date,
+              tags,
+            }))}
+            allLabel={t("allTag")}
+          />
         </div>
       </section>
 
