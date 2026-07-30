@@ -2,6 +2,7 @@
 
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
 import { useEffect, useRef } from 'react';
+import { observeRenderGate } from '@/lib/webgl';
 
 const vertexShader = `
 attribute vec2 uv;
@@ -188,6 +189,8 @@ interface GalaxyProps {
   repulsionStrength?: number;
   autoCenterRepulsion?: number;
   transparent?: boolean;
+  /** 渲染像素比（性能分级传入，默认 1） */
+  dpr?: number;
 }
 
 export default function Galaxy({
@@ -207,6 +210,7 @@ export default function Galaxy({
   rotationSpeed = 0.1,
   autoCenterRepulsion = 0,
   transparent = true,
+  dpr = 1,
   ...rest
 }: GalaxyProps) {
   const ctnDom = useRef<HTMLDivElement>(null);
@@ -220,7 +224,8 @@ export default function Galaxy({
     const ctn = ctnDom.current;
     const renderer = new Renderer({
       alpha: transparent,
-      premultipliedAlpha: false
+      premultipliedAlpha: false,
+      dpr
     });
     const gl = renderer.gl;
 
@@ -279,13 +284,18 @@ export default function Galaxy({
     });
 
     const mesh = new Mesh(gl, { geometry, program });
-    let animateId: number;
+    let animateId: number | null = null;
+    let lastTime: number | null = null;
+    let elapsed = 0;
 
     function update(t: number) {
       animateId = requestAnimationFrame(update);
+      // 累积时间：暂停恢复后画面不跳变
+      if (lastTime !== null) elapsed += t - lastTime;
+      lastTime = t;
       if (!disableAnimation) {
-        program.uniforms.uTime.value = t * 0.001;
-        program.uniforms.uStarSpeed.value = (t * 0.001 * starSpeed) / 10.0;
+        program.uniforms.uTime.value = elapsed * 0.001;
+        program.uniforms.uStarSpeed.value = (elapsed * 0.001 * starSpeed) / 10.0;
       }
 
       const lerpFactor = 0.05;
@@ -300,8 +310,25 @@ export default function Galaxy({
 
       renderer.render({ scene: mesh });
     }
-    animateId = requestAnimationFrame(update);
+
+    const startLoop = () => {
+      if (animateId === null) animateId = requestAnimationFrame(update);
+    };
+    const stopLoop = () => {
+      if (animateId !== null) {
+        cancelAnimationFrame(animateId);
+        animateId = null;
+        lastTime = null;
+      }
+    };
+
+    startLoop();
     ctn.appendChild(gl.canvas);
+
+    // 视口外 / 标签页隐藏时暂停渲染
+    const stopGate = observeRenderGate(ctn, active =>
+      active ? startLoop() : stopLoop()
+    );
 
     function handleMouseMove(e: MouseEvent) {
       const rect = ctn.getBoundingClientRect();
@@ -323,7 +350,8 @@ export default function Galaxy({
     }
 
     return () => {
-      cancelAnimationFrame(animateId);
+      stopGate();
+      stopLoop();
       window.removeEventListener('resize', resize);
       if (mouseInteraction) {
         window.removeEventListener('mousemove', handleMouseMove);
@@ -348,7 +376,8 @@ export default function Galaxy({
     rotationSpeed,
     repulsionStrength,
     autoCenterRepulsion,
-    transparent
+    transparent,
+    dpr
   ]);
 
   return <div ref={ctnDom} className="w-full h-full relative" {...rest} />;

@@ -1,11 +1,12 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useRef, useState } from "react";
+import { useRef } from "react";
 import { motion, useInView } from "motion/react";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import Particles from "@/components/reactbits/Particles";
 import Aurora from "@/components/reactbits/Aurora";
+import { useWebGLQuality } from "@/lib/webgl";
 import GradientText from "@/components/reactbits/GradientText";
 import BlurText from "@/components/reactbits/BlurText";
 
@@ -34,11 +35,13 @@ interface SkillsShowcaseProps {
  */
 export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps) {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const quality = useWebGLQuality();
+  // quality 挂载后才非 null，兼作水合门
+  const mounted = quality !== null;
+  const webglOk = !!quality?.enabled;
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-20% 0px" });
 
-  useEffect(() => setMounted(true), []);
   const isDark = mounted && resolvedTheme === "dark";
 
   const spotlight = isDark
@@ -108,9 +111,9 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
               className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
             >
               <div className="relative h-44 overflow-hidden">
-                {mounted && (
+                {mounted && webglOk ? (
                   <Particles
-                    particleCount={160}
+                    particleCount={Math.round(160 * (quality?.particleMultiplier ?? 1))}
                     particleSpread={8}
                     speed={0.25}
                     particleColors={
@@ -118,11 +121,21 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
                         ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
                         : ["#d97757", "#d4a27f", "#3d3d3a"]
                     }
-                    moveParticlesOnHover
+                    moveParticlesOnHover={quality?.mouseInteraction}
                     particleHoverFactor={2}
                     particleBaseSize={80}
                     alphaParticles
+                    pixelRatio={quality?.dpr ?? 1}
                     className="absolute inset-0"
+                  />
+                ) : (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: isDark
+                        ? "radial-gradient(ellipse at 50% 60%, rgba(106,155,204,0.25), transparent 70%)"
+                        : "radial-gradient(ellipse at 50% 60%, rgba(217,119,87,0.2), transparent 70%)",
+                    }}
                   />
                 )}
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[var(--bg-card)] to-transparent" />
@@ -151,7 +164,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
               className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
             >
               <div className="relative h-44 overflow-hidden">
-                {mounted && (
+                {mounted && webglOk ? (
                   <div className="absolute inset-0">
                     <Aurora
                       colorStops={
@@ -163,6 +176,15 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
                       blend={0.8}
                     />
                   </div>
+                ) : (
+                  <div
+                    className="absolute inset-0"
+                    style={{
+                      background: isDark
+                        ? "linear-gradient(120deg, rgba(106,155,204,0.3), rgba(139,127,204,0.2), rgba(167,139,250,0.25))"
+                        : "linear-gradient(120deg, rgba(217,119,87,0.3), rgba(232,196,160,0.25), rgba(198,97,63,0.2))",
+                    }}
+                  />
                 )}
                 <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-[var(--bg-card)] to-transparent" />
               </div>

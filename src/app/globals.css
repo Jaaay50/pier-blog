@@ -87,6 +87,23 @@ body {
   }
 }
 
+/* 系统级减弱动效：恢复默认光标，压缩所有过渡/动画时长
+   （WebGL 组件层另有 useWebGLQuality 门控，不会创建 context） */
+@media (prefers-reduced-motion: reduce) {
+  body {
+    cursor: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* Display 层级：浅色衬线 400（Claude 编辑风），深色衬线 500（适配暗底） */
 .font-display {
   font-family: var(--font-display);

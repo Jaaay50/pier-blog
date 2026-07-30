@@ -15,7 +15,8 @@ export function CustomCursor() {
     if (!cursor || !cursorDot) return;
 
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-    if (isTouchDevice) {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (isTouchDevice || reducedMotion) {
       cursor.style.display = 'none';
       cursorDot.style.display = 'none';
       return;

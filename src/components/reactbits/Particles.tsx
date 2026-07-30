@@ -2,6 +2,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { Renderer, Camera, Geometry, Program, Mesh } from 'ogl';
+import { observeRenderGate } from '@/lib/webgl';
 
 interface ParticlesProps {
   particleCount?: number;
@@ -195,13 +196,13 @@ const Particles: React.FC<ParticlesProps> = ({
 
     const particles = new Mesh(gl, { mode: gl.POINTS, geometry, program });
 
-    let animationFrameId: number;
-    let lastTime = performance.now();
+    let animationFrameId: number | null = null;
+    let lastTime: number | null = null;
     let elapsed = 0;
 
     const update = (t: number) => {
       animationFrameId = requestAnimationFrame(update);
-      const delta = t - lastTime;
+      const delta = lastTime === null ? 0 : t - lastTime;
       lastTime = t;
       elapsed += delta * speed;
 
@@ -224,14 +225,31 @@ const Particles: React.FC<ParticlesProps> = ({
       renderer.render({ scene: particles, camera });
     };
 
-    animationFrameId = requestAnimationFrame(update);
+    const startLoop = () => {
+      if (animationFrameId === null) animationFrameId = requestAnimationFrame(update);
+    };
+    const stopLoop = () => {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
+        lastTime = null;
+      }
+    };
+
+    startLoop();
+
+    // 视口外 / 标签页隐藏时暂停渲染
+    const stopGate = observeRenderGate(container, active =>
+      active ? startLoop() : stopLoop()
+    );
 
     return () => {
+      stopGate();
       window.removeEventListener('resize', resize);
       if (moveParticlesOnHover) {
         container.removeEventListener('mousemove', handleMouseMove);
       }
-      cancelAnimationFrame(animationFrameId);
+      stopLoop();
       if (container.contains(gl.canvas)) {
         container.removeChild(gl.canvas);
       }

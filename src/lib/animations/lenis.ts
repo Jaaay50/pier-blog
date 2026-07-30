@@ -7,7 +7,12 @@ let lenisInstance: Lenis | null = null;
 
 export function initLenis() {
   if (typeof window === 'undefined') return null;
-  
+
+  // 系统级减弱动效：不接管滚动，保留原生行为
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return null;
+  }
+
   if (lenisInstance) {
     return lenisInstance;
   }

@@ -8,6 +8,8 @@ import ShinyText from "@/components/reactbits/ShinyText";
 import Aurora from "@/components/reactbits/Aurora";
 import Particles from "@/components/reactbits/Particles";
 import Galaxy from "@/components/reactbits/Galaxy";
+import { FluidBackground } from "@/components/webgl/FluidBackground";
+import { CardStack3D } from "@/components/webgl/CardStack3D";
 
 export default function ShowcasePage() {
   const t = useTranslations("showcase");
@@ -53,6 +55,16 @@ export default function ShowcasePage() {
       name: "Galaxy",
       description: "Interactive WebGL star field with mouse repulsion",
       category: "Background",
+    },
+    {
+      name: "ShaderGradient",
+      description: "Fluid noise gradient shader with domain warping",
+      category: "Background",
+    },
+    {
+      name: "CardStack3D",
+      description: "Draggable 3D perspective card stack",
+      category: "Card",
     },
   ];
 
@@ -158,6 +170,32 @@ export default function ShowcasePage() {
                 {t("hintSpotlight")}
               </p>
             </SpotlightCard>
+
+            {/* CardStack3D demo */}
+            <div className="flex flex-col items-center gap-4 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-8">
+              <div className="self-start text-xs font-semibold uppercase tracking-wide text-[var(--accent)]">
+                CardStack3D
+              </div>
+              <CardStack3D
+                className="h-40 w-full max-w-sm"
+                cards={[
+                  ["#d97757", "Design"],
+                  ["#6a9bcc", "Engineer"],
+                  ["#8b7fcc", "Ship"],
+                ].map(([color, label]) => (
+                  <div
+                    key={label}
+                    className="flex h-full w-full select-none items-center justify-center rounded-xl border border-[var(--border)] text-xl font-bold text-white shadow-lg"
+                    style={{ backgroundColor: color }}
+                  >
+                    {label}
+                  </div>
+                ))}
+              />
+              <p className="text-sm text-[var(--text-secondary)]">
+                Click or drag the top card to cycle the stack.
+              </p>
+            </div>
           </div>
         </div>
       </section>
@@ -211,6 +249,18 @@ export default function ShowcasePage() {
                     Galaxy
                   </div>
                   <div className="text-xl font-bold text-white">Star Field</div>
+                </div>
+              </div>
+            </div>
+
+            <div className="relative h-64 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
+              <FluidBackground className="absolute inset-0" intensity={0.8} />
+              <div className="relative z-10 flex h-full items-center justify-center">
+                <div className="text-center">
+                  <div className="mb-2 text-sm font-semibold text-[var(--accent)]">
+                    ShaderGradient
+                  </div>
+                  <div className="text-xl font-bold">Fluid Noise</div>
                 </div>
               </div>
             </div>

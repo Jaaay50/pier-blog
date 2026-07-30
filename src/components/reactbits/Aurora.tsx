@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { Renderer, Program, Mesh, Color, Triangle } from 'ogl';
+import { observeRenderGate } from '@/lib/webgl';
 
 const VERT = `#version 300 es
 in vec2 position;
@@ -177,10 +178,15 @@ export default function Aurora(props: AuroraProps) {
     const mesh = new Mesh(gl, { geometry, program });
     ctn.appendChild(gl.canvas);
 
-    let animateId = 0;
+    let animateId: number | null = null;
+    let lastTime: number | null = null;
+    let elapsed = 0;
     const update = (t: number) => {
       animateId = requestAnimationFrame(update);
-      const { time = t * 0.01, speed = 1.0 } = propsRef.current;
+      // 累积时间：暂停恢复后画面不跳变
+      if (lastTime !== null) elapsed += t - lastTime;
+      lastTime = t;
+      const { time = elapsed * 0.01, speed = 1.0 } = propsRef.current;
       if (program) {
         program.uniforms.uTime.value = time * speed * 0.1;
         program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
@@ -193,12 +199,29 @@ export default function Aurora(props: AuroraProps) {
         renderer.render({ scene: mesh });
       }
     };
-    animateId = requestAnimationFrame(update);
+    const startLoop = () => {
+      if (animateId === null) animateId = requestAnimationFrame(update);
+    };
+    const stopLoop = () => {
+      if (animateId !== null) {
+        cancelAnimationFrame(animateId);
+        animateId = null;
+        lastTime = null;
+      }
+    };
+
+    startLoop();
 
     resize();
 
+    // 视口外 / 标签页隐藏时暂停渲染
+    const stopGate = observeRenderGate(ctn, active =>
+      active ? startLoop() : stopLoop()
+    );
+
     return () => {
-      cancelAnimationFrame(animateId);
+      stopGate();
+      stopLoop();
       window.removeEventListener('resize', resize);
       if (ctn && gl.canvas.parentNode === ctn) {
         ctn.removeChild(gl.canvas);

@@ -1,10 +1,12 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useState, ReactNode } from "react";
+import { ReactNode } from "react";
 import { motion, useScroll, useTransform } from "motion/react";
 import Galaxy from "@/components/reactbits/Galaxy";
 import Aurora from "@/components/reactbits/Aurora";
+import { StaticHeroFallback } from "@/components/StaticHeroFallback";
+import { useWebGLQuality } from "@/lib/webgl";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import BlurText from "@/components/reactbits/BlurText";
 import ShinyText from "@/components/reactbits/ShinyText";
@@ -22,6 +24,8 @@ interface ImmersiveHeroProps {
  * - 深色（Kimi）：高密度 Galaxy 星空 + 逐字解密标题 + 金属流光副标题
  * - 浅色（Claude）：Aurora 暖极光 + 逐字模糊揭示 + 衬线优雅
  * - 滚动视差：滚出首屏时标题上浮淡出
+ * - 性能降级：WebGL 不可用 / 低端设备 / prefers-reduced-motion 时
+ *   渲染纯 CSS 静态背景；中端设备降 dpr 与关闭鼠标交互
  */
 export function ImmersiveHero({
   titleLine1,
@@ -31,7 +35,9 @@ export function ImmersiveHero({
   children,
 }: ImmersiveHeroProps) {
   const { resolvedTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  const quality = useWebGLQuality();
+  // quality 挂载后才非 null，兼作水合门
+  const mounted = quality !== null;
   const { scrollY } = useScroll();
 
   // 滚动视差：标题上浮 + 淡出，背景放大
@@ -39,29 +45,30 @@ export function ImmersiveHero({
   const contentOpacity = useTransform(scrollY, [0, 500], [1, 0]);
   const bgScale = useTransform(scrollY, [0, 800], [1, 1.15]);
 
-  useEffect(() => setMounted(true), []);
-
   const isDark = mounted && resolvedTheme === "dark";
 
   return (
     <section className="relative h-screen w-full overflow-hidden">
       {/* ===== 全屏背景 ===== */}
       <motion.div className="absolute inset-0" style={{ scale: bgScale }}>
-        {!mounted ? (
+        {!mounted || !quality ? (
           <div className="absolute inset-0 bg-[var(--bg-primary)]" />
+        ) : !quality.enabled ? (
+          <StaticHeroFallback isDark={isDark} />
         ) : isDark ? (
           <div className="absolute inset-0 opacity-70">
             <Galaxy
-              mouseInteraction
-              mouseRepulsion
+              mouseInteraction={quality.mouseInteraction}
+              mouseRepulsion={quality.mouseInteraction}
               repulsionStrength={2.5}
-              density={2}
+              density={2 * quality.particleMultiplier}
               starSpeed={0.4}
               glowIntensity={0.5}
               twinkleIntensity={0.5}
               hueShift={220}
               saturation={0.4}
               rotationSpeed={0.05}
+              dpr={quality.dpr}
             />
           </div>
         ) : (

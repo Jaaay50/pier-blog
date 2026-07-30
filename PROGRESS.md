@@ -97,3 +97,56 @@
 
 ## 下一步：Phase 3
 WebGL 视觉系统（3D 粒子星空、Shader 渐变、3D 卡片堆叠）
+
+---
+
+# Phase 3: WebGL 视觉系统 ✅
+
+## 已完成的功能
+
+### 1. WebGL 能力检测与性能降级（`src/lib/webgl/`）
+- ✅ `capabilities.ts`：context 探测（结果缓存）+ prefers-reduced-motion + 设备分级（deviceMemory / hardwareConcurrency / pointer 启发式，high/medium/low）
+- ✅ 分级输出统一渲染参数：dpr（high 最高 2，其余 1）、particleMultiplier（1 / 0.6 / 0.35）、mouseInteraction（触控设备关闭）
+- ✅ `enabled = webglSupported && !reducedMotion && tier !== 'low'`：false 时组件不创建 WebGL context，渲染静态 CSS 降级背景
+- ✅ `useWebGLQuality()` hook：SSR 返回 null（兼作水合门），响应 reduced-motion 实时变化
+- ✅ `visibility.ts` 渲染门控：IntersectionObserver + visibilitychange，canvas 视口外/标签页隐藏时暂停 RAF，恢复时时间累积不跳变
+
+### 2. 存量 WebGL 组件接入降级与门控
+- ✅ Galaxy / Particles / Aurora 全部接入 observeRenderGate（视口外零 GPU 开销）
+- ✅ Galaxy 新增 dpr prop；Particles 用 pixelRatio + 粒子数缩放
+- ✅ ImmersiveHero / HeroBackground：不可用时渲染 StaticHeroFallback（纯 CSS：深色径向渐变+静态星点 / 浅色暖陶土渐变）
+- ✅ SkillsShowcase 卡片内 demo：降级为静态渐变块
+
+### 3. Shader 渐变（新组件）
+- ✅ `webgl/ShaderGradient.tsx`：单三角形全屏 simplex 噪声域扭曲流体渐变，三色插值+呼吸高光，自带渲染门控
+- ✅ `webgl/FluidBackground.tsx`：主题感知包装（深色蓝紫/浅色暖陶土）+ 完整降级链
+- ✅ 接入 /blog 头部（低强度氛围背景）与 /showcase 演示区
+
+### 4. 3D 卡片堆叠（新组件）
+- ✅ `webgl/CardStack3D.tsx`：透视堆叠（缩放/下移/变暗），顶层卡点击或拖拽飞出循环，reduced-motion 时简单切换
+- ✅ 接入 /showcase Card Interactions 区
+
+### 5. 全局 reduced-motion 体系
+- ✅ globals.css：prefers-reduced-motion 时压缩所有过渡/动画时长、恢复默认光标
+- ✅ Lenis：reduced-motion 时不接管滚动（保留原生）
+- ✅ CustomCursor：reduced-motion 时禁用
+
+### 6. 水合一致性重构
+- ✅ ImmersiveHero / SkillsShowcase / HeroBackground / FluidBackground 的 `useEffect(setMounted)` 水合门统一改用 `useWebGLQuality()` 返回值（null = 未挂载），消除 react-hooks/set-state-in-effect 告警
+
+## 降级矩阵
+| 条件 | 行为 |
+|---|---|
+| WebGL context 创建失败 | 静态 CSS 背景，零 canvas |
+| prefers-reduced-motion | 静态背景 + 全局动画压缩 + 原生滚动/光标 |
+| 低端设备（≤2GB 或 ≤2 核） | 静态背景 |
+| 中端设备（触控 / ≤4GB / ≤4 核） | dpr=1，粒子 ×0.6，关闭鼠标交互 |
+| canvas 视口外 / 标签页隐藏 | 暂停 RAF，恢复时时间连续 |
+
+## 验证
+- `npm run build` 通过（TypeScript 严格检查通过）
+- Phase 3 相关文件 ESLint 全部通过（存量 LiquidButton/MDXContent/ScrollProgress/ThemedGradientText/TransitionLink 的旧告警不在本次范围）
+- 生产构建运行时全路由 200（/ /blog /blog/[slug] /about /showcase），/showcase 已渲染 ShaderGradient 与 CardStack3D
+
+## 下一步：Phase 4（待定）
+候选：存量 lint 告警清理、移动端体验打磨、Lighthouse 性能基线、真机验收
