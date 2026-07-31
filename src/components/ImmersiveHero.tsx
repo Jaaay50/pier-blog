@@ -114,7 +114,6 @@ export function ImmersiveHero({
             <HandwrittenChinese
               text={title}
               size={Math.min(Math.max(window.innerWidth * 0.18, 120), 220)}
-              color={isDark ? "#f5f5f5" : "#1a1a1a"}
               delay={200}
             />
           ) : (
