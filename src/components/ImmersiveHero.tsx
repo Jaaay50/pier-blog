@@ -9,10 +9,10 @@ import { StaticHeroFallback } from "@/components/StaticHeroFallback";
 import { FloatingShapes } from "@/components/FloatingShapes";
 import { useWebGLQuality } from "@/lib/webgl";
 import ShinyText from "@/components/reactbits/ShinyText";
-import { HandwrittenChinese } from "@/components/HandwrittenChinese";
-import { HandwrittenEnglish } from "@/components/HandwrittenEnglish";
+import DecryptedText from "@/components/reactbits/DecryptedText";
+import BlurText from "@/components/reactbits/BlurText";
 
-// WebGL 背景懒加载（ogl 不进首屏主 chunk）
+// WebGL 背景懒加载
 const Galaxy = dynamic(() => import("@/components/reactbits/Galaxy"), {
   ssr: false,
 });
@@ -28,9 +28,9 @@ interface ImmersiveHeroProps {
 
 /**
  * 全屏沉浸式 Hero
- * - 中文：HanziWriter 逐笔书写「你好」
- * - 英文：SVG stroke 动画手写「Hello」
- * - 语言通过 useLocale() 自动判断，不混排
+ * - 深色：Galaxy 星空 + 逐字解密标题
+ * - 浅色：Aurora 暖极光 + 逐字模糊揭示
+ * - 稳定、简洁的文字动效
  */
 export function ImmersiveHero({
   title,
@@ -52,7 +52,7 @@ export function ImmersiveHero({
 
   return (
     <section className="relative h-screen w-full overflow-hidden">
-      {/* ===== 全屏背景 ===== */}
+      {/* 全屏背景 */}
       <motion.div className="absolute inset-0" style={{ scale: bgScale }}>
         {!mounted || !quality ? (
           <div className="absolute inset-0 bg-[var(--bg-primary)]" />
@@ -88,49 +88,44 @@ export function ImmersiveHero({
       {/* 前景浮动几何层 */}
       {mounted && <FloatingShapes />}
 
-      {/* 底部渐隐，衔接下一屏 */}
+      {/* 底部渐隐 */}
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[var(--bg-primary)] to-transparent" />
 
-      {/* ===== 内容 ===== */}
+      {/* 内容 */}
       <motion.div
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ y: contentY, opacity: contentOpacity }}
       >
-        {/* 手写标题 */}
-        <div className="mb-10 select-none">
+        {/* 主标题 */}
+        <h1 className="font-display mb-8 text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
           {!mounted ? (
-            /* SSR 占位，防止 LCP 延迟 */
-            <div
-              className={`font-dancing text-[var(--text-primary)] ${
-                isZh
-                  ? "text-[clamp(6rem,18vw,16rem)]"
-                  : "text-[clamp(5rem,15vw,14rem)]"
-              }`}
-            >
-              {title}
-            </div>
-          ) : isZh ? (
-            /* 中文：HanziWriter 逐笔书写 */
-            <HandwrittenChinese
+            <span className="text-[var(--text-primary)]">{title}</span>
+          ) : isDark ? (
+            <DecryptedText
               text={title}
-              size={Math.min(Math.max(window.innerWidth * 0.18, 120), 220)}
-              delay={200}
+              animateOn="view"
+              sequential
+              speed={isZh ? 45 : 35}
+              revealDirection="start"
+              className="text-[var(--text-primary)]"
+              encryptedClassName="text-[var(--accent)]/40"
             />
           ) : (
-            /* 英文：SVG stroke 手写动画 */
-            <HandwrittenEnglish
-              color={isDark ? "#f5f5f5" : "#1a1a1a"}
-              delay={200}
-              className="w-[clamp(280px,55vw,720px)]"
+            <BlurText
+              text={title}
+              delay={isZh ? 70 : 50}
+              animateBy="letters"
+              direction="bottom"
+              className="justify-center text-[var(--text-primary)]"
             />
           )}
-        </div>
+        </h1>
 
-        {/* 副标题，在手写动画完成后淡入 */}
+        {/* 副标题 */}
         <motion.div
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 1.0, delay: isZh ? 2.2 : 3.0 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 1.2, delay: 1.2 }}
           className="mb-12 max-w-xl"
         >
           <ShinyText
@@ -146,18 +141,18 @@ export function ImmersiveHero({
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: isZh ? 2.8 : 3.6 }}
+          transition={{ duration: 0.8, delay: 1.6 }}
         >
           {children}
         </motion.div>
       </motion.div>
 
-      {/* 滚动提示：纯图标 */}
+      {/* 滚动提示 */}
       <motion.div
         className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-[var(--text-muted)]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: isZh ? 3.2 : 4.0, duration: 1 }}
+        transition={{ delay: 2.2, duration: 1 }}
         style={{ opacity: contentOpacity }}
       >
         <motion.svg
