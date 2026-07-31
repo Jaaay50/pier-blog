@@ -181,6 +181,11 @@ html.custom-cursor-on body {
   letter-spacing: -0.01em;
 }
 
+.font-dancing {
+  font-family: var(--font-dancing), cursive;
+  font-weight: 700;
+}
+
 .dark .font-display {
   font-weight: 500;
 }

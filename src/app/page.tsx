@@ -30,17 +30,9 @@ export default async function HomePage() {
         <MagneticWrapper strength={0.25}>
           <TransitionLink
             href="/blog"
-            className="btn-primary liquid-button rounded-xl px-6 py-3 font-medium"
+            className="rounded-xl bg-[var(--bg-card)]/80 backdrop-blur-md border border-[var(--border)] px-8 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
           >
             {t("readArticles")}
-          </TransitionLink>
-        </MagneticWrapper>
-        <MagneticWrapper strength={0.25}>
-          <TransitionLink
-            href="/about"
-            className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)]/60 px-6 py-3 font-medium backdrop-blur-md transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
-          >
-            {t("aboutMe")}
           </TransitionLink>
         </MagneticWrapper>
       </ImmersiveHero>

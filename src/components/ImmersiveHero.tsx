@@ -7,7 +7,6 @@ import { motion, useScroll, useTransform } from "motion/react";
 import { StaticHeroFallback } from "@/components/StaticHeroFallback";
 import { FloatingShapes } from "@/components/FloatingShapes";
 import { useWebGLQuality } from "@/lib/webgl";
-import DecryptedText from "@/components/reactbits/DecryptedText";
 import BlurText from "@/components/reactbits/BlurText";
 import ShinyText from "@/components/reactbits/ShinyText";
 
@@ -90,7 +89,7 @@ export function ImmersiveHero({
         )}
       </motion.div>
 
-      {/* Phase 5：前景浮动几何层（三层视差最快层，低端/reduced-motion 不渲染） */}
+      {/* 前景浮动几何层 */}
       {mounted && <FloatingShapes />}
 
       {/* 底部渐隐，衔接下一屏 */}
@@ -101,118 +100,95 @@ export function ImmersiveHero({
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ y: contentY, opacity: contentOpacity }}
       >
-        {/* 主标题：深色逐字解密 / 浅色逐字模糊揭示 */}
-        <h1 className="font-display mb-8 text-5xl leading-[1.1] tracking-tight sm:text-6xl md:text-7xl lg:text-8xl">
+        {/* Apple 风格双行大标题：手写体 Hello / 你好 */}
+        <h1 className="mb-10 leading-none tracking-tight select-none">
+          {/* SSR / 水合前：立即可见，防止 LCP 延迟 */}
           {!mounted ? (
-            /* SSR/水合前可见渲染：LCP 元素立即成像（不可用 opacity-0，
-               否则 LCP 被推迟到动画完成，移动端实测差 3s+） */
-            <span className="text-[var(--text-primary)]">
+            <span
+              className="block font-dancing text-[clamp(7rem,20vw,18rem)] text-[var(--text-primary)]"
+              style={{ fontFamily: "var(--font-dancing), cursive" }}
+            >
               {titleLine1}
-              <br />
-              {titleLine2}
             </span>
-          ) : isDark ? (
-            <>
-              <DecryptedText
-                text={titleLine1}
-                animateOn="view"
-                sequential
-                speed={40}
-                revealDirection="start"
-                className="text-[var(--text-primary)]"
-                encryptedClassName="text-[var(--accent)]/40"
-              />
-              <br />
-              <DecryptedText
-                text={titleLine2}
-                animateOn="view"
-                sequential
-                speed={55}
-                revealDirection="start"
-                className="bg-gradient-to-r from-[#6a9bcc] via-[#8b7fcc] to-[#a78bfa] bg-clip-text text-transparent"
-                encryptedClassName="text-[var(--text-muted)]/40"
-              />
-            </>
           ) : (
             <>
+              {/* 第一行：主词（Hello 或 你好） */}
               <BlurText
                 text={titleLine1}
-                delay={80}
+                delay={90}
                 animateBy="letters"
                 direction="bottom"
-                className="justify-center text-[var(--text-primary)]"
+                stepDuration={0.55}
+                className="justify-center font-dancing text-[clamp(7rem,20vw,18rem)] leading-none text-[var(--text-primary)]"
               />
-              <BlurText
-                text={titleLine2}
-                delay={120}
-                animateBy="letters"
-                direction="bottom"
-                className="justify-center bg-gradient-to-r from-[#d97757] via-[#c6613f] to-[#d4a27f] bg-clip-text text-transparent"
-              />
+              {/* 第二行：次词，字号更小，带渐变色，错落感 */}
+              <motion.div
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.9, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                className="mt-2"
+              >
+                <span
+                  className={`font-dancing text-[clamp(3rem,8vw,7rem)] leading-none ${
+                    isDark
+                      ? "bg-gradient-to-r from-[#6a9bcc] via-[#8b7fcc] to-[#a78bfa] bg-clip-text text-transparent"
+                      : "bg-gradient-to-r from-[#d97757] via-[#c6613f] to-[#d4a27f] bg-clip-text text-transparent"
+                  }`}
+                  style={{ fontFamily: "var(--font-dancing), cursive" }}
+                >
+                  {titleLine2}
+                </span>
+              </motion.div>
             </>
           )}
         </h1>
 
-        {/* 副标题：深色金属流光 / 浅色衬线渐显 */}
+        {/* 副标题 */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 1.4 }}
-          className="mb-12 max-w-2xl"
+          transition={{ duration: 1.2, delay: 1.3 }}
+          className="mb-12 max-w-xl"
         >
-          {isDark ? (
-            <ShinyText
-              text={subtitle}
-              speed={3}
-              color="#a1a1a1"
-              shineColor="#e0ecff"
-              className="text-lg leading-relaxed md:text-xl"
-            />
-          ) : (
-            <ShinyText
-              text={subtitle}
-              speed={3}
-              color="#5e5d59"
-              shineColor="#d97757"
-              className="text-lg leading-relaxed md:text-xl"
-            />
-          )}
+          <ShinyText
+            text={subtitle}
+            speed={3}
+            color={isDark ? "#a1a1a1" : "#5e5d59"}
+            shineColor={isDark ? "#e0ecff" : "#d97757"}
+            className="text-base leading-relaxed tracking-wide md:text-lg"
+          />
         </motion.div>
 
-        {/* CTA */}
+        {/* CTA：单按钮，轻量 */}
         <motion.div
-          initial={{ opacity: 0, y: 24 }}
+          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.8 }}
-          className="flex gap-4"
+          transition={{ duration: 0.8, delay: 1.7 }}
         >
           {children}
         </motion.div>
       </motion.div>
 
-      {/* ===== 滚动提示 ===== */}
+      {/* ===== 滚动提示：纯图标，无文字 ===== */}
       <motion.div
-        className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2"
+        className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-[var(--text-muted)]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2.5, duration: 1 }}
+        transition={{ delay: 2.4, duration: 1 }}
         style={{ opacity: contentOpacity }}
       >
-        <div className="flex flex-col items-center gap-2 text-[var(--text-muted)]">
-          <span className="text-xs tracking-[0.2em] uppercase">{scrollHint}</span>
-          <motion.svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-          >
-            <path d="M12 5v14M19 12l-7 7-7-7" />
-          </motion.svg>
-        </div>
+        <motion.svg
+          width="22"
+          height="22"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.5"
+          animate={{ y: [0, 7, 0] }}
+          transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        >
+          <path d="M12 5v14M19 12l-7 7-7-7" />
+        </motion.svg>
       </motion.div>
     </section>
   );

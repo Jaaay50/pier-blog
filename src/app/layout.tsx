@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Source_Serif_4 } from "next/font/google";
+import { Inter, JetBrains_Mono, Source_Serif_4, Dancing_Script } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getMessages } from "next-intl/server";
 import { ThemeProvider } from "@/components/ThemeProvider";
@@ -27,6 +27,13 @@ const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-serif",
+  display: "swap",
+});
+
+const dancingScript = Dancing_Script({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-dancing",
   display: "swap",
 });
 
@@ -62,7 +69,7 @@ export default async function RootLayout({
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${jetbrainsMono.variable} ${sourceSerif.variable}`}
+      className={`${inter.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} ${dancingScript.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
