@@ -94,6 +94,21 @@ body.diving.moved #hint { opacity: 0; transition: opacity 1.4s ease; }
 }
 #verse.show::after { width: 56%; }
 
+/* ---------- 退出 ---------- */
+#exit-btn {
+  position: fixed; top: 22px; left: 50%; transform: translateX(-50%);
+  z-index: 30; padding: 0.42rem 1.2rem 0.42rem 1.3rem;
+  font: inherit; font-size: 9.5px; letter-spacing: 0.32em; text-indent: 0.32em;
+  color: var(--ink); background: rgba(8,18,32,0.42);
+  border: 1px solid rgba(150,205,255,0.26); border-radius: 999px;
+  cursor: pointer; backdrop-filter: blur(6px);
+  opacity: 0; pointer-events: none; transition: opacity 1.2s ease, background 0.35s;
+}
+#exit-btn:hover { background: rgba(110,180,255,0.16); }
+body.diving #exit-btn { opacity: 0.55; pointer-events: auto; }
+body.diving #exit-btn:hover { opacity: 1; }
+body.diving.moved.hideui #exit-btn { opacity: 0; pointer-events: none; }
+
 @media (max-width: 768px) {
   #mark { left: 5vw; } #meter { right: 5vw; }
   #verse, #hint { white-space: normal; }
@@ -121,6 +136,7 @@ body.diving.moved #hint { opacity: 0; transition: opacity 1.4s ease; }
 <div class="hud" id="meter"><div class="d">0 m</div><div class="z">SURFACE</div></div>
 <div class="hud" id="hint">移动光标环顾 · 按住点亮探照灯 · 滚轮控制潜速</div>
 <div id="verse"></div>
+<button id="exit-btn" title="返回作品集 (Esc)">← 返回作品集</button>
 
 <script>
 'use strict';
@@ -309,9 +325,9 @@ vec3 rayDir(vec2 uv){
 // ---- 物理常量（每世界单位，1 单位≈6m） ----
 const vec3 EXT = vec3(0.34, 0.115, 0.060);      // 消光（红先死）
 const vec3 ALB = vec3(0.18, 0.42, 0.62);        // 散射反照率（蓝绿占优）
-const vec3 SUNDECAY = vec3(0.070, 0.016, 0.0034);  // 直射衰减 / 米（红先死）
-const vec3 AMBDECAY = vec3(0.030, 0.0075, 0.0021); // 环境场感知衰减 / 米
-const float BOOST = 11.0;                       // 内散射能量补偿
+const vec3 SUNDECAY = vec3(0.056, 0.013, 0.0028);  // 直射衰减 / 米（红先死）
+const vec3 AMBDECAY = vec3(0.024, 0.0060, 0.0017); // 环境场感知衰减 / 米
+const float BOOST = 16.0;                       // 内散射能量补偿
 
 float phaseHG(float c, float g){
   float g2 = g*g;
@@ -375,6 +391,8 @@ void main(){
   // 中层残光：“最后的蓝”，1000m 前可感知；深渊另留极微底色
   ambCol += vec3(0.008, 0.022, 0.050) * exp(-uDepth*0.0012) * uPower * mix(0.55, 1.0, upness);
   ambCol += vec3(0.0015, 0.004, 0.009) * exp(-uDepth*0.0003) * uPower;
+  // 暗适应底光：人眼在深海会放大残余信号，深渊不纯黑
+  ambCol += vec3(0.0022, 0.0058, 0.0135) * (0.6 + 0.4*upness);
 
   // ---------- raymarch ----------
   float jitter = h21(gl_FragCoord.xy + fract(t)*7.13);
@@ -424,10 +442,10 @@ void main(){
       if (ax > 0.05){
         float rr = length(w - ax*uTorchDir);
         float ang = rr / ax;
-        float cone = exp(-ang*ang*22.0) + exp(-ang*ang*160.0)*1.2;
-        float att = exp(-ax*0.16);
-        vec3 tCol = vec3(1.0, 0.94, 0.82) * 2.6 * uTorch;
-        acc += tCol * cone * att * ALB * (dens*9.0+0.05) * stepLen * trans;
+        float cone = exp(-ang*ang*10.0) + exp(-ang*ang*110.0)*1.3;
+        float att = exp(-ax*0.10);
+        vec3 tCol = vec3(1.0, 0.94, 0.82) * 3.4 * uTorch;
+        acc += tCol * cone * att * ALB * (dens*9.0+0.14) * stepLen * trans;
       }
     }
 
@@ -462,7 +480,7 @@ void main(){
   bg += sunT * pow(max(mu, 0.0), 3.2) * stripes * 3.4 * twilight * sunBlock;
 
   // 介质大尺度斑驳（非均匀水团，抗“干净渐变”）
-  bg *= 0.82 + 0.36*fbm2(rd.xy*2.4 + vec2(t*0.02, uDepth*0.0011));
+  bg *= 0.84 + 0.36*fbm2(rd.xy*2.4 + vec2(t*0.02, uDepth*0.0011));
 
   // 巨影本体：挡掉背景，留边缘透光
   bg *= 1.0 - wh*0.82;
@@ -477,7 +495,7 @@ void main(){
   // ---------- 收尾 ----------
   // 不对称柔和暗角（弱，避免舷窗感）
   vec2 vg = uv * vec2(0.72, 0.94);
-  col *= 1.0 - 0.16*dot(vg,vg) - 0.05*smoothstep(0.2, 1.6, -uv.y);
+  col *= 1.0 - 0.10*dot(vg,vg) - 0.03*smoothstep(0.2, 1.6, -uv.y);
 
   // 散射致白（轻度去饱和，防合成蓝）
   float luma = dot(col, vec3(0.299,0.587,0.114));
@@ -487,7 +505,7 @@ void main(){
   col = mix(col, col.bbb*vec3(0.55,0.75,1.0), depth01*0.16);
 
   // ACES 近似
-  col *= 1.25;
+  col *= 1.32;
   col = (col*(2.51*col+0.03))/(col*(2.43*col+0.59)+0.14);
   col = pow(max(col, 0.0), vec3(0.90));
 
@@ -572,8 +590,8 @@ void main(){
   gl_PointSize = clamp(sz * (uRes.y/900.0) / (-v.z*0.085+1.0), 1.5, 60.0);
 
   // ---- 光照 ----
-  // 环境可见度：随深度衰减，保留微余量（暗适应）
-  float amb = 0.72 * exp(-uDepth*0.0010) + 0.05;
+  // 环境可见度：随深度衰减，暗适应余量提高（深海雪依然可辨）
+  float amb = 0.85 * exp(-uDepth*0.0007) + 0.10;
   // 探照灯锥内被照亮（深海核心戏剧）
   float tg = 0.0;
   if (uTorch > 0.003){
@@ -582,7 +600,7 @@ void main(){
     if (ax > 0.05){
       float rr = length(w - ax*uTorchDir);
       float ang = rr / ax;
-      tg = (exp(-ang*ang*22.0)*2.2 + exp(-ang*ang*160.0)*3.5) * uTorch * exp(-ax*0.12);
+      tg = (exp(-ang*ang*10.0)*2.6 + exp(-ang*ang*110.0)*4.0) * uTorch * exp(-ax*0.09);
     }
   }
   float distFade = smoothstep(uBox*1.85, 3.0, -v.z);
@@ -699,15 +717,15 @@ void main(){
   float scare = 1.0 - near * smoothstep(0.4, 1.6, uPokeT) * smoothstep(6.0, 2.0, uPokeT);
   br = (br*scare + spike);
 
-  // 深度门控：450m 渐入，1000m 后全强
-  float gate = smoothstep(450.0, 1000.0, uDepth);
+  // 深度门控：250m 渐入，650m 后全强（提晨微光生物）
+  float gate = smoothstep(250.0, 650.0, uDepth);
   float distFade = smoothstep(uBox*2.5, 4.0, -v.z);
 
   float big = step(0.86, fract(aSeed*3.77));     // 14% 大水母晕
   float sz = mix(4.5, 30.0, big*pow(fract(aSeed*13.7), 0.5));
   gl_PointSize = clamp(sz * (1.0 + wBand*uBioWave*0.55) * (uRes.y/900.0) / (-v.z*0.06+1.0), 1.0, 96.0);
 
-  vA = br * gate * distFade * mix(2.3, 1.1, big);
+  vA = br * gate * distFade * mix(2.9, 1.4, big);
   // 颜色：蓝青为主，少数暖白
   float hue = fract(aSeed*5.13);
   vC = hue < 0.06 ? vec3(1.0, 0.86, 0.62)
@@ -771,7 +789,7 @@ let curTilt = T0.tilt.slice(), curPower = T0.power;
 let snowFall = 0;
 
 // ---------- 事件调度 ----------
-const whaleEv = { active: 0, prog: 0, size: 0.5, yOff: 0.1, side: 1, count: 0, nextAt: 18 + Math.random()*14 };
+const whaleEv = { active: 0, prog: 0, size: 0.5, yOff: 0.1, side: 1, count: 0, nextAt: 8 + Math.random()*8 };
 let bioWave = 0, bioWaveNext = 20 + Math.random()*20;
 
 // 指针/惊扰
@@ -834,7 +852,7 @@ function frame(now){
   // ---- 下潜 ----
   const base = descentSpeed(S.depth);
   S.vMul += (1 - S.vMul) * 0.04;
-  S.depth += base * S.vMul * rawDt * 3.0;
+  S.depth += base * S.vMul * rawDt * 1.4;
   snowFall += base * S.vMul * rawDt * 0.9;
 
   // ---- 姿态 / 探照灯 / 水流：低通 ----
@@ -944,8 +962,8 @@ function renderScene(){
   gl.bindVertexArray(snowVAO);
   gl.drawArrays(gl.POINTS, 0, Math.floor(SNOW_N * [0.5, 0.75, 1][S.quality]));
 
-  // ---- PASS 3 生物发光（>430m 才画） ----
-  if (depth > 430){
+  // ---- PASS 3 生物发光（>250m 才画） ----
+  if (depth > 250){
     gl.useProgram(bioProg);
     gl.uniform2f(bl.uRes, W, H);
     gl.uniform1f(bl.uT, S.t);
@@ -1035,6 +1053,29 @@ addEventListener('wheel', e=>{
 document.addEventListener('visibilitychange', ()=>{
   S.paused = document.hidden;
   if (!S.paused) S.lastFrame = performance.now();
+});
+
+// 退出：按钮 / Esc
+document.getElementById('exit-btn').addEventListener('click', ()=>{
+  if (document.fullscreenElement && document.exitFullscreen){
+    document.exitFullscreen().catch(()=>{}).finally(()=>{ location.href = '/portfolio'; });
+  } else {
+    location.href = '/portfolio';
+  }
+});
+addEventListener('keydown', e=>{
+  if (e.key === 'Escape' && S.started && !document.fullscreenElement) location.href = '/portfolio';
+});
+document.addEventListener('fullscreenchange', ()=>{
+  // Esc 退出全屏后：若用户已交互过（moved 会隐藏原提示），复用 hint 提示返回路径
+  if (S.started && !document.fullscreenElement){
+    const h = document.getElementById('hint');
+    if (h && document.body.classList.contains('moved')){
+      h.textContent = '点击顶部「返回作品集」或按 Esc 退出';
+      h.style.opacity = '0.6';
+      setTimeout(()=>{ h.style.opacity = '0'; }, 5200);
+    }
+  }
 });
 
 /* =========================================================

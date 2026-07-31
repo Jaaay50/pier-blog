@@ -163,11 +163,8 @@ export default async function PortfolioPage() {
                     {work.year}
                   </span>
                 </div>
-                {/* 信息条 */}
-                <div className="flex items-center justify-between p-5">
-                  <p className="mr-4 flex-1 text-sm leading-relaxed text-[var(--text-secondary)]">
-                    {tHome(work.tagline.key)}
-                  </p>
+                {/* 信息条：仅技术标签 */}
+                <div className="flex items-center justify-end p-5">
                   <div className="flex shrink-0 flex-wrap justify-end gap-2">
                     {work.tech.map((tech) => (
                       <span
