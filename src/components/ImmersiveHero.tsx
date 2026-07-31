@@ -9,8 +9,6 @@ import { StaticHeroFallback } from "@/components/StaticHeroFallback";
 import { FloatingShapes } from "@/components/FloatingShapes";
 import { useWebGLQuality } from "@/lib/webgl";
 import ShinyText from "@/components/reactbits/ShinyText";
-import DecryptedText from "@/components/reactbits/DecryptedText";
-import BlurText from "@/components/reactbits/BlurText";
 
 // WebGL 背景懒加载
 const Galaxy = dynamic(() => import("@/components/reactbits/Galaxy"), {
@@ -49,6 +47,8 @@ export function ImmersiveHero({
 
   const isDark = mounted && resolvedTheme === "dark";
   const isZh = locale === "zh";
+  // 逐字揭示：中文每字一个单元、英文每词整体不断行，节奏一致
+  const words = title.split(" ");
 
   return (
     <section className="relative h-screen w-full overflow-hidden">
@@ -96,28 +96,43 @@ export function ImmersiveHero({
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ y: contentY, opacity: contentOpacity }}
       >
-        {/* 主标题 */}
-        <h1 className="font-display mb-8 text-4xl leading-[1.1] tracking-tight sm:text-5xl md:text-6xl lg:text-7xl">
+        {/* 主标题：逐字上浮 + 去模糊，中英文/深浅色统一 */}
+        <h1 className="font-display mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]">
+          <span className="sr-only">{title}</span>
           {!mounted ? (
-            <span className="text-[var(--text-primary)]">{title}</span>
-          ) : isDark ? (
-            <DecryptedText
-              text={title}
-              animateOn="view"
-              sequential
-              speed={isZh ? 45 : 35}
-              revealDirection="start"
-              className="text-[var(--text-primary)]"
-              encryptedClassName="text-[var(--accent)]/40"
-            />
+            <span aria-hidden="true">{title}</span>
           ) : (
-            <BlurText
-              text={title}
-              delay={isZh ? 70 : 50}
-              animateBy="letters"
-              direction="bottom"
-              className="justify-center text-[var(--text-primary)]"
-            />
+            <span aria-hidden="true" className="flex flex-wrap justify-center">
+              {(() => {
+                let i = -1;
+                return words.map((word, wi) => (
+                  <span key={wi} className="inline-flex whitespace-nowrap">
+                    {Array.from(word).map((char) => {
+                      i += 1;
+                      const idx = i;
+                      return (
+                        <motion.span
+                          key={idx}
+                          className="inline-block"
+                          initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
+                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                          transition={{
+                            duration: 0.7,
+                            delay: 0.25 + idx * (isZh ? 0.08 : 0.055),
+                            ease: [0.22, 1, 0.36, 1],
+                          }}
+                        >
+                          {char}
+                        </motion.span>
+                      );
+                    })}
+                    {wi < words.length - 1 && (
+                      <span className="inline-block">&nbsp;</span>
+                    )}
+                  </span>
+                ));
+              })()}
+            </span>
           )}
         </h1>
 
