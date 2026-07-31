@@ -22,10 +22,8 @@ export default async function HomePage() {
 
       {/* 第一屏：全屏沉浸式 Hero */}
       <ImmersiveHero
-        titleLine1={t("heroTitleLine1")}
-        titleLine2={t("heroTitleLine2")}
+        title={t("heroTitle")}
         subtitle={t("heroSubtitle")}
-        scrollHint={t("scrollHint")}
       >
         <MagneticWrapper strength={0.25}>
           <TransitionLink

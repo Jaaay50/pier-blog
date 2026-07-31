@@ -7,8 +7,7 @@
   },
   "home": {
     "role": "Frontend Engineer",
-    "heroTitleLine1": "Hello",
-    "heroTitleLine2": "你好",
+    "heroTitle": "Hello",
     "heroSubtitle": "Full-stack engineer. Building digital experiences with warmth and vitality.",
     "readArticles": "Read Articles",
     "aboutMe": "About Me",

@@ -4,11 +4,13 @@ import { useTheme } from "next-themes";
 import { ReactNode } from "react";
 import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "motion/react";
+import { useLocale } from "next-intl";
 import { StaticHeroFallback } from "@/components/StaticHeroFallback";
 import { FloatingShapes } from "@/components/FloatingShapes";
 import { useWebGLQuality } from "@/lib/webgl";
-import BlurText from "@/components/reactbits/BlurText";
 import ShinyText from "@/components/reactbits/ShinyText";
+import { HandwrittenChinese } from "@/components/HandwrittenChinese";
+import { HandwrittenEnglish } from "@/components/HandwrittenEnglish";
 
 // WebGL 背景懒加载（ogl 不进首屏主 chunk）
 const Galaxy = dynamic(() => import("@/components/reactbits/Galaxy"), {
@@ -19,40 +21,34 @@ const Aurora = dynamic(() => import("@/components/reactbits/Aurora"), {
 });
 
 interface ImmersiveHeroProps {
-  titleLine1: string;
-  titleLine2: string;
+  title: string;
   subtitle: string;
-  scrollHint: string;
-  children?: ReactNode; // CTA buttons
+  children?: ReactNode;
 }
 
 /**
- * 全屏沉浸式 Hero：
- * - 深色（Kimi）：高密度 Galaxy 星空 + 逐字解密标题 + 金属流光副标题
- * - 浅色（Claude）：Aurora 暖极光 + 逐字模糊揭示 + 衬线优雅
- * - 滚动视差：滚出首屏时标题上浮淡出
- * - 性能降级：WebGL 不可用 / 低端设备 / prefers-reduced-motion 时
- *   渲染纯 CSS 静态背景；中端设备降 dpr 与关闭鼠标交互
+ * 全屏沉浸式 Hero
+ * - 中文：HanziWriter 逐笔书写「你好」
+ * - 英文：SVG stroke 动画手写「Hello」
+ * - 语言通过 useLocale() 自动判断，不混排
  */
 export function ImmersiveHero({
-  titleLine1,
-  titleLine2,
+  title,
   subtitle,
-  scrollHint,
   children,
 }: ImmersiveHeroProps) {
   const { resolvedTheme } = useTheme();
   const quality = useWebGLQuality();
-  // quality 挂载后才非 null，兼作水合门
+  const locale = useLocale();
   const mounted = quality !== null;
   const { scrollY } = useScroll();
 
-  // 滚动视差：标题上浮 + 淡出，背景放大
   const contentY = useTransform(scrollY, [0, 600], [0, -120]);
   const contentOpacity = useTransform(scrollY, [0, 500], [1, 0]);
   const bgScale = useTransform(scrollY, [0, 800], [1, 1.15]);
 
   const isDark = mounted && resolvedTheme === "dark";
+  const isZh = locale === "zh";
 
   return (
     <section className="relative h-screen w-full overflow-hidden">
@@ -100,54 +96,42 @@ export function ImmersiveHero({
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ y: contentY, opacity: contentOpacity }}
       >
-        {/* Apple 风格双行大标题：手写体 Hello / 你好 */}
-        <h1 className="mb-10 leading-none tracking-tight select-none">
-          {/* SSR / 水合前：立即可见，防止 LCP 延迟 */}
+        {/* 手写标题 */}
+        <div className="mb-10 select-none">
           {!mounted ? (
-            <span
-              className="block font-dancing text-[clamp(7rem,20vw,18rem)] text-[var(--text-primary)]"
-              style={{ fontFamily: "var(--font-dancing), cursive" }}
+            /* SSR 占位，防止 LCP 延迟 */
+            <div
+              className={`font-dancing text-[var(--text-primary)] ${
+                isZh
+                  ? "text-[clamp(6rem,18vw,16rem)]"
+                  : "text-[clamp(5rem,15vw,14rem)]"
+              }`}
             >
-              {titleLine1}
-            </span>
+              {title}
+            </div>
+          ) : isZh ? (
+            /* 中文：HanziWriter 逐笔书写 */
+            <HandwrittenChinese
+              text={title}
+              size={Math.min(Math.max(window.innerWidth * 0.18, 120), 220)}
+              color={isDark ? "#f5f5f5" : "#1a1a1a"}
+              delay={200}
+            />
           ) : (
-            <>
-              {/* 第一行：主词（Hello 或 你好） */}
-              <BlurText
-                text={titleLine1}
-                delay={90}
-                animateBy="letters"
-                direction="bottom"
-                stepDuration={0.55}
-                className="justify-center font-dancing text-[clamp(7rem,20vw,18rem)] leading-none text-[var(--text-primary)]"
-              />
-              {/* 第二行：次词，字号更小，带渐变色，错落感 */}
-              <motion.div
-                initial={{ opacity: 0, y: 16 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.9, delay: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                className="mt-2"
-              >
-                <span
-                  className={`font-dancing text-[clamp(3rem,8vw,7rem)] leading-none ${
-                    isDark
-                      ? "bg-gradient-to-r from-[#6a9bcc] via-[#8b7fcc] to-[#a78bfa] bg-clip-text text-transparent"
-                      : "bg-gradient-to-r from-[#d97757] via-[#c6613f] to-[#d4a27f] bg-clip-text text-transparent"
-                  }`}
-                  style={{ fontFamily: "var(--font-dancing), cursive" }}
-                >
-                  {titleLine2}
-                </span>
-              </motion.div>
-            </>
+            /* 英文：SVG stroke 手写动画 */
+            <HandwrittenEnglish
+              color={isDark ? "#f5f5f5" : "#1a1a1a"}
+              delay={200}
+              className="w-[clamp(280px,55vw,720px)]"
+            />
           )}
-        </h1>
+        </div>
 
-        {/* 副标题 */}
+        {/* 副标题，在手写动画完成后淡入 */}
         <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 1.3 }}
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 1.0, delay: isZh ? 2.2 : 3.0 }}
           className="mb-12 max-w-xl"
         >
           <ShinyText
@@ -159,22 +143,22 @@ export function ImmersiveHero({
           />
         </motion.div>
 
-        {/* CTA：单按钮，轻量 */}
+        {/* CTA */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.7 }}
+          transition={{ duration: 0.8, delay: isZh ? 2.8 : 3.6 }}
         >
           {children}
         </motion.div>
       </motion.div>
 
-      {/* ===== 滚动提示：纯图标，无文字 ===== */}
+      {/* 滚动提示：纯图标 */}
       <motion.div
         className="absolute bottom-8 left-1/2 z-10 -translate-x-1/2 text-[var(--text-muted)]"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 2.4, duration: 1 }}
+        transition={{ delay: isZh ? 3.2 : 4.0, duration: 1 }}
         style={{ opacity: contentOpacity }}
       >
         <motion.svg
