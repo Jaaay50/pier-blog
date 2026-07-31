@@ -1,5 +1,4 @@
 import { getTranslations } from "next-intl/server";
-import Image from "next/image";
 import { Navbar } from "@/components/Navbar";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import GradientText from "@/components/reactbits/GradientText";
@@ -20,28 +19,7 @@ interface Project {
   statsIndex?: number;
 }
 
-// 互动作品（磷光分区：零依赖单文件的全屏体验，不走 GitHub stats）
-interface ArtWork {
-  id: string;
-  name: string;
-  tagline: { key: string };
-  url: string;
-  cover: string;
-  tech: string[];
-  year: string;
-}
-
-const ARTWORKS: ArtWork[] = [
-  {
-    id: "biolume",
-    name: "沉光 · BIOLUME",
-    tagline: { key: "projects.biolume" },
-    url: "/works/biolume.html",
-    cover: "/works/biolume-cover.jpg",
-    tech: ["WebGL2", "GLSL", "Zero-dependency"],
-    year: "2026",
-  },
-];
+// 互动作品（磷光分区已下线）
 
 // 作品元数据（文案走 i18n，这里只放结构化信息）
 const PROJECTS: Project[] = [
@@ -130,57 +108,7 @@ export default async function PortfolioPage() {
         </div>
       </section>
 
-      {/* 磷光：互动作品，通往海的入口 */}
-      <section className="px-6 py-12">
-        <div className="mx-auto max-w-6xl">
-          <h2 className="mb-3 text-2xl font-bold tracking-wide">
-            {t("artworks")}
-          </h2>
-          <p className="mb-10 max-w-2xl text-sm leading-relaxed text-[var(--text-muted)]">
-            {t("artworksSubtitle")}
-          </p>
-          <div className="grid gap-8 md:grid-cols-2">
-            {ARTWORKS.map((work) => (
-              <a
-                key={work.id}
-                href={work.url}
-                className="group relative block overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)] transition-all hover:border-[var(--border-hover)]"
-              >
-                {/* 封面：海的入口 */}
-                <div className="relative aspect-[2/1] overflow-hidden">
-                  <Image
-                    src={work.cover}
-                    alt={work.name}
-                    fill
-                    sizes="(min-width: 768px) 50vw, 100vw"
-                    className="object-cover transition-transform duration-700 group-hover:scale-105"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[rgba(4,8,18,0.85)] via-transparent to-transparent" />
-                  <span className="absolute bottom-4 left-5 text-lg font-bold tracking-wide text-white">
-                    {work.name}
-                  </span>
-                  <span className="absolute bottom-4 right-5 text-xs tracking-[0.2em] text-white/60">
-                    {work.year}
-                  </span>
-                </div>
-                {/* 信息条：仅技术标签 */}
-                <div className="flex items-center justify-end p-5">
-                  <div className="flex shrink-0 flex-wrap justify-end gap-2">
-                    {work.tech.map((tech) => (
-                      <span
-                        key={tech}
-                        className="rounded bg-[var(--bg-primary)] px-2 py-0.5 text-xs text-[var(--text-muted)]"
-                      >
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </a>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* 磷光互动作品已下线 */}
 
       {/* 精选作品：大卡片，一盏一盏的灯 */}
       <section className="px-6 py-12">

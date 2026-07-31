@@ -18,8 +18,7 @@
       "codex": "Codex CLI 的企业级密钥管理工具",
       "claude": "Claude Code CLI 的安全密钥管理",
       "pavedpath": "AI 驱动的开发工作流框架",
-      "grok": "Grok CLI 工具的密钥管理",
-      "biolume": "从月光触及的水面下潜到光的尽头——WebGL2 体积光、波长吸收、海洋雪与生物发光"
+      "grok": "Grok CLI 工具的密钥管理"
     },
     "scrollHint": "向下滚动",
     "skillsTitle": "不只是写代码",
@@ -53,8 +52,6 @@
     "label": "作品集",
     "title": "燈火 · HARBOR LIGHTS",
     "subtitle": "每一件作品是一盏泊在水面的灯，记录设计、工程与上线的完整航迹。",
-    "artworks": "磷光 · PHOSPHORESCENCE",
-    "artworksSubtitle": "不是项目，是可以潜入的作品——全屏、零依赖、程序化生成。",
     "featured": "導燈 · LEADING LIGHTS",
     "allProjects": "浮標 · BUOYS",
     "viewProject": "查看项目",
