@@ -18,7 +18,8 @@
       "codex": "Enterprise-grade key management for Codex CLI",
       "claude": "Secure key management for Claude Code CLI",
       "pavedpath": "AI-powered development workflow framework",
-      "grok": "Key management for Grok CLI tools"
+      "grok": "Key management for Grok CLI tools",
+      "biolume": "A descent from moonlit surface to where light ends—WebGL2 volumetrics, wavelength absorption, marine snow and bioluminescence"
     },
     "scrollHint": "Scroll to explore",
     "skillsTitle": "More Than Just Code",
@@ -52,6 +53,8 @@
     "label": "Portfolio",
     "title": "Harbor Lights",
     "subtitle": "Each project is a light moored on the water—a record of design, engineering, and launch.",
+    "artworks": "Phosphorescence",
+    "artworksSubtitle": "Not projects—works you can dive into. Fullscreen, zero-dependency, procedurally generated.",
     "featured": "Leading Lights",
     "allProjects": "Buoys",
     "viewProject": "View Project",
