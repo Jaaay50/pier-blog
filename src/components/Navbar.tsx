@@ -57,14 +57,6 @@ export function Navbar() {
                 </span>
               );
             })}
-            <a
-              href="https://github.com/Jia-Ethan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-            >
-              {t("github")}
-            </a>
             <SearchModal />
             <LanguageToggle />
             <ThemeToggle />

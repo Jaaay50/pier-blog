@@ -1,8 +1,8 @@
 {
   "nav": {
-    "blog": "潮聲 · TIDES",
-    "portfolio": "燈火 · HARBOR LIGHTS",
-    "about": "岸 · ASHORE",
+    "blog": "潮聲",
+    "portfolio": "燈火",
+    "about": "岸",
     "github": "GitHub"
   },
   "home": {
@@ -41,7 +41,7 @@
   },
   "blog": {
     "label": "全部文章",
-    "title": "潮聲 · TIDES",
+    "title": "潮聲",
     "subtitle": "记录前端工程、AI 集成、系统设计，以及 Web 开发的思考与实践。",
     "back": "返回",
     "readMore": "阅读更多",
@@ -50,10 +50,10 @@
   },
   "portfolio": {
     "label": "作品集",
-    "title": "燈火 · HARBOR LIGHTS",
+    "title": "燈火",
     "subtitle": "每一件作品是一盏泊在水面的灯，记录设计、工程与上线的完整航迹。",
-    "featured": "導燈 · LEADING LIGHTS",
-    "allProjects": "浮標 · BUOYS",
+    "featured": "導燈",
+    "allProjects": "浮標",
     "viewProject": "查看项目",
     "viewCode": "源码",
     "techStack": "技術棧",
@@ -61,7 +61,7 @@
   },
   "about": {
     "label": "关于我",
-    "title": "岸 · ASHORE",
+    "title": "岸",
     "intro": "专注打造交互式、高性能、无障碍的网页体验。我相信优秀的界面是隐形的——它们自然、灵敏、有生命力。",
     "technicalStack": "技术栈",
     "experience": "工作经历",
