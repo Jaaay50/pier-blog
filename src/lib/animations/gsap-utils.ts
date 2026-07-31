@@ -79,7 +79,7 @@ export function parallax(
 }
 
 /**
- * 磁性效果
+ * 磁性效果（用 quickTo 替代每次 mousemove 创建 tween）
  */
 export function magneticEffect(
   element: HTMLElement,
@@ -89,19 +89,16 @@ export function magneticEffect(
 ) {
   const strength = options?.strength ?? 0.3;
 
+  // quickTo 只创建一次，后续调用仅更新目标值
+  const quickX = gsap.quickTo(element, 'x', { duration: 0.5, ease: 'power2.out' });
+  const quickY = gsap.quickTo(element, 'y', { duration: 0.5, ease: 'power2.out' });
+
   const handleMouseMove = (e: MouseEvent) => {
     const { left, top, width, height } = element.getBoundingClientRect();
     const centerX = left + width / 2;
     const centerY = top + height / 2;
-    const deltaX = (e.clientX - centerX) * strength;
-    const deltaY = (e.clientY - centerY) * strength;
-
-    gsap.to(element, {
-      x: deltaX,
-      y: deltaY,
-      duration: 0.5,
-      ease: 'power2.out',
-    });
+    quickX((e.clientX - centerX) * strength);
+    quickY((e.clientY - centerY) * strength);
   };
 
   const handleMouseLeave = () => {

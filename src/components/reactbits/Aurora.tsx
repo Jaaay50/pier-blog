@@ -181,6 +181,9 @@ export default function Aurora(props: AuroraProps) {
     let animateId: number | null = null;
     let lastTime: number | null = null;
     let elapsed = 0;
+    // 颜色解析缓存：只在 colorStops 引用变化时重新解析，避免每帧 new Color + map 分配
+    let cachedStops: string[] = colorStops;
+    let cachedStopsArray = colorStopsArray;
     const update = (t: number) => {
       animateId = requestAnimationFrame(update);
       // 累积时间：暂停恢复后画面不跳变
@@ -192,10 +195,14 @@ export default function Aurora(props: AuroraProps) {
         program.uniforms.uAmplitude.value = propsRef.current.amplitude ?? 1.0;
         program.uniforms.uBlend.value = propsRef.current.blend ?? blend;
         const stops = propsRef.current.colorStops ?? colorStops;
-        program.uniforms.uColorStops.value = stops.map((hex: string) => {
-          const c = new Color(hex);
-          return [c.r, c.g, c.b];
-        });
+        if (stops !== cachedStops) {
+          cachedStops = stops;
+          cachedStopsArray = stops.map((hex: string) => {
+            const c = new Color(hex);
+            return [c.r, c.g, c.b];
+          });
+        }
+        program.uniforms.uColorStops.value = cachedStopsArray;
         renderer.render({ scene: mesh });
       }
     };

@@ -1,7 +1,7 @@
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import DecryptedText from "@/components/reactbits/DecryptedText";
-import GradientText from "@/components/reactbits/GradientText";
+import { ThemedGradientText } from "@/components/ThemedGradientText";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { getGitHubStats } from "@/lib/github";
@@ -100,7 +100,7 @@ export default async function PortfolioPage() {
             />
           </div>
           <h1 className="mb-5 text-4xl font-bold tracking-tight md:text-5xl">
-            <GradientText>{t("title")}</GradientText>
+            <ThemedGradientText>{t("title")}</ThemedGradientText>
           </h1>
           <p className="max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)]">
             {t("subtitle")}

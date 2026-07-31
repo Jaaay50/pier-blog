@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, useScroll, useTransform } from "motion/react";
+import { motion, useScroll, useTransform, MotionValue } from "motion/react";
 import { useWebGLQuality } from "@/lib/webgl";
 
 interface Shape {
@@ -25,27 +25,32 @@ const SHAPES: Shape[] = [
 
 /**
  * Phase 5：Hero 前景浮动几何层（三层视差的最快层）。
- * - 滚动时以比标题更快的速度上移，制造纵深
- * - 各形状带缓慢浮动 idle 动画（错峰）
+ * - 所有形状共享同一个 useScroll() 实例，避免 6 条独立 scroll 订阅
  * - 低端设备 / reduced-motion 不渲染（quality gate）
  */
 export function FloatingShapes() {
   const quality = useWebGLQuality();
+  // 单一 scrollY，传给所有子形状，避免重复订阅
+  const { scrollY } = useScroll();
 
   if (!quality || !quality.enabled || !quality.mouseInteraction) return null;
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[5]" aria-hidden>
       {SHAPES.map((shape, i) => (
-        <FloatingShape key={i} shape={shape} />
+        <FloatingShape key={i} shape={shape} scrollY={scrollY} />
       ))}
     </div>
   );
 }
 
-function FloatingShape({ shape }: { shape: Shape }) {
-  const { scrollY } = useScroll();
-  // 前景层：滚动 600px 内上移 |speed| px（快于标题的 -120px）
+function FloatingShape({
+  shape,
+  scrollY,
+}: {
+  shape: Shape;
+  scrollY: MotionValue<number>;
+}) {
   const shapeY = useTransform(scrollY, [0, 600], [0, shape.speed]);
 
   return (
@@ -71,7 +76,13 @@ function FloatingShape({ shape }: { shape: Shape }) {
   );
 }
 
-function ShapeSVG({ variant, size }: { variant: Shape["variant"]; size: number }) {
+function ShapeSVG({
+  variant,
+  size,
+}: {
+  variant: Shape["variant"];
+  size: number;
+}) {
   const stroke = "var(--accent)";
   switch (variant) {
     case "ring":
@@ -89,13 +100,23 @@ function ShapeSVG({ variant, size }: { variant: Shape["variant"]; size: number }
     case "cross":
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <path d="M12 4v16M4 12h16" stroke={stroke} strokeWidth="1.5" strokeLinecap="round" />
+          <path
+            d="M12 4v16M4 12h16"
+            stroke={stroke}
+            strokeWidth="1.5"
+            strokeLinecap="round"
+          />
         </svg>
       );
     case "triangle":
       return (
         <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-          <path d="M12 4 L21 19 H3 Z" stroke={stroke} strokeWidth="1.5" strokeLinejoin="round" />
+          <path
+            d="M12 4 L21 19 H3 Z"
+            stroke={stroke}
+            strokeWidth="1.5"
+            strokeLinejoin="round"
+          />
         </svg>
       );
   }

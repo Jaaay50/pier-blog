@@ -28,12 +28,8 @@ export function initLenis() {
     infinite: false,
   });
 
-  function raf(time: number) {
-    lenisInstance?.raf(time);
-    requestAnimationFrame(raf);
-  }
-
-  requestAnimationFrame(raf);
+  // RAF loop is intentionally NOT started here.
+  // AnimationProvider drives Lenis via gsap.ticker to keep a single unified loop.
 
   return lenisInstance;
 }

@@ -30,6 +30,11 @@
   --shadow-card-hover: 0 8px 24px rgba(20, 20, 19, 0.1);
   --gradient-brand: linear-gradient(135deg, #d97757 0%, #c6613f 50%, #d4a27f 100%);
 
+  /* 主题渐变文字三色（ThemedGradientText 消费） */
+  --gradient-text-1: #d97757;
+  --gradient-text-2: #c6613f;
+  --gradient-text-3: #d4a27f;
+
   /* 字体角色 */
   --font-display: var(--font-serif), Georgia, "Source Serif 4", serif;
   --font-ui: var(--font-inter), -apple-system, sans-serif;
@@ -58,6 +63,11 @@
   --shadow-card-hover: 0 0 24px var(--glow-color);
   --gradient-brand: linear-gradient(135deg, #6a9bcc 0%, #8b7fcc 50%, #a78bfa 100%);
 
+  /* 主题渐变文字三色 */
+  --gradient-text-1: #6a9bcc;
+  --gradient-text-2: #8b7fcc;
+  --gradient-text-3: #a78bfa;
+
   /* 深色下 display 仍用衬线，但由组件层控制字重 */
 }
 
@@ -78,6 +88,13 @@ body {
   -moz-osx-font-smoothing: grayscale;
   transition: background-color 0.4s ease, color 0.4s ease;
   overscroll-behavior: none;
+}
+
+/* 主题切换动画进行时，禁用 body/html 上的 CSS 过渡，
+   避免 background-color 在 clip-path 扩散前闪烁 */
+html.theme-transitioning body,
+html.theme-transitioning {
+  transition: none !important;
 }
 
 /* 自定义光标激活时隐藏原生光标（由 CustomCursor 组件在能力检测通过后添加） */

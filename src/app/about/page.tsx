@@ -1,6 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
-import GradientText from "@/components/reactbits/GradientText";
+import { ThemedGradientText } from "@/components/ThemedGradientText";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { ExperienceJourney } from "@/components/ExperienceJourney";
@@ -61,7 +61,7 @@ export default async function AboutPage() {
             />
           </div>
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl">
-            <GradientText>{t("title")}</GradientText>
+            <ThemedGradientText>{t("title")}</ThemedGradientText>
           </h1>
           <p className="max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)]">
             {t("intro")}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { motion, useInView } from "motion/react";
+import { motion, useInView, useMotionValue, useSpring } from "motion/react";
 import BlurText from "@/components/reactbits/BlurText";
 
 interface Project {
@@ -100,7 +100,12 @@ function ProjectCard({
   inView,
 }: ProjectCardProps) {
   const cardRef = useRef<HTMLAnchorElement>(null);
-  const [magnetOffset, setMagnetOffset] = useState({ x: 0, y: 0 });
+
+  // 磁吸偏移走 motion value + spring，完全绕过 React 重新渲染
+  const magnetX = useMotionValue(0);
+  const magnetY = useMotionValue(0);
+  const springX = useSpring(magnetX, { stiffness: 300, damping: 30 });
+  const springY = useSpring(magnetY, { stiffness: 300, damping: 30 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!cardRef.current) return;
@@ -109,45 +114,41 @@ function ProjectCard({
     const rect = cardRef.current.getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
-    const offsetX = (e.clientX - centerX) / 8;
-    const offsetY = (e.clientY - centerY) / 8;
-    setMagnetOffset({ x: offsetX, y: offsetY });
+    magnetX.set((e.clientX - centerX) / 8);
+    magnetY.set((e.clientY - centerY) / 8);
   };
 
   const handleMouseLeave = () => {
-    setMagnetOffset({ x: 0, y: 0 });
+    magnetX.set(0);
+    magnetY.set(0);
     onLeave();
   };
 
   return (
+    <motion.div
+      className={gridSpan}
+      initial={{ opacity: 0, y: 60, scale: 0.95 }}
+      animate={inView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{
+        opacity: { duration: 0.6, delay: index * 0.12 },
+        y: { duration: 0.8, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] },
+        scale: { duration: 0.6, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] },
+      }}
+    >
     <motion.a
       ref={cardRef}
       href={project.url}
       target="_blank"
       rel="noopener noreferrer"
-      className={`card-interactive group relative flex flex-col justify-between overflow-hidden rounded-2xl p-6 ${gridSpan}`}
+      className="card-interactive group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-6"
       onMouseMove={handleMouseMove}
       onMouseEnter={onHover}
       onMouseLeave={handleMouseLeave}
       onTouchStart={onHover}
       onTouchEnd={handleMouseLeave}
-      initial={{ opacity: 0, y: 60, scale: 0.95 }}
-      animate={
-        inView
-          ? {
-              opacity: 1,
-              y: magnetOffset.y,
-              x: magnetOffset.x,
-              scale: isHovered ? 1.05 : isOtherHovered ? 0.95 : 1,
-            }
-          : {}
-      }
-      transition={{
-        opacity: { duration: 0.6, delay: index * 0.12 },
-        y: { duration: 0.8, delay: index * 0.12, ease: [0.22, 1, 0.36, 1] },
-        scale: { duration: 0.4, ease: [0.22, 1, 0.36, 1] },
-        x: { duration: 0.2, ease: "easeOut" },
-      }}
+      style={{ x: springX, y: springY }}
+      animate={{ scale: isHovered ? 1.05 : isOtherHovered ? 0.95 : 1 }}
+      transition={{ scale: { duration: 0.4, ease: [0.22, 1, 0.36, 1] } }}
     >
       {/* 项目名 */}
       <div className="mb-4">
@@ -178,5 +179,6 @@ function ProjectCard({
         </span>
       </div>
     </motion.a>
+    </motion.div>
   );
 }

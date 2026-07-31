@@ -12,28 +12,24 @@ if (typeof window !== 'undefined') {
 
 export function AnimationProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
-    // 初始化 Lenis
+    // 初始化 Lenis（lenis.ts 不再自己起 RAF；统一由此处的 gsap.ticker 驱动）
     const lenis = initLenis();
 
-    // 同步 Lenis 与 ScrollTrigger
+    let tickerFn: ((time: number) => void) | null = null;
+
     if (lenis) {
+      // 同步 Lenis 与 ScrollTrigger
       lenis.on('scroll', ScrollTrigger.update);
 
-      gsap.ticker.add((time) => {
-        lenis.raf(time * 1000);
-      });
-
+      // 单一驱动循环：gsap.ticker → lenis.raf
+      tickerFn = (time: number) => lenis.raf(time * 1000);
+      gsap.ticker.add(tickerFn);
       gsap.ticker.lagSmoothing(0);
     }
 
-    // View Transitions API 支持检测
-    if ('startViewTransition' in document) {
-      console.log('✨ View Transitions API supported');
-    }
-
     return () => {
+      if (tickerFn) gsap.ticker.remove(tickerFn);
       destroyLenis();
-      gsap.ticker.remove(() => {});
     };
   }, []);
 
