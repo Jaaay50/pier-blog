@@ -422,9 +422,10 @@ html.custom-cursor-on body {
    View Transitions API 支持
    ============================================ */
 
-/* ambient 背景固定层排除在快照之外，避免三团巨型光晕拖慢截图 */
+/* ambient 背景固定层独立到 root 快照之外：给它唯一的 view-transition-name，
+   浏览器就不会把它纳入 ::view-transition-image-pair(root) 截图范围 */
 .ambient-bg {
-  view-transition-name: none;
+  view-transition-name: ambient-bg;
 }
 
 ::view-transition-old(root),

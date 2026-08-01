@@ -9,7 +9,6 @@ import { BlogCard } from "@/components/BlogCard";
 import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
 import { ScrollProgress } from "@/components/ScrollProgress";
-import { ScrollReveal } from "@/components/ScrollReveal";
 import { GiscusComments } from "@/components/GiscusComments";
 
 interface PageProps {
@@ -97,7 +96,6 @@ export default async function BlogPostPage({ params }: PageProps) {
         <article className="min-w-0 flex-1">
           <div className="mx-auto max-w-3xl">
           {/* Header */}
-          <ScrollReveal>
           <header className="mb-12">
             <div className="mb-4 flex items-center gap-3 text-sm text-[var(--text-muted)]">
               <Link
@@ -131,12 +129,9 @@ export default async function BlogPostPage({ params }: PageProps) {
               ))}
             </div>
           </header>
-          </ScrollReveal>
 
           {/* MDX Content */}
-          <ScrollReveal delay={0.2}>
           <div className="prose max-w-none">{content}</div>
-          </ScrollReveal>
           </div>
         </article>
 
