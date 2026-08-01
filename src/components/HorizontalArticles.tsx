@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { useLocale } from "next-intl";
 import { useRef, useSyncExternalStore } from "react";
 import { motion, useScroll, useTransform, useInView } from "motion/react";

@@ -10,8 +10,10 @@ const THEME_BASE = "https://ethanpier.com";
  * Giscus 留言區 — GitHub Discussions 驅動，零後端。
  * 主題使用自定義 CSS（/giscus-light.css / /giscus-dark.css），
  * 完全匹配博客設計系統（Ivory/Clay 淺色、DeepSpace/TechBlue 深色）。
+ * mapping 用 specific term（不含 locale 的規範路徑），
+ * 保證 /en/blog/x 和 /zh/blog/x 共享同一討論串。
  */
-export function GiscusComments() {
+export function GiscusComments({ term }: { term: string }) {
   const { resolvedTheme } = useTheme();
   const locale = useLocale();
   const ref = useRef<HTMLDivElement>(null);
@@ -32,7 +34,8 @@ export function GiscusComments() {
     script.setAttribute("data-repo-id", "R_kgDOTml4tA");
     script.setAttribute("data-category", "Announcements");
     script.setAttribute("data-category-id", "DIC_kwDOTml4tM4DCbav");
-    script.setAttribute("data-mapping", "pathname");
+    script.setAttribute("data-mapping", "specific");
+    script.setAttribute("data-term", term);
     script.setAttribute("data-strict", "0");
     script.setAttribute("data-reactions-enabled", "0");
     script.setAttribute("data-emit-metadata", "0");
@@ -44,7 +47,7 @@ export function GiscusComments() {
     script.async = true;
 
     ref.current.appendChild(script);
-  }, [resolvedTheme, locale]);
+  }, [resolvedTheme, locale, term]);
 
   return (
     <section className="px-6 py-16">

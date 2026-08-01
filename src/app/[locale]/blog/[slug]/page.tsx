@@ -1,6 +1,6 @@
-import Link from "next/link";
+import { Link } from "@/i18n/navigation";
 import { notFound } from "next/navigation";
-import { getTranslations, getLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { getPostBySlug, getAllSlugs, getAllPosts } from "@/lib/posts";
@@ -10,15 +10,15 @@ import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { GiscusComments } from "@/components/GiscusComments";
+import { locales } from "@/i18n/config";
 
 interface PageProps {
-  params: Promise<{ slug: string }>;
+  params: Promise<{ locale: string; slug: string }>;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const { slug } = await params;
-  // generateMetadata 在靜態生成時無 locale 上下文，預設 en 足夠（title/desc 不影響頁面靜態化）
-  const post = getPostBySlug(slug, "en");
+  const { locale, slug } = await params;
+  const post = getPostBySlug(slug, locale);
   if (!post) return {};
 
   const ogUrl = new URL("https://ethanpier.com/og");
@@ -48,8 +48,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
-  const { slug } = await params;
-  const locale = await getLocale();
+  const { locale, slug } = await params;
+  setRequestLocale(locale);
+
   const post = getPostBySlug(slug, locale);
   const t = await getTranslations("blog");
   const tFooter = await getTranslations("footer");
@@ -175,7 +176,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       )}
 
       {/* 留言（Giscus — GitHub Discussions） */}
-      <GiscusComments />
+      <GiscusComments term={`blog/${post.slug}`} />
 
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">
@@ -188,5 +189,8 @@ export default async function BlogPostPage({ params }: PageProps) {
 }
 
 export function generateStaticParams() {
-  return getAllSlugs().map((slug) => ({ slug }));
+  // 每篇文章 × 每個 locale 都靜態生成
+  return locales.flatMap((locale) =>
+    getAllSlugs().map((slug) => ({ locale, slug }))
+  );
 }

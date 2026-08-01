@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import { ThemedGradientText } from "@/components/ThemedGradientText";
@@ -69,7 +69,14 @@ const PROJECTS: Project[] = [
   },
 ];
 
-export default async function PortfolioPage() {
+export default async function PortfolioPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const t = await getTranslations("portfolio");
   const tHome = await getTranslations("home");
   const tFooter = await getTranslations("footer");

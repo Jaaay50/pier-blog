@@ -1,12 +1,18 @@
-import { getTranslations, getLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { getAllPosts } from "@/lib/posts";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { BlogStatsFilter } from "@/components/viz/BlogStatsFilter";
 
-export default async function BlogPage() {
-  const locale = await getLocale();
+export default async function BlogPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const posts = getAllPosts(locale);
   const t = await getTranslations("blog");
   const tFooter = await getTranslations("footer");

@@ -1,42 +1,47 @@
 import { MetadataRoute } from "next";
 import { getAllSlugs } from "@/lib/posts";
+import { locales } from "@/i18n/config";
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = "https://ethanpier.com";
   const slugs = getAllSlugs();
 
-  const posts = slugs.map((slug) => ({
-    url: `${baseUrl}/blog/${slug}`,
-    lastModified: new Date(),
-    changeFrequency: "monthly" as const,
-    priority: 0.8,
-  }));
-
-  return [
+  // 每个 locale 一份页面 URL
+  const staticPages = locales.flatMap((locale) => [
     {
-      url: baseUrl,
+      url: `${baseUrl}/${locale}`,
       lastModified: new Date(),
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 1.0,
     },
     {
-      url: `${baseUrl}/blog`,
+      url: `${baseUrl}/${locale}/blog`,
       lastModified: new Date(),
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.9,
     },
     {
-      url: `${baseUrl}/about`,
+      url: `${baseUrl}/${locale}/about`,
       lastModified: new Date(),
-      changeFrequency: "monthly",
+      changeFrequency: "monthly" as const,
       priority: 0.7,
     },
     {
-      url: `${baseUrl}/portfolio`,
+      url: `${baseUrl}/${locale}/portfolio`,
       lastModified: new Date(),
-      changeFrequency: "monthly",
+      changeFrequency: "monthly" as const,
       priority: 0.6,
     },
-    ...posts,
-  ];
+  ]);
+
+  const posts = locales.flatMap((locale) =>
+    slugs.map((slug) => ({
+      url: `${baseUrl}/${locale}/blog/${slug}`,
+      lastModified: new Date(),
+      changeFrequency: "monthly" as const,
+      priority: 0.8,
+    }))
+  );
+
+  return [...staticPages, ...posts];
 }

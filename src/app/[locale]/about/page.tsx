@@ -1,4 +1,4 @@
-import { getTranslations, getLocale } from "next-intl/server";
+import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { ThemedGradientText } from "@/components/ThemedGradientText";
 import DecryptedText from "@/components/reactbits/DecryptedText";
@@ -8,8 +8,14 @@ import { SkillRadar } from "@/components/viz/SkillRadar";
 import { ActivityHeatmap } from "@/components/viz/ActivityHeatmap";
 import { getAllPosts } from "@/lib/posts";
 
-export default async function AboutPage() {
-  const locale = await getLocale();
+export default async function AboutPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const t = await getTranslations("about");
   const tFooter = await getTranslations("footer");
   const posts = getAllPosts(locale);

@@ -1,7 +1,6 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname, useRouter } from 'next/navigation';
+import { Link, usePathname, useRouter } from '@/i18n/navigation';
 import { useEffect } from 'react';
 import type { ComponentProps } from 'react';
 
@@ -11,14 +10,14 @@ interface TransitionLinkProps
 }
 
 /**
- * 支持 View Transitions 的增强 Link。
+ * 支持 View Transitions 的增强 Link（locale-aware）。
  *
- * 关键修复：router.push 是异步的——直接塞进 startViewTransition 回调，
- * 会导致"新快照"在路由真正 commit 前就被截取（截到的还是旧页面），
- * 表现为一段无效的交叉淡入 + 内容硬弹入（明显卡顿）。
- * 现在回调返回 Promise，等新路由 commit（pathname 变化触发 effect）后才 resolve，
- * 浏览器在正确时机截取新页面快照，转场真实生效。
- * 超时保护：600ms 未完成则跳过动画，避免慢网络下页面长时间冻结。
+ * 基于 @/i18n/navigation 的 Link/useRouter/usePathname：
+ * href 写不带 locale 前缀的路径（如 /blog），运行时自动补当前 locale。
+ *
+ * 转场时序：router.push 是异步的，回调返回 Promise 并在新路由
+ * commit（pathname 变化）后 resolve，浏览器才截取新页面快照。
+ * 600ms 超时保护：慢导航直接跳过动画。
  */
 
 // 模块级 resolver：新页面任意 TransitionLink 实例 mount 后即可结算当前转场

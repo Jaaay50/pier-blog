@@ -1,22 +1,24 @@
 "use client";
 
 import { useLocale, useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "@/i18n/navigation";
 import { useTransition } from "react";
-import { LOCALE_COOKIE, type Locale } from "@/i18n/config";
+import type { Locale } from "@/i18n/config";
 
 export function LanguageToggle() {
   const locale = useLocale() as Locale;
   const router = useRouter();
+  const pathname = usePathname();
   const [isPending, startTransition] = useTransition();
   const t = useTranslations("language");
 
   const handleToggle = () => {
     const nextLocale = locale === "en" ? "zh" : "en";
-    
+
     startTransition(() => {
-      document.cookie = `${LOCALE_COOKIE}=${nextLocale}; path=/; max-age=31536000`;
-      router.refresh();
+      // URL 路由方案：同一路径切换 locale 前缀（/en/blog → /zh/blog）
+      // next-intl middleware 会同步更新 NEXT_LOCALE cookie 供下次访问记住偏好
+      router.replace(pathname, { locale: nextLocale });
     });
   };
 

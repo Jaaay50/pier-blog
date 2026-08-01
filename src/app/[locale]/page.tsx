@@ -1,4 +1,5 @@
-import { getTranslations, getLocale } from "next-intl/server";
+import { getTranslations } from "next-intl/server";
+import { setRequestLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { ImmersiveHero } from "@/components/ImmersiveHero";
 import { SkillsShowcase } from "@/components/SkillsShowcase";
@@ -9,8 +10,14 @@ import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { getAllPosts } from "@/lib/posts";
 import { getGitHubStats } from "@/lib/github";
 
-export default async function HomePage() {
-  const locale = await getLocale();
+export default async function HomePage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+
   const t = await getTranslations("home");
   const tBlog = await getTranslations("blog");
   const tFooter = await getTranslations("footer");
