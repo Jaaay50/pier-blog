@@ -84,7 +84,15 @@
       "role2Desc": "Delivered production systems with React, Node.js, and cloud infrastructure. Focused on developer experience, component architecture, and build optimization."
     },
     "radarTitle": "Skill Radar",
-    "activityTitle": "Writing Activity"
+    "activityTitle": "Writing Activity",
+    "radar": {
+      "frontend": "Frontend",
+      "motion": "Motion",
+      "ai": "AI",
+      "engineering": "Engineering",
+      "design": "Design",
+      "performance": "Performance"
+    }
   },
   "footer": {
     "builtWith": "Built with Next.js, React, and Tailwind CSS."

@@ -110,12 +110,12 @@ export default async function AboutPage() {
             </h2>
             <SkillRadar
               axes={[
-                { label: "Frontend", value: 92 },
-                { label: "Motion", value: 88 },
-                { label: "AI", value: 80 },
-                { label: "Engineering", value: 85 },
-                { label: "Design", value: 75 },
-                { label: "Performance", value: 86 },
+                { label: t("radar.frontend"), value: 92 },
+                { label: t("radar.motion"), value: 88 },
+                { label: t("radar.ai"), value: 80 },
+                { label: t("radar.engineering"), value: 85 },
+                { label: t("radar.design"), value: 75 },
+                { label: t("radar.performance"), value: 86 },
               ]}
             />
           </div>
