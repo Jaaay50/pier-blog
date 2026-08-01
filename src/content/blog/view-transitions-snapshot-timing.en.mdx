@@ -1,0 +1,163 @@
+---
+title: "View Transitions: The Snapshot Timing Trap"
+date: "2026-08-01"
+description: "How a subtle async timing bug caused View Transitions to always screenshot the old page — and the module-level resolver pattern that fixed it."
+tags: ["Animation", "Next.js", "Performance"]
+---
+
+## The Bug That Looked Like It Was Working
+
+I spent an afternoon implementing View Transitions in my Next.js blog and was almost satisfied — the fade animation ran, the page changed. But something was wrong. The transition always felt slightly off: a flash of the old content bleeding through before the new page appeared.
+
+The bug was subtle enough that it almost shipped.
+
+## How View Transitions Actually Work
+
+The browser's View Transitions API works in two phases:
+
+1. **Capture** — screenshot the current page, then run your callback
+2. **Animate** — when your callback's Promise resolves, screenshot the new page, interpolate between the two
+
+The critical insight: **the browser captures the new-page screenshot at the moment your Promise resolves**. If the DOM hasn't updated yet when you resolve, the "new" snapshot is still the old page.
+
+```typescript
+document.startViewTransition(async () => {
+  // Browser screenshots old page here (before this runs)
+
+  await doYourNavigation();
+
+  // Browser screenshots new page here (after this returns)
+  // The DOM must reflect the new page at this point
+});
+```
+
+## What Went Wrong
+
+My first implementation looked reasonable:
+
+```typescript
+// ❌ Broken — resolves before the new route commits
+const handleClick = (e: React.MouseEvent) => {
+  e.preventDefault();
+
+  document.startViewTransition(async () => {
+    await router.push(href);
+    // We assume router.push resolves when the page is ready.
+    // It doesn't.
+  });
+};
+```
+
+The problem: `router.push()` in Next.js App Router **returns immediately** after scheduling the navigation. It does not wait for the new component tree to mount. So the Promise resolved while the DOM was still showing the old page, and the browser dutifully screenshotted the old content as the "new" snapshot.
+
+The resulting animation was identical frames crossfading with each other — the page appeared to flicker instead of transition.
+
+## Diagnosing It
+
+Adding a simple log confirmed it:
+
+```typescript
+document.startViewTransition(async () => {
+  await router.push(href);
+  console.log('document.title:', document.title); // Still the old title!
+  console.log('pathname:', window.location.pathname); // Still the old path!
+});
+```
+
+The route hadn't committed. The DOM was unchanged. The snapshot would capture nothing new.
+
+## The Fix: Decouple Navigation from Resolution
+
+The solution is to separate the "start navigation" step from the "route is ready" step. React gives us the tool for the second part: `useEffect` with `pathname` as a dependency fires exactly when the new page mounts.
+
+```typescript
+// Module-level: shared across all TransitionLink instances on the page
+let pendingResolve: (() => void) | null = null;
+
+function resolvePending() {
+  if (pendingResolve) {
+    pendingResolve();
+    pendingResolve = null;
+  }
+}
+
+export function TransitionLink({ href, children, ...props }: TransitionLinkProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+
+  // ✅ This fires when the new page's component tree mounts
+  useEffect(() => {
+    resolvePending();
+  }, [pathname]);
+
+  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    if (!('startViewTransition' in document)) return;
+
+    e.preventDefault();
+    resolvePending(); // Clean up any leftover resolver from a previous transition
+
+    const transition = document.startViewTransition(
+      () =>
+        new Promise<void>((resolve) => {
+          pendingResolve = resolve; // Store resolver for useEffect to call
+          router.push(href);       // Start navigation — does NOT await
+        })
+    );
+
+    // Slow navigation safety valve
+    const timeout = window.setTimeout(() => {
+      transition.skipTransition();
+      resolvePending();
+    }, 600);
+
+    transition.finished
+      .finally(() => window.clearTimeout(timeout))
+      .catch(() => {});
+  };
+
+  return <Link href={href} onClick={handleClick} {...props}>{children}</Link>;
+}
+```
+
+The key insight: the Promise passed to `startViewTransition` is kept pending until `useEffect` fires on the new page. Because `useEffect` runs after the DOM has committed, the browser's new-page snapshot captures the actual new content.
+
+## Why Module-Level?
+
+You might wonder why `pendingResolve` is module-level rather than a ref or state variable.
+
+The answer: when a transition completes, the **old page's component instance is gone**. The `useEffect` cleanup runs as the old `TransitionLink` unmounts, but by then we need the resolver to be accessible to the *new page's* `TransitionLink` instance that just mounted.
+
+A module-level variable persists across component instances within the same page lifetime. The new page's `useEffect` fires, finds `pendingResolve` set by the old page's click handler, and resolves it. Clean handoff.
+
+## The 600ms Timeout
+
+Slow connections or heavy pages might take longer than 600ms to navigate. Without a fallback, the View Transition would stall indefinitely, leaving the page frozen mid-animation.
+
+`transition.skipTransition()` abandons the animation and immediately shows the new page. Combined with `resolvePending()`, it ensures the browser never gets stuck waiting for a route that's taking too long.
+
+```typescript
+const timeout = window.setTimeout(() => {
+  transition.skipTransition(); // Give up on the animation
+  resolvePending();            // Unstick the pending Promise
+}, 600);
+
+transition.finished
+  .finally(() => window.clearTimeout(timeout)) // Clean up if transition finished normally
+  .catch(() => {});
+```
+
+## Edge Cases Handled
+
+**Modifier keys** — `⌘Click`, `Ctrl+Click`, and `Shift+Click` should open in new tabs or trigger browser-native behavior. The handler bails out early if any modifier is pressed.
+
+**Same-route navigation** — Clicking a link to the current page shouldn't trigger a visual transition, just a scroll reset. We check `href === pathname` and skip the transition.
+
+**Reduced motion** — `prefers-reduced-motion: reduce` disables the animation entirely. We check `window.matchMedia` and fall through to default navigation if set.
+
+**Unsupported browsers** — Safari and Firefox don't support View Transitions (as of this writing). The `'startViewTransition' in document` guard makes the component a transparent passthrough in those environments.
+
+## Result
+
+After the fix, transitions are clean. The browser captures genuine before/after snapshots, and the crossfade animates between two distinct pages. The 600ms timeout keeps slow navigations from hanging. And the whole thing degrades gracefully on browsers that don't support the API.
+
+The entire implementation lives in around 70 lines. The trickiest part was understanding that `router.push()` doesn't mean "navigation is done" — it means "navigation has started."
