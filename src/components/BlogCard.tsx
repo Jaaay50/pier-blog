@@ -25,62 +25,70 @@ export function BlogCard({ post }: BlogCardProps) {
     <AnimatedCard className="h-full">
       <TransitionLink
         href={`/blog/${post.slug}`}
-        className="group block h-full rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-secondary)] hover:shadow-xl"
+        className="group flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-lg"
       >
-      <div className="mb-3 flex items-center gap-3 text-sm text-[var(--text-muted)]">
-        <time dateTime={post.date}>
-          {new Date(post.date).toLocaleDateString(
-            locale === "zh" ? "zh-CN" : "en-US",
-            {
-              year: "numeric",
-              month: "short",
-              day: "numeric",
-            }
-          )}
-        </time>
-        {post.readMinutes != null && (
-          <>
-            <span>•</span>
-            <span>{locale === "zh" ? `${post.readMinutes} 分钟` : `${post.readMinutes} min read`}</span>
-          </>
+        {/* Tags — 頂部分類標識 */}
+        {post.tags.length > 0 && (
+          <div className="mb-4 flex flex-wrap gap-1.5">
+            {post.tags.slice(0, 3).map((tag) => (
+              <span
+                key={tag}
+                className="rounded-full border border-[var(--border)] bg-[var(--bg-primary)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-muted)] transition-colors duration-200 group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
         )}
-        <span>•</span>
-        <div className="flex gap-2">
-          {post.tags.map((tag) => (
-            <span
-              key={tag}
-              className="rounded-md bg-[var(--bg-primary)] px-2 py-0.5 text-xs"
+
+        {/* Title */}
+        <h3 className="mb-2.5 text-base font-semibold leading-snug tracking-tight transition-colors duration-200 group-hover:text-[var(--accent)]">
+          {post.title}
+        </h3>
+
+        {/* Description — line-clamp 保證 grid 對齊 */}
+        <p className="line-clamp-2 flex-1 text-sm leading-relaxed text-[var(--text-secondary)]">
+          {post.description}
+        </p>
+
+        {/* Footer */}
+        <div className="mt-5 flex items-center justify-between border-t border-[var(--border)] pt-4 text-xs text-[var(--text-muted)]">
+          <div className="flex items-center gap-2">
+            <time dateTime={post.date}>
+              {new Date(post.date).toLocaleDateString(
+                locale === "zh" ? "zh-CN" : "en-US",
+                { year: "numeric", month: "short", day: "numeric" }
+              )}
+            </time>
+            {post.readMinutes != null && (
+              <>
+                <span className="opacity-40">·</span>
+                <span>
+                  {locale === "zh"
+                    ? `${post.readMinutes} 分钟`
+                    : `${post.readMinutes} min`}
+                </span>
+              </>
+            )}
+          </div>
+
+          <span className="flex items-center gap-1 font-medium text-[var(--accent)] transition-transform duration-200 group-hover:translate-x-1">
+            {t("readMore")}
+            <svg
+              className="h-3.5 w-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
             >
-              {tag}
-            </span>
-          ))}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </span>
         </div>
-      </div>
-
-      <h3 className="mb-2 text-xl font-semibold tracking-tight transition-colors group-hover:text-[var(--accent)]">
-        {post.title}
-      </h3>
-
-      <p className="text-[var(--text-secondary)] leading-relaxed">
-        {post.description}
-      </p>
-
-      <div className="mt-4 flex items-center text-sm font-medium text-[var(--accent)] transition-transform group-hover:translate-x-1">
-        {t("readMore")}
-        <svg
-          className="ml-1 h-4 w-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M9 5l7 7-7 7"
-          />
-        </svg>
-      </div>
       </TransitionLink>
     </AnimatedCard>
   );
