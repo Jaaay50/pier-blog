@@ -139,23 +139,17 @@ function sampleText(
   const style = getComputedStyle(spans[0]);
   const fontSize = parseFloat(style.fontSize);
   ctx.font = `${style.fontStyle} ${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
-  ctx.textBaseline = "alphabetic";
+  // 垂直居中对齐 span rect：避免 fontBoundingBoxAscent 在 serif 字体下
+  // 偏大导致文字画出 canvas 底部被裁（曾造成只显示上半部分）
+  ctx.textBaseline = "middle";
   ctx.fillStyle = "#fff";
-
-  // 基线对齐：行内 span 的 rect 高度≈字体 ascent+descent，
-  // 用 fontBoundingBoxAscent 定位基线，与 DOM 渲染像素级对齐
-  const metrics = ctx.measureText("Hg永");
-  const ascent =
-    metrics.fontBoundingBoxAscent && metrics.fontBoundingBoxAscent > 0
-      ? metrics.fontBoundingBoxAscent
-      : fontSize * 0.8;
 
   spans.forEach((s) => {
     const r = s.getBoundingClientRect();
     ctx.fillText(
       s.textContent || "",
       r.left - hostRect.left,
-      r.top - hostRect.top + ascent
+      r.top - hostRect.top + r.height / 2
     );
   });
 
@@ -486,7 +480,7 @@ export default function ParticleTitle({
     <div
       ref={hostRef}
       aria-hidden
-      className={`pointer-events-none absolute inset-0 z-20 transition-opacity duration-500 ${
+      className={`pointer-events-none absolute -inset-x-10 -inset-y-16 z-20 transition-opacity duration-500 ${
         visible ? "opacity-100" : "opacity-0"
       }`}
     />

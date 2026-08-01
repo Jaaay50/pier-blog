@@ -133,10 +133,18 @@ export function ImmersiveHero({
                             key={idx}
                             data-ptchar
                             className="inline-block"
-                            initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
-                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                            initial={
+                              canUseParticles
+                                ? { opacity: 0 }
+                                : { opacity: 0, y: 44, filter: "blur(12px)" }
+                            }
+                            animate={
+                              canUseParticles
+                                ? { opacity: 1 }
+                                : { opacity: 1, y: 0, filter: "blur(0px)" }
+                            }
                             transition={{
-                              duration: canUseParticles ? 0.35 : 0.7,
+                              duration: canUseParticles ? 0.3 : 0.7,
                               delay: canUseParticles
                                 ? 0
                                 : 0.25 + idx * (isZh ? 0.08 : 0.055),

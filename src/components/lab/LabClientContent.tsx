@@ -13,14 +13,10 @@ const PhysicsSandbox = dynamic(() => import("@/components/lab/PhysicsSandbox"), 
 const FlowField = dynamic(() => import("@/components/lab/FlowField"), { ssr: false });
 const Morph3D = dynamic(() => import("@/components/lab/Morph3D"), { ssr: false });
 
-const GITHUB_BASE = "https://github.com/Jaaay50/pier-blog/blob/main/src/components/lab";
-
 function DemoCard({
   title,
   desc,
   tech,
-  viewSource,
-  sourceFile,
   children,
   unavailable,
   tall = false,
@@ -28,8 +24,6 @@ function DemoCard({
   title: string;
   desc: string;
   tech: string;
-  viewSource: string;
-  sourceFile: string;
   children: React.ReactNode;
   unavailable?: string;
   tall?: boolean;
@@ -39,19 +33,9 @@ function DemoCard({
       <div className="border-b border-[var(--border)] px-5 py-4">
         <h3 className="mb-1 text-lg font-semibold text-[var(--text-primary)]">{title}</h3>
         <p className="mb-2 text-sm leading-relaxed text-[var(--text-secondary)]">{desc}</p>
-        <div className="flex items-center justify-between">
-          <span className="rounded-full bg-[var(--bg-elevated)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
-            {tech}
-          </span>
-          <a
-            href={`${GITHUB_BASE}/${sourceFile}`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-xs text-[var(--accent)] transition-colors hover:underline"
-          >
-            {viewSource} →
-          </a>
-        </div>
+        <span className="inline-block rounded-full bg-[var(--bg-elevated)] px-2 py-0.5 text-xs text-[var(--text-muted)]">
+          {tech}
+        </span>
       </div>
       <div className={`relative ${tall ? "h-[520px]" : "h-[420px]"} bg-black`}>
         {unavailable ? (
@@ -104,8 +88,6 @@ export function LabClientContent() {
       ? t("reducedMotion")
       : undefined;
 
-  const vs = t("viewSource");
-
   const particleLabels = {
     count: locale === "zh" ? "粒子数量" : "Particle Count",
     spread: locale === "zh" ? "分布半径" : "Spread Radius",
@@ -134,8 +116,6 @@ export function LabClientContent() {
         title={tDemos("fluid.title")}
         desc={tDemos("fluid.desc")}
         tech={tDemos("fluid.tech")}
-        viewSource={vs}
-        sourceFile="FluidSim.tsx"
         unavailable={unavailable}
         tall
       >
@@ -149,8 +129,6 @@ export function LabClientContent() {
           title={tDemos("physics.title")}
           desc={tDemos("physics.desc")}
           tech={tDemos("physics.tech")}
-          viewSource={vs}
-          sourceFile="PhysicsSandbox.tsx"
           unavailable={quality.reducedMotion ? t("reducedMotion") : undefined}
         >
           {!quality.reducedMotion && (
@@ -187,8 +165,6 @@ export function LabClientContent() {
           title={tDemos("flow.title")}
           desc={tDemos("flow.desc")}
           tech={tDemos("flow.tech")}
-          viewSource={vs}
-          sourceFile="FlowField.tsx"
           unavailable={quality.reducedMotion ? t("reducedMotion") : undefined}
         >
           {!quality.reducedMotion && (
@@ -231,8 +207,6 @@ export function LabClientContent() {
           title={tDemos("particles.title")}
           desc={tDemos("particles.desc")}
           tech={tDemos("particles.tech")}
-          viewSource={vs}
-          sourceFile="ParticlePlayground.tsx"
           unavailable={unavailable}
         >
           {!unavailable && (
@@ -245,8 +219,6 @@ export function LabClientContent() {
           title={tDemos("morph.title")}
           desc={tDemos("morph.desc")}
           tech={tDemos("morph.tech")}
-          viewSource={vs}
-          sourceFile="Morph3D.tsx"
           unavailable={unavailable}
         >
           {!unavailable && (
@@ -277,8 +249,6 @@ export function LabClientContent() {
         title={tDemos("shader.title")}
         desc={tDemos("shader.desc")}
         tech={tDemos("shader.tech")}
-        viewSource={vs}
-        sourceFile="ShaderMixer.tsx"
         unavailable={unavailable}
         tall
       >

@@ -16,9 +16,9 @@ import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
  * 交互：鼠标/触摸拖拽注入速度与染料（按主题色）
  */
 
-// 全屏三角形顶点
+// 全屏三角形顶点（layout 限定 location=0，与 blit 的 vertexAttribPointer(0) 保证一致）
 const VERT = `#version 300 es
-in vec2 aPos;
+layout(location = 0) in vec2 aPos;
 out vec2 vUv;
 void main() {
   vUv = aPos * 0.5 + 0.5;
@@ -457,19 +457,47 @@ export default function FluidSim({ quality, dyeColors }: FluidSimProps) {
     let raf: number | null = null;
     let lastTime: number | null = null;
     let colorIndex = 0;
+    let elapsed = 0;
+    let lastAutoSplat = -4000;
+
+    // 随机 splat：初始点亮 + 周期保活，避免黑屏等交互
+    const randomSplat = () => {
+      const x = 0.2 + Math.random() * 0.6;
+      const y = 0.2 + Math.random() * 0.6;
+      const dx = (Math.random() - 0.5) * 800;
+      const dy = (Math.random() - 0.5) * 800;
+      const col = dyeColors[colorIndex % dyeColors.length];
+      colorIndex++;
+      splat(velocity, x, y, dx, dy, [dx, dy, 0]);
+      splat(dye, x, y, 0, 0, [col[0] * 0.6, col[1] * 0.6, col[2] * 0.6]);
+    };
+
+    // 开场烟花：多点同时注入
+    for (let i = 0; i < 6; i++) randomSplat();
 
     const frame = (t: number) => {
       raf = requestAnimationFrame(frame);
       const dt = lastTime === null ? 16 : Math.min(t - lastTime, 16);
+      if (lastTime !== null) elapsed += t - lastTime;
       lastTime = t;
 
-      // 处理指针注入
+      // 无交互时每 4s 一次保活 splat
+      if (elapsed - lastAutoSplat > 4000) {
+        lastAutoSplat = elapsed;
+        randomSplat();
+      }
+
+      // 处理指针注入：hover 移动即注入（不要求按下，按下时更强）
       pointers.forEach((p) => {
-        if (p.down && (Math.abs(p.dx) > 0 || Math.abs(p.dy) > 0)) {
-          splat(velocity, p.x, p.y, p.dx * 50, p.dy * 50, [p.dx * 50, p.dy * 50, 0]);
+        if (Math.abs(p.dx) > 0 || Math.abs(p.dy) > 0) {
+          const force = p.down ? 9000 : 4000;
+          splat(velocity, p.x, p.y, p.dx * force, p.dy * force, [p.dx * force, p.dy * force, 0]);
           const col = dyeColors[colorIndex % dyeColors.length];
-          splat(dye, p.x, p.y, p.dx, p.dy, col);
+          const dyeStrength = p.down ? 0.9 : 0.35;
+          splat(dye, p.x, p.y, 0, 0, [col[0] * dyeStrength, col[1] * dyeStrength, col[2] * dyeStrength]);
           colorIndex++;
+          p.dx = 0;
+          p.dy = 0;
         }
       });
 
