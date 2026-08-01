@@ -3,6 +3,7 @@
     "blog": "潮聲",
     "portfolio": "燈火",
     "about": "岸",
+    "lab": "船塢",
     "github": "GitHub"
   },
   "home": {
@@ -36,7 +37,9 @@
         "desc": "设计系统、主题切换、暗色美学与可访问性"
       }
     },
-    "projectsTitle": "精选开源项目"
+    "projectsTitle": "精选开源项目",
+    "labTeaser": "这些效果全部零依赖手写——GLSL、物理模拟、算法可视化",
+    "enterLab": "进入船塢"
   },
   "blog": {
     "label": "全部文章",
@@ -117,5 +120,24 @@
     "noResults": "没有找到结果，试试热门标签：",
     "recent": "最近搜索",
     "hint": "输入以搜索标题、标签与正文"
+  },
+  "lab": {
+    "title": "船塢",
+    "subtitle": "从第一性原理出发的交互实验——WebGL shader、物理引擎、算法可视化，全部零依赖手写。",
+    "viewSource": "查看源码",
+    "reducedMotion": "已按系统偏好停用动效",
+    "webglUnavailable": "当前设备不支持 WebGL，展示静态预览",
+    "demos": {
+      "particles": {
+        "title": "粒子系统",
+        "desc": "实时粒子模拟：数千粒子的鼠标斥力场与三维漂移，全部在 GPU 上完成",
+        "tech": "WebGL · GLSL · 零依赖"
+      },
+      "shader": {
+        "title": "Shader 调色台",
+        "desc": "实时 GLSL 噪声艺术：拖动滑杆调节色相、流速与湍流层数，每一帧都是实时计算",
+        "tech": "WebGL · FBM 噪声 · 零依赖"
+      }
+    }
   }
 }

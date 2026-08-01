@@ -5,6 +5,8 @@ import { ImmersiveHero } from "@/components/ImmersiveHero";
 import { SkillsShowcase } from "@/components/SkillsShowcase";
 import { ProjectsBento } from "@/components/ProjectsBento";
 import { HorizontalArticles } from "@/components/HorizontalArticles";
+import { LabTeaser } from "@/components/LabTeaser";
+import { SiteFooter } from "@/components/SiteFooter";
 import { TransitionLink } from "@/components/TransitionLink";
 import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { getAllPosts } from "@/lib/posts";
@@ -20,7 +22,6 @@ export default async function HomePage({
 
   const t = await getTranslations("home");
   const tBlog = await getTranslations("blog");
-  const tFooter = await getTranslations("footer");
   const posts = getAllPosts(locale).slice(0, 3);
   const githubStats = await getGitHubStats();
 
@@ -102,7 +103,10 @@ export default async function HomePage({
         ]}
       />
 
-      {/* 第四屏：文章横向滚动画廊 */}
+      {/* 第四屏：Lab 引流带 */}
+      <LabTeaser label={t("labTeaser")} enterLab={t("enterLab")} />
+
+      {/* 第五屏：文章横向滚动画廊 */}
       <HorizontalArticles
         title={t("recentArticles")}
         posts={posts}
@@ -110,11 +114,7 @@ export default async function HomePage({
       />
 
       {/* Footer */}
-      <footer className="relative border-t border-[var(--border)] px-6 py-12">
-        <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© {new Date().getFullYear()} Pier. {tFooter("builtWith")}</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

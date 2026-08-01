@@ -587,3 +587,36 @@ a:active,
 html:not(.dark) [data-theme='dark'] {
   display: none;
 }
+
+/* Lab 滑杆样式 */
+.lab-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  outline: none;
+  cursor: pointer;
+}
+.lab-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.lab-slider::-webkit-slider-thumb:hover { transform: scale(1.2); }
+.lab-slider::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border: none;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  transition: transform 0.15s ease;
+}
+.lab-slider::-moz-range-thumb:hover { transform: scale(1.2); }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { ReactNode } from "react";
+import { ReactNode, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useLocale } from "next-intl";
@@ -17,6 +17,11 @@ const Galaxy = dynamic(() => import("@/components/reactbits/Galaxy"), {
 const Aurora = dynamic(() => import("@/components/reactbits/Aurora"), {
   ssr: false,
 });
+// Phase 9.1 粒子标题
+const ParticleTitle = dynamic(
+  () => import("@/components/webgl/ParticleTitle"),
+  { ssr: false }
+);
 
 interface ImmersiveHeroProps {
   title: string;
@@ -26,9 +31,9 @@ interface ImmersiveHeroProps {
 
 /**
  * 全屏沉浸式 Hero
- * - 深色：Galaxy 星空 + 逐字解密标题
- * - 浅色：Aurora 暖极光 + 逐字模糊揭示
- * - 稳定、简洁的文字动效
+ * - 深色：Galaxy 星空 + 粒子重组标题
+ * - 浅色：Aurora 暖极光 + 粒子重组标题
+ * - 降级：逐字上浮+去模糊（原有动效保留为降级路径）
  */
 export function ImmersiveHero({
   title,
@@ -50,6 +55,11 @@ export function ImmersiveHero({
   // 逐字揭示：中文每字一个单元、英文每词整体不断行，节奏一致
   const words = title.split(" ");
 
+  // Phase 9.1 粒子标题门控
+  const canUseParticles = mounted && quality && quality.enabled;
+  const anchorRef = useRef<HTMLSpanElement>(null);
+  const [particleTakeover, setParticleTakeover] = useState(false);
+
   return (
     <section className="relative h-screen w-full overflow-hidden">
       {/* 全屏背景 */}
@@ -59,7 +69,7 @@ export function ImmersiveHero({
         ) : !quality.enabled ? (
           <StaticHeroFallback isDark={isDark} />
         ) : isDark ? (
-          <div className="absolute inset-0 opacity-70">
+          <div className="absolute inset-0 opacity-45">
             <Galaxy
               mouseInteraction={quality.mouseInteraction}
               mouseRepulsion={quality.mouseInteraction}
@@ -75,7 +85,7 @@ export function ImmersiveHero({
             />
           </div>
         ) : (
-          <div className="absolute inset-0 opacity-60">
+          <div className="absolute inset-0 opacity-40">
             <Aurora
               colorStops={["#d97757", "#e8c4a0", "#c6613f"]}
               amplitude={1.2}
@@ -96,43 +106,65 @@ export function ImmersiveHero({
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ y: contentY, opacity: contentOpacity }}
       >
-        {/* 主标题：逐字上浮 + 去模糊，中英文/深浅色统一 */}
-        <h1 className="font-display mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]">
+        {/* 主标题：粒子重组（WebGL 可用）或逐字上浮降级 */}
+        <h1 className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]">
           <span className="sr-only">{title}</span>
           {!mounted ? (
             <span aria-hidden="true">{title}</span>
           ) : (
-            <span aria-hidden="true" className="flex flex-wrap justify-center">
-              {(() => {
-                let i = -1;
-                return words.map((word, wi) => (
-                  <span key={wi} className="inline-flex whitespace-nowrap">
-                    {Array.from(word).map((char) => {
-                      i += 1;
-                      const idx = i;
-                      return (
-                        <motion.span
-                          key={idx}
-                          className="inline-block"
-                          initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
-                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                          transition={{
-                            duration: 0.7,
-                            delay: 0.25 + idx * (isZh ? 0.08 : 0.055),
-                            ease: [0.22, 1, 0.36, 1],
-                          }}
-                        >
-                          {char}
-                        </motion.span>
-                      );
-                    })}
-                    {wi < words.length - 1 && (
-                      <span className="inline-block">&nbsp;</span>
-                    )}
-                  </span>
-                ));
-              })()}
-            </span>
+            <>
+              {/* DOM 标题层：SSR 可见，粒子接管后淡出 */}
+              <span
+                ref={anchorRef}
+                aria-hidden="true"
+                className={`flex flex-wrap justify-center transition-opacity duration-[280ms] ${
+                  canUseParticles && particleTakeover ? "opacity-0" : "opacity-100"
+                }`}
+              >
+                {(() => {
+                  let i = -1;
+                  return words.map((word, wi) => (
+                    <span key={wi} className="inline-flex whitespace-nowrap">
+                      {Array.from(word).map((char) => {
+                        i += 1;
+                        const idx = i;
+                        return (
+                          <motion.span
+                            key={idx}
+                            data-ptchar
+                            className="inline-block"
+                            initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                            transition={{
+                              duration: canUseParticles ? 0.35 : 0.7,
+                              delay: canUseParticles
+                                ? 0
+                                : 0.25 + idx * (isZh ? 0.08 : 0.055),
+                              ease: [0.22, 1, 0.36, 1],
+                            }}
+                          >
+                            {char}
+                          </motion.span>
+                        );
+                      })}
+                      {wi < words.length - 1 && (
+                        <span className="inline-block">&nbsp;</span>
+                      )}
+                    </span>
+                  ));
+                })()}
+              </span>
+              {/* 粒子层：覆盖在 DOM 标题之上 */}
+              {canUseParticles && (
+                <ParticleTitle
+                  title={title}
+                  anchorRef={anchorRef}
+                  isDark={isDark}
+                  quality={quality}
+                  onTakeover={() => setParticleTakeover(true)}
+                />
+              )}
+            </>
           )}
         </h1>
 

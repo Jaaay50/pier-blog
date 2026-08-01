@@ -3,6 +3,7 @@
     "blog": "Tides",
     "portfolio": "Harbor Lights",
     "about": "Ashore",
+    "lab": "Lab",
     "github": "GitHub"
   },
   "home": {
@@ -36,7 +37,9 @@
         "desc": "Design systems, theming, dark aesthetics and accessibility"
       }
     },
-    "projectsTitle": "Featured Open Source"
+    "projectsTitle": "Featured Open Source",
+    "labTeaser": "Every effect here is hand-written from scratch — GLSL, physics, algorithms, zero dependencies",
+    "enterLab": "Enter the Lab"
   },
   "blog": {
     "label": "All Articles",
@@ -117,5 +120,24 @@
     "noResults": "No results. Try a popular tag:",
     "recent": "Recent searches",
     "hint": "Type to search titles, tags, and content"
+  },
+  "lab": {
+    "title": "Lab",
+    "subtitle": "Interactive experiments built from first principles — WebGL shaders, physics engines, algorithm visualizations. All hand-written, zero dependencies.",
+    "viewSource": "View Source",
+    "reducedMotion": "Motion disabled per system preference",
+    "webglUnavailable": "WebGL unavailable on this device, showing static preview",
+    "demos": {
+      "particles": {
+        "title": "Particle System",
+        "desc": "Real-time particle simulation: thousands of particles with mouse repulsion and 3D drift, all on the GPU",
+        "tech": "WebGL · GLSL · 0 deps"
+      },
+      "shader": {
+        "title": "Shader Mixer",
+        "desc": "Live GLSL noise art: drag sliders to tune hue, flow speed and turbulence octaves — every frame computed in real time",
+        "tech": "WebGL · FBM Noise · 0 deps"
+      }
+    }
   }
 }
