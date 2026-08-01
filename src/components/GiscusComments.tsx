@@ -34,7 +34,7 @@ export function GiscusComments() {
     script.setAttribute("data-category-id", "DIC_kwDOTml4tM4DCbav");
     script.setAttribute("data-mapping", "pathname");
     script.setAttribute("data-strict", "0");
-    script.setAttribute("data-reactions-enabled", "1");
+    script.setAttribute("data-reactions-enabled", "0");
     script.setAttribute("data-emit-metadata", "0");
     script.setAttribute("data-input-position", "top");
     script.setAttribute("data-theme", themeUrl);
