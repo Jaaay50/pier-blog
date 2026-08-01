@@ -460,6 +460,13 @@ html.theme-transitioning::view-transition-new(root) {
   mix-blend-mode: normal;
 }
 
+/* 主题切换期间 ambient-bg 必须回归 root 快照：
+   否则它会独立做 0.25s 交叉淡入，与 0.5s 圆形扩散不同步，
+   光晕区域提前变色 → 闪烁 */
+html.theme-transitioning .ambient-bg {
+  view-transition-name: none;
+}
+
 html.theme-transitioning::view-transition-new(root) {
   z-index: 10;
 }

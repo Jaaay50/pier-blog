@@ -108,7 +108,10 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
   return (
     <html
       lang={locale}
-      className={`${inter.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} ${dancingScript.variable}`}
+      // 預設深色，與 ThemeProvider defaultTheme="dark" 一致。
+      // 靜態 HTML 直接帶 dark class，避免水合前的淺→深閃白。
+      // suppressHydrationWarning 允許 next-themes 在客戶端靜默覆寫此 class。
+      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} ${dancingScript.variable}`}
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
