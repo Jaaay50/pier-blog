@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
 
 /**
@@ -259,7 +259,8 @@ export default function FluidSim({ quality, dyeColors }: FluidSimProps) {
     canvas.style.display = "block";
     const gl = canvas.getContext("webgl2", { antialias: false });
     if (!gl) {
-      // WebGL2 不可用：静默放弃（外层已有降级说明）
+      // WebGL2 不可用：显示错误文字
+      host.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;color:var(--text-muted);font-size:0.875rem;">WebGL2 not supported on this device</div>';
       return;
     }
     host.appendChild(canvas);
@@ -268,6 +269,7 @@ export default function FluidSim({ quality, dyeColors }: FluidSimProps) {
     const floatExt = gl.getExtension("EXT_color_buffer_float");
     if (!floatExt) {
       host.removeChild(canvas);
+      host.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;color:var(--text-muted);font-size:0.875rem;">Float texture not supported on this device</div>';
       return;
     }
 

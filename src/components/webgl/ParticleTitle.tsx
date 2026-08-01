@@ -368,13 +368,14 @@ export default function ParticleTitle({
             phase = "swap";
             phaseT0 = elapsed;
             setVisible(true);
-            onTakeoverRef.current();
           }
         } else if (phase === "swap") {
           program.uniforms.uProgress.value = 1;
           if (elapsed - phaseT0 >= SWAP_MS) {
             phase = "shatter";
             phaseT0 = elapsed;
+            // swap 结束时 takeover，确保 DOM 文字可见到粒子开始碎裂
+            onTakeoverRef.current();
           }
         } else if (phase === "shatter") {
           const k = Math.min(1, (elapsed - phaseT0) / SHATTER_MS);
