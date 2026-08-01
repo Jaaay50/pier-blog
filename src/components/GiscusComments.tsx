@@ -2,21 +2,29 @@
 
 import { useEffect, useRef } from "react";
 import { useTheme } from "next-themes";
+import { useLocale } from "next-intl";
+
+const THEME_BASE = "https://ethanpier.com";
 
 /**
- * Giscus 留言組件 — GitHub Discussions 驅動，零後端。
- * Repo: Jaaay50/pier-blog  (需在 GitHub 開啟 Discussions 並安裝 giscus app)
- * 主題跟隨當前深/淺色模式自動切換。
+ * Giscus 留言區 — GitHub Discussions 驅動，零後端。
+ * 主題使用自定義 CSS（/giscus-light.css / /giscus-dark.css），
+ * 完全匹配博客設計系統（Ivory/Clay 淺色、DeepSpace/TechBlue 深色）。
  */
 export function GiscusComments() {
   const { resolvedTheme } = useTheme();
+  const locale = useLocale();
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!ref.current) return;
 
-    // 清除舊實例（主題切換時重建）
     ref.current.innerHTML = "";
+
+    const themeUrl =
+      resolvedTheme === "dark"
+        ? `${THEME_BASE}/giscus-dark.css`
+        : `${THEME_BASE}/giscus-light.css`;
 
     const script = document.createElement("script");
     script.src = "https://giscus.app/client.js";
@@ -29,25 +37,32 @@ export function GiscusComments() {
     script.setAttribute("data-reactions-enabled", "1");
     script.setAttribute("data-emit-metadata", "0");
     script.setAttribute("data-input-position", "top");
-    script.setAttribute(
-      "data-theme",
-      resolvedTheme === "dark" ? "dark_dimmed" : "light"
-    );
-    script.setAttribute("data-lang", "zh-CN");
+    script.setAttribute("data-theme", themeUrl);
+    script.setAttribute("data-lang", locale === "zh" ? "zh-CN" : "en");
     script.setAttribute("data-loading", "lazy");
     script.crossOrigin = "anonymous";
     script.async = true;
 
     ref.current.appendChild(script);
-  }, [resolvedTheme]);
+  }, [resolvedTheme, locale]);
 
   return (
-    <section className="px-6 py-12">
+    <section className="px-6 py-16">
       <div className="mx-auto max-w-3xl">
-        <h2 className="mb-6 text-xl font-semibold tracking-tight text-[var(--text-primary)]">
-          留言
+        {/* 分隔線 */}
+        <div className="mb-10 h-px bg-[var(--border)]" />
+
+        <h2 className="mb-8 text-xl font-semibold tracking-tight text-[var(--text-primary)]">
+          {locale === "zh" ? "留言" : "Comments"}
         </h2>
-        <div ref={ref} />
+
+        {/* Giscus 容器：與頁面融合的 card 底座 */}
+        <div
+          className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)]"
+          style={{ minHeight: 120 }}
+        >
+          <div ref={ref} className="p-1" />
+        </div>
       </div>
     </section>
   );

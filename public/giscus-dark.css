@@ -1,0 +1,65 @@
+/*! Giscus custom theme — Pier dark (Deep Space / Tech Blue)
+ *  Maps blog CSS tokens to Giscus/Primer CSS variables.
+ *  Served at /giscus-dark.css, referenced via data-theme URL.
+ */
+main {
+  /* Canvas */
+  --color-canvas-default:        #0f0f0f;
+  --color-canvas-overlay:        #1a1a1a;
+  --color-canvas-inset:          #161616;
+  --color-canvas-subtle:         #1a1a1a;
+
+  /* Foreground */
+  --color-fg-default:            #f5f5f5;
+  --color-fg-muted:              #a1a1a1;
+  --color-fg-subtle:             #6b6b6b;
+
+  /* Border */
+  --color-border-default:        #222222;
+  --color-border-muted:          #1e1e1e;
+  --color-neutral-muted:         rgba(34, 34, 34, 0.6);
+
+  /* Accent — Tech Blue #6a9bcc */
+  --color-accent-fg:             #6a9bcc;
+  --color-accent-emphasis:       #8ab4dd;
+  --color-accent-muted:          rgba(106, 155, 204, 0.28);
+  --color-accent-subtle:         rgba(106, 155, 204, 0.10);
+
+  /* Default buttons */
+  --color-btn-text:              #a1a1a1;
+  --color-btn-bg:                #1a1a1a;
+  --color-btn-border:            rgba(255, 255, 255, 0.10);
+  --color-btn-shadow:            none;
+  --color-btn-inset-shadow:      none;
+  --color-btn-hover-bg:          #252525;
+  --color-btn-hover-border:      rgba(255, 255, 255, 0.14);
+  --color-btn-active-bg:         #2e2e2e;
+  --color-btn-active-border:     rgba(255, 255, 255, 0.14);
+  --color-btn-selected-bg:       #2e2e2e;
+
+  /* Primary buttons — Tech Blue */
+  --color-btn-primary-text:               #fff;
+  --color-btn-primary-bg:                 #6a9bcc;
+  --color-btn-primary-border:             rgba(255, 255, 255, 0.08);
+  --color-btn-primary-shadow:             none;
+  --color-btn-primary-inset-shadow:       none;
+  --color-btn-primary-hover-bg:           #8ab4dd;
+  --color-btn-primary-hover-border:       rgba(255, 255, 255, 0.10);
+  --color-btn-primary-selected-bg:        #5a87b5;
+  --color-btn-primary-selected-shadow:    none;
+  --color-btn-primary-disabled-text:      rgba(255, 255, 255, 0.35);
+  --color-btn-primary-disabled-bg:        rgba(106, 155, 204, 0.35);
+  --color-btn-primary-disabled-border:    rgba(255, 255, 255, 0.05);
+
+  /* Segmented control */
+  --color-segmented-control-bg:                    #161616;
+  --color-segmented-control-button-bg:             #0f0f0f;
+  --color-segmented-control-button-selected-border:#6b6b6b;
+
+  /* Emoji reaction row */
+  --color-social-reaction-bg-hover:          #252525;
+  --color-social-reaction-bg-reacted-hover:  rgba(106, 155, 204, 0.14);
+
+  /* Input inset shadow */
+  --color-primer-shadow-inset: inset 0 1px 0 rgba(34, 34, 34, 0.8);
+}

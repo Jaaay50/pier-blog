@@ -1,0 +1,65 @@
+/*! Giscus custom theme — Pier light (Ivory / Clay)
+ *  Maps blog CSS tokens to Giscus/Primer CSS variables.
+ *  Served at /giscus-light.css, referenced via data-theme URL.
+ */
+main {
+  /* Canvas */
+  --color-canvas-default:        #faf9f5;
+  --color-canvas-overlay:        #f0eee6;
+  --color-canvas-inset:          #f0eee6;
+  --color-canvas-subtle:         #f0eee6;
+
+  /* Foreground */
+  --color-fg-default:            #141413;
+  --color-fg-muted:              #3d3d3a;
+  --color-fg-subtle:             #87867f;
+
+  /* Border */
+  --color-border-default:        #dedcd1;
+  --color-border-muted:          #e8e6dc;
+  --color-neutral-muted:         rgba(222, 220, 209, 0.45);
+
+  /* Accent — Clay #d97757 */
+  --color-accent-fg:             #d97757;
+  --color-accent-emphasis:       #c6613f;
+  --color-accent-muted:          rgba(217, 119, 87, 0.28);
+  --color-accent-subtle:         rgba(217, 119, 87, 0.08);
+
+  /* Default buttons */
+  --color-btn-text:              #3d3d3a;
+  --color-btn-bg:                #f0eee6;
+  --color-btn-border:            rgba(20, 20, 19, 0.14);
+  --color-btn-shadow:            none;
+  --color-btn-inset-shadow:      none;
+  --color-btn-hover-bg:          #e8e6dc;
+  --color-btn-hover-border:      rgba(20, 20, 19, 0.18);
+  --color-btn-active-bg:         #e0ddd4;
+  --color-btn-active-border:     rgba(20, 20, 19, 0.18);
+  --color-btn-selected-bg:       #e0ddd4;
+
+  /* Primary buttons — Clay */
+  --color-btn-primary-text:               #fff;
+  --color-btn-primary-bg:                 #d97757;
+  --color-btn-primary-border:             rgba(0, 0, 0, 0.10);
+  --color-btn-primary-shadow:             none;
+  --color-btn-primary-inset-shadow:       none;
+  --color-btn-primary-hover-bg:           #c6613f;
+  --color-btn-primary-hover-border:       rgba(0, 0, 0, 0.12);
+  --color-btn-primary-selected-bg:        #b85535;
+  --color-btn-primary-selected-shadow:    none;
+  --color-btn-primary-disabled-text:      rgba(255, 255, 255, 0.55);
+  --color-btn-primary-disabled-bg:        rgba(217, 119, 87, 0.45);
+  --color-btn-primary-disabled-border:    rgba(0, 0, 0, 0.05);
+
+  /* Segmented control (tab switcher) */
+  --color-segmented-control-bg:                    #f0eee6;
+  --color-segmented-control-button-bg:             #faf9f5;
+  --color-segmented-control-button-selected-border:#87867f;
+
+  /* Emoji reaction row */
+  --color-social-reaction-bg-hover:          #e8e6dc;
+  --color-social-reaction-bg-reacted-hover:  rgba(217, 119, 87, 0.12);
+
+  /* Input inset shadow */
+  --color-primer-shadow-inset: inset 0 1px 0 rgba(222, 220, 209, 0.5);
+}
