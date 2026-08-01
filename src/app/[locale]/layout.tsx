@@ -8,6 +8,7 @@ import { AnimationProvider } from "@/components/AnimationProvider";
 import { CustomCursor } from "@/components/CustomCursor";
 import { PerformanceMonitor } from "@/components/PerformanceMonitor";
 import { RippleProvider } from "@/components/RippleProvider";
+import { SpeculationRules } from "@/components/SpeculationRules";
 import { locales, type Locale } from "@/i18n/config";
 import "../globals.css";
 
@@ -111,6 +112,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       suppressHydrationWarning
     >
       <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
+        <SpeculationRules />
         <div className="ambient-bg" aria-hidden="true">
           <div className="ambient-glow ambient-glow-1" />
           <div className="ambient-glow ambient-glow-2" />

@@ -22,11 +22,11 @@ export function AnimatedCard({
     const card = cardRef.current;
     if (!card) return;
 
-    // 入场动画
+    // 入场动画（短位移 + 快出：导航后内容尽快可读）
     gsap.from(card, {
       opacity: 0,
-      y: 40,
-      duration: 0.8,
+      y: 24,
+      duration: 0.5,
       delay,
       ease: 'power3.out',
     });

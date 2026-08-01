@@ -1,8 +1,14 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import ShaderGradient from "@/components/webgl/ShaderGradient";
+import dynamic from "next/dynamic";
 import { useWebGLQuality } from "@/lib/webgl";
+
+// 架构决策：ogl 不进主 chunk，WebGL 组件必须 next/dynamic 懒加载
+const ShaderGradient = dynamic(() => import("@/components/webgl/ShaderGradient"), {
+  ssr: false,
+  loading: () => null,
+});
 
 interface FluidBackgroundProps {
   /** 整体强度 0-1，默认 0.5（作为区块背景足够微妙） */
