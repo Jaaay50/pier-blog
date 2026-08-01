@@ -421,21 +421,34 @@ html.custom-cursor-on body {
 /* ============================================
    View Transitions API 支持
    ============================================ */
+
+/* ambient 背景固定层排除在快照之外，避免三团巨型光晕拖慢截图 */
+.ambient-bg {
+  view-transition-name: none;
+}
+
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 0.5s;
+  animation-duration: 0.25s;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 ::view-transition-old(root) {
-  animation-name: fade-out;
+  animation-name: page-fade-out;
 }
 
 ::view-transition-new(root) {
-  animation-name: fade-in;
+  animation-name: page-fade-in;
 }
 
-@keyframes fade-out {
-  to { opacity: 0; }
+@keyframes page-fade-out {
+  from { opacity: 1; }
+  to   { opacity: 0; }
+}
+
+@keyframes page-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 /* 主题切换时禁用默认 fade，改由 JS 控制 clip-path 圆形扩散
