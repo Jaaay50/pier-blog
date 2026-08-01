@@ -10,6 +10,7 @@ import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { GiscusComments } from "@/components/GiscusComments";
+import { SiteFooter } from "@/components/SiteFooter";
 import { locales } from "@/i18n/config";
 
 interface PageProps {
@@ -47,13 +48,31 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   };
 }
 
+/**
+ * 根据文章第一个 tag 返回一个用于环境光的 HSL 色相值。
+ * 颜色保持极淡（只用于 radial-gradient 背景晕），不干扰正文。
+ */
+function tagToGlowColor(tag: string): string {
+  const map: Record<string, string> = {
+    Performance:  "rgba(59,  130, 246, 0.14)",  // blue
+    Animation:    "rgba(168, 85,  247, 0.14)",  // purple
+    Architecture: "rgba(34,  197, 94,  0.12)",  // green
+    React:        "rgba(96,  165, 250, 0.13)",  // sky-blue
+    "Next.js":    "rgba(96,  165, 250, 0.13)",  // sky-blue
+    AI:           "rgba(139, 92,  246, 0.13)",  // violet
+    "System Design": "rgba(20, 184, 166, 0.12)", // teal
+    "State Management": "rgba(96, 165, 250, 0.13)",
+    "Web Vitals": "rgba(59, 130, 246, 0.14)",
+  };
+  return map[tag] ?? "rgba(217, 119, 87, 0.10)"; // fallback: accent clay
+}
+
 export default async function BlogPostPage({ params }: PageProps) {
   const { locale, slug } = await params;
   setRequestLocale(locale);
 
   const post = getPostBySlug(slug, locale);
   const t = await getTranslations("blog");
-  const tFooter = await getTranslations("footer");
 
   if (!post) {
     notFound();
@@ -61,6 +80,9 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   const { content, headings } = await compileMDXWithHeadings(post.content);
   const related = getRelatedPosts(post, getAllPosts(locale));
+
+  // 取第一个 tag 决定顶部环境光颜色
+  const glowColor = tagToGlowColor(post.tags[0] ?? "");
 
   return (
     <main className="min-h-screen">
@@ -93,47 +115,74 @@ export default async function BlogPostPage({ params }: PageProps) {
       <ScrollProgress />
       <Navbar />
 
+      {/* 文章页顶部环境光：极淡的 tag 色相晕，不干扰阅读 */}
+      <div
+        className="article-glow pointer-events-none"
+        aria-hidden="true"
+        style={{ "--article-glow-color": glowColor } as React.CSSProperties}
+      />
+
       {/* Article + TOC 双栏布局 */}
       <div className="mx-auto flex max-w-6xl gap-8 px-6 py-16">
         <article className="min-w-0 flex-1">
           <div className="mx-auto max-w-3xl">
-          {/* Header */}
-          <header className="mb-12">
-            <div className="mb-4 flex items-center gap-3 text-sm text-[var(--text-muted)]">
-              <Link
-                href="/blog"
-                className="transition-colors hover:text-[var(--accent)]"
-              >
-                ← {t("back")}
-              </Link>
-              <span>•</span>
-              <time dateTime={post.date}>
-                {new Date(post.date).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US", {
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </time>
-              <span>•</span>
-              <span>{locale === "zh" ? `${post.readMinutes} 分钟` : `${post.readMinutes} min read`}</span>
-            </div>
-            <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
-              {post.title}
-            </h1>
-            <div className="flex gap-2">
-              {post.tags.map((tag) => (
-                <span
-                  key={tag}
-                  className="rounded-md bg-[var(--bg-card)] px-3 py-1 text-sm text-[var(--text-secondary)]"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </header>
 
-          {/* MDX Content */}
-          <div className="prose max-w-none">{content}</div>
+            {/* ── Header ── */}
+            <header className="mb-16">
+              {/* Back link */}
+              <div className="mb-6">
+                <Link
+                  href="/blog"
+                  className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
+                >
+                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  </svg>
+                  {t("back")}
+                </Link>
+              </div>
+
+              {/* Tags — 标题上方 */}
+              {post.tags.length > 0 && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  {post.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="rounded-full border border-[var(--accent)] bg-[var(--accent-soft)] px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--accent)]"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Title */}
+              <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight md:text-5xl">
+                {post.title}
+              </h1>
+
+              {/* Divider */}
+              <hr className="mb-5 border-[var(--border)]" />
+
+              {/* Meta row */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-muted)]">
+                <time dateTime={post.date}>
+                  {new Date(post.date).toLocaleDateString(
+                    locale === "zh" ? "zh-CN" : "en-US",
+                    { year: "numeric", month: "long", day: "numeric" }
+                  )}
+                </time>
+                <span className="opacity-40">·</span>
+                <span>
+                  {locale === "zh"
+                    ? `${post.readMinutes} 分钟阅读`
+                    : `${post.readMinutes} min read`}
+                </span>
+              </div>
+            </header>
+
+            {/* MDX Content */}
+            <div className="prose max-w-none">{content}</div>
           </div>
         </article>
 
@@ -150,7 +199,7 @@ export default async function BlogPostPage({ params }: PageProps) {
         <TableOfContents headings={headings} />
       </div>
 
-      {/* 相关阅读（Phase 7：tag 交集 + 日期接近度打分） */}
+      {/* 相关阅读 */}
       {related.length > 0 && (
         <section className="px-6 py-16">
           <div className="mx-auto max-w-4xl">
@@ -178,18 +227,12 @@ export default async function BlogPostPage({ params }: PageProps) {
       {/* 留言（Giscus — GitHub Discussions） */}
       <GiscusComments term={`blog/${post.slug}`} />
 
-      {/* Footer */}
-      <footer className="border-t border-[var(--border)] px-6 py-12">
-        <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© {new Date().getFullYear()} Pier. {tFooter("builtWith")}</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
 
 export function generateStaticParams() {
-  // 每篇文章 × 每個 locale 都靜態生成
   return locales.flatMap((locale) =>
     getAllSlugs().map((slug) => ({ locale, slug }))
   );

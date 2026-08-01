@@ -95,7 +95,12 @@
     }
   },
   "footer": {
-    "builtWith": "使用 Next.js、React 和 Tailwind CSS 构建。"
+    "builtWith": "使用 Next.js、React 和 Tailwind CSS 构建。",
+    "tagline": "用温度与生命力打造数字体验。",
+    "navTitle": "导航",
+    "subscribeTitle": "订阅",
+    "rssEn": "RSS — English",
+    "rssZh": "RSS — 中文"
   },
   "theme": {
     "toDark": "切换到深色模式",

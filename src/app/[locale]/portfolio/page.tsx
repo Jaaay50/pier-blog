@@ -4,6 +4,7 @@ import DecryptedText from "@/components/reactbits/DecryptedText";
 import { ThemedGradientText } from "@/components/ThemedGradientText";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
+import { SiteFooter } from "@/components/SiteFooter";
 import { getGitHubStats } from "@/lib/github";
 
 interface Project {
@@ -79,7 +80,6 @@ export default async function PortfolioPage({
 
   const t = await getTranslations("portfolio");
   const tHome = await getTranslations("home");
-  const tFooter = await getTranslations("footer");
   const githubStats = await getGitHubStats();
 
   const featured = PROJECTS.filter((p) => p.featured);
@@ -231,12 +231,7 @@ export default async function PortfolioPage({
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[var(--border)] px-6 py-12">
-        <div className="mx-auto max-w-6xl text-center text-sm text-[var(--text-muted)]">
-          <p>© {new Date().getFullYear()} Pier. {tFooter("builtWith")}</p>
-        </div>
-      </footer>
+      <SiteFooter maxWidth="max-w-6xl" />
     </main>
   );
 }

@@ -5,6 +5,7 @@ import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import { visit } from "unist-util-visit";
 import type { Root, Element } from "hast";
+import { Callout } from "@/components/mdx/Callout";
 
 export interface Heading {
   id: string;
@@ -46,6 +47,21 @@ function rehypeExtractHeadings(headings: Heading[]) {
   };
 }
 
+/**
+ * 自定义 MDX 组件映射
+ * - Callout: 支持 type=info/tip/warning/danger 的标注块
+ * - blockquote: 统一视觉样式
+ */
+const mdxComponents = {
+  Callout,
+  blockquote: (props: React.HTMLAttributes<HTMLQuoteElement>) => (
+    <blockquote
+      {...props}
+      className="not-prose my-6 border-l-[3px] border-[var(--accent)] bg-[var(--accent-soft)] px-5 py-4 text-sm italic leading-relaxed text-[var(--text-secondary)] [&>p]:m-0"
+    />
+  ),
+};
+
 export async function compileMDXWithHeadings(
   source: string
 ): Promise<MDXResult> {
@@ -56,7 +72,17 @@ export async function compileMDXWithHeadings(
       outputFormat: "function-body",
       rehypePlugins: [
         rehypeSlug,
-        [rehypePrettyCode, { theme: "github-dark", keepBackground: true }],
+        [
+          rehypePrettyCode,
+          {
+            // 双主题：深色 / 浅色自动跟随 CSS class
+            theme: {
+              dark: "github-dark",
+              light: "github-light",
+            },
+            keepBackground: true,
+          },
+        ],
         rehypeExtractHeadings(headings),
       ],
     })
@@ -67,7 +93,10 @@ export async function compileMDXWithHeadings(
     baseUrl: import.meta.url,
   });
 
-  return { content: <Content />, headings };
+  return {
+    content: <Content components={mdxComponents} />,
+    headings,
+  };
 }
 
 /**

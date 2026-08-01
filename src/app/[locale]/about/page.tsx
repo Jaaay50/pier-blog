@@ -6,6 +6,8 @@ import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { ExperienceJourney } from "@/components/ExperienceJourney";
 import { SkillRadar } from "@/components/viz/SkillRadar";
 import { ActivityHeatmap } from "@/components/viz/ActivityHeatmap";
+import { FluidBackground } from "@/components/webgl/FluidBackground";
+import { SiteFooter } from "@/components/SiteFooter";
 import { getAllPosts } from "@/lib/posts";
 
 export default async function AboutPage({
@@ -17,7 +19,6 @@ export default async function AboutPage({
   setRequestLocale(locale);
 
   const t = await getTranslations("about");
-  const tFooter = await getTranslations("footer");
   const posts = getAllPosts(locale);
 
   const skills = [
@@ -59,8 +60,13 @@ export default async function AboutPage({
       <Navbar />
 
       {/* Hero */}
-      <section className="px-6 py-20">
-        <div className="mx-auto max-w-4xl">
+      <section className="relative overflow-hidden px-6 py-20">
+        <FluidBackground
+          className="pointer-events-none absolute inset-0 opacity-30"
+          intensity={0.5}
+          speed={0.5}
+        />
+        <div className="relative mx-auto max-w-4xl">
           <div className="mb-4">
             <DecryptedText
               text={t("label")}
@@ -166,12 +172,7 @@ export default async function AboutPage({
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[var(--border)] px-6 py-12">
-        <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© {new Date().getFullYear()} Pier. {tFooter("builtWith")}</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }

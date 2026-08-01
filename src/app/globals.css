@@ -555,3 +555,35 @@ a:active,
   backface-visibility: hidden;
   perspective: 1000px;
 }
+
+/* ============================================
+   文章页环境光
+   由 --article-glow-color CSS variable 驱动（inline style 注入）
+   fallback 到 accent-soft；prefers-reduced-motion 下静止
+   ============================================ */
+.article-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 480px;
+  background: radial-gradient(
+    ellipse 80% 60% at 50% -5%,
+    var(--article-glow-color, var(--accent-soft)),
+    transparent 70%
+  );
+  pointer-events: none;
+  z-index: 0;
+  opacity: 1;
+}
+
+/* 双主题代码高亮：light 模式隐藏 dark 主题，反之亦然 */
+:root .dark [data-theme='light'],
+.dark [data-theme='light'] {
+  display: none;
+}
+
+:root:not(.dark) [data-theme='dark'],
+html:not(.dark) [data-theme='dark'] {
+  display: none;
+}

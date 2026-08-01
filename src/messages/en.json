@@ -95,7 +95,12 @@
     }
   },
   "footer": {
-    "builtWith": "Built with Next.js, React, and Tailwind CSS."
+    "builtWith": "Built with Next.js, React, and Tailwind CSS.",
+    "tagline": "Building digital experiences with warmth and vitality.",
+    "navTitle": "Navigation",
+    "subscribeTitle": "Subscribe",
+    "rssEn": "RSS — English",
+    "rssZh": "RSS — 中文"
   },
   "theme": {
     "toDark": "Switch to dark mode",

@@ -4,6 +4,7 @@ import { getAllPosts } from "@/lib/posts";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { BlogStatsFilter } from "@/components/viz/BlogStatsFilter";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export default async function BlogPage({
   params,
@@ -15,7 +16,6 @@ export default async function BlogPage({
 
   const posts = getAllPosts(locale);
   const t = await getTranslations("blog");
-  const tFooter = await getTranslations("footer");
 
   return (
     <main className="min-h-screen">
@@ -59,12 +59,7 @@ export default async function BlogPage({
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-[var(--border)] px-6 py-12">
-        <div className="mx-auto max-w-4xl text-center text-sm text-[var(--text-muted)]">
-          <p>© {new Date().getFullYear()} Pier. {tFooter("builtWith")}</p>
-        </div>
-      </footer>
+      <SiteFooter />
     </main>
   );
 }
