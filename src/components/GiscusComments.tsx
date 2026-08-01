@@ -21,9 +21,9 @@ export function GiscusComments() {
     const script = document.createElement("script");
     script.src = "https://giscus.app/client.js";
     script.setAttribute("data-repo", "Jaaay50/pier-blog");
-    script.setAttribute("data-repo-id", ""); // ← 安裝 giscus 後填入
-    script.setAttribute("data-category", "Blog Comments");
-    script.setAttribute("data-category-id", ""); // ← 安裝 giscus 後填入
+    script.setAttribute("data-repo-id", "R_kgDOTml4tA");
+    script.setAttribute("data-category", "Announcements");
+    script.setAttribute("data-category-id", "DIC_kwDOTml4tM4DCbav");
     script.setAttribute("data-mapping", "pathname");
     script.setAttribute("data-strict", "0");
     script.setAttribute("data-reactions-enabled", "1");
