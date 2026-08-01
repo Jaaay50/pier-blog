@@ -109,70 +109,67 @@ main {
   width: 1px;
 }
 
-/* ── Comment box card ────────────────────────────────────── */
+/* ── Comment box — 隐藏多余层，只保留输入框 + 提交 ──── */
+
+/* 隐藏 Write/Preview tab 栏 */
+.gsc-comment-box-tabs {
+  display: none !important;
+}
+
+/* 隐藏 markdown 工具栏 */
+.gsc-comment-box-md-toolbar {
+  display: none !important;
+}
+
+/* 隐藏底部 markdown 提示文字和附件区 */
+.gsc-comment-box-markdown-hint,
+.gsc-comment-box-textarea-extras {
+  display: none !important;
+}
+
+/* 整个输入卡统一背景，无格子感 */
 .gsc-comment-box:not(.gsc-comment-box-is-reply) {
   border-radius: 0.875rem;
-  border-color: #dedcd1;
+  border: 1px solid #dedcd1;
+  background-color: #faf9f5;
   overflow: hidden;
 }
 
-.gsc-comment-box-tabs {
-  border-radius: 0.875rem 0.875rem 0 0;
-  background-color: #f0eee6;
-  border-color: #dedcd1;
-  padding: 0 0.25rem;
+.gsc-comment-box-write {
+  background-color: #faf9f5;
 }
 
-.gsc-comment-box-tabs .btn {
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
-}
-
-.gsc-comment-box-write,
-.gsc-comment-box-preview {
-  border-radius: 0;
+.gsc-comment-box-main {
+  margin: 0.75rem;
 }
 
 .gsc-comment-box-textarea {
-  border-radius: 0.375rem;
-  border-color: #dedcd1;
+  border-radius: 0.5rem;
+  border: 1px solid #dedcd1;
   background-color: #faf9f5;
   color: #141413;
   font-size: 0.875rem;
   line-height: 1.6;
   resize: vertical;
-  min-height: 100px;
-  transition: border-color 0.15s;
+  min-height: 96px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .gsc-comment-box-textarea:focus {
   border-color: #d97757;
-  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.12);
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.10);
   outline: none;
 }
 
+/* 底部按钮区：和输入框同色，只留提交按钮 */
 .gsc-comment-box-bottom,
 .gsc-comment-box-buttons {
-  background-color: #f0eee6;
-  border-color: #dedcd1;
+  background-color: #faf9f5;
+  border: none;
+  border-top: 1px solid #e8e6dc;
   padding: 0.625rem 0.75rem;
-}
-
-.gsc-comment-box-markdown-hint {
-  color: #87867f;
-  font-size: 0.75rem;
-}
-
-/* Toolbar icons */
-.gsc-comment-box-md-toolbar .btn {
-  color: #87867f;
-  border-radius: 0.375rem;
-}
-
-.gsc-comment-box-md-toolbar .btn:hover {
-  color: #3d3d3a;
-  background-color: #e8e6dc;
 }
 
 /* ── Individual comments ─────────────────────────────────── */

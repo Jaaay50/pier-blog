@@ -99,64 +99,62 @@ main {
   width: 1px;
 }
 
-/* ── Comment box card ────────────────────────────────────── */
+/* ── Comment box — 隐藏多余层，只保留输入框 + 提交 ──── */
+
+.gsc-comment-box-tabs {
+  display: none !important;
+}
+
+.gsc-comment-box-md-toolbar {
+  display: none !important;
+}
+
+.gsc-comment-box-markdown-hint,
+.gsc-comment-box-textarea-extras {
+  display: none !important;
+}
+
 .gsc-comment-box:not(.gsc-comment-box-is-reply) {
   border-radius: 0.875rem;
-  border-color: #222222;
+  border: 1px solid #222222;
+  background-color: #0f0f0f;
   overflow: hidden;
 }
 
-.gsc-comment-box-tabs {
-  border-radius: 0.875rem 0.875rem 0 0;
-  background-color: #161616;
-  border-color: #222222;
-  padding: 0 0.25rem;
+.gsc-comment-box-write {
+  background-color: #0f0f0f;
 }
 
-.gsc-comment-box-tabs .btn {
-  border-radius: 0.5rem;
-  font-size: 0.8125rem;
-  font-weight: 500;
+.gsc-comment-box-main {
+  margin: 0.75rem;
 }
 
 .gsc-comment-box-textarea {
-  border-radius: 0.375rem;
-  border-color: #222222;
+  border-radius: 0.5rem;
+  border: 1px solid #222222;
   background-color: #0f0f0f;
   color: #f5f5f5;
   font-size: 0.875rem;
   line-height: 1.6;
   resize: vertical;
-  min-height: 100px;
-  transition: border-color 0.15s;
+  min-height: 96px;
+  width: 100%;
+  box-sizing: border-box;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
 .gsc-comment-box-textarea:focus {
   border-color: #6a9bcc;
-  box-shadow: 0 0 0 3px rgba(106, 155, 204, 0.14);
+  box-shadow: 0 0 0 3px rgba(106, 155, 204, 0.12);
   outline: none;
 }
 
 .gsc-comment-box-bottom,
 .gsc-comment-box-buttons {
-  background-color: #161616;
-  border-color: #222222;
+  background-color: #0f0f0f;
+  border: none;
+  border-top: 1px solid #1e1e1e;
   padding: 0.625rem 0.75rem;
-}
-
-.gsc-comment-box-markdown-hint {
-  color: #6b6b6b;
-  font-size: 0.75rem;
-}
-
-.gsc-comment-box-md-toolbar .btn {
-  color: #6b6b6b;
-  border-radius: 0.375rem;
-}
-
-.gsc-comment-box-md-toolbar .btn:hover {
-  color: #a1a1a1;
-  background-color: #252525;
 }
 
 /* ── Individual comments ─────────────────────────────────── */
