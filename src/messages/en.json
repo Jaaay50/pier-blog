@@ -137,6 +137,26 @@
         "title": "Shader Mixer",
         "desc": "Live GLSL noise art: drag sliders to tune hue, flow speed and turbulence octaves — every frame computed in real time",
         "tech": "WebGL · FBM Noise · 0 deps"
+      },
+      "fluid": {
+        "title": "Fluid Simulation",
+        "desc": "Hand-written Navier-Stokes solver: ping-pong FBO, vorticity confinement, Jacobi pressure iterations — drag to inject velocity & dye",
+        "tech": "WebGL2 · GLSL · 0 deps"
+      },
+      "physics": {
+        "title": "Physics Sandbox",
+        "desc": "Verlet integration + spatial hash collision: click to spawn balls, drag to throw, gravity toggle, elastic collisions",
+        "tech": "Canvas 2D · Verlet · 0 deps"
+      },
+      "flow": {
+        "title": "Flow Field Particles",
+        "desc": "Curl noise divergence-free flow: 2500 particles with long trails, mouse attract/repel toggle",
+        "tech": "Canvas 2D · Curl Noise · 0 deps"
+      },
+      "morph": {
+        "title": "3D Morph",
+        "desc": "Parametric surface per-point morph: sphere→torus→cube→wave, drag to rotate, auto-cycle",
+        "tech": "WebGL · ogl · 0 deps"
       }
     }
   }

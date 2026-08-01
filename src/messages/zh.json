@@ -137,6 +137,26 @@
         "title": "Shader 调色台",
         "desc": "实时 GLSL 噪声艺术：拖动滑杆调节色相、流速与湍流层数，每一帧都是实时计算",
         "tech": "WebGL · FBM 噪声 · 零依赖"
+      },
+      "fluid": {
+        "title": "流体模拟",
+        "desc": "自写 Navier-Stokes 求解器：ping-pong FBO、涡量约束、Jacobi 压力迭代——拖拽注入速度与染料",
+        "tech": "WebGL2 · GLSL · 零依赖"
+      },
+      "physics": {
+        "title": "物理沙盒",
+        "desc": "Verlet 积分 + 空间哈希碰撞：点击生成小球、拖拽投掷、重力开关、弹性碰撞",
+        "tech": "Canvas 2D · Verlet · 零依赖"
+      },
+      "flow": {
+        "title": "流场粒子",
+        "desc": "Curl noise 无散度流场：2500 粒子长拖尾、鼠标吸引/排斥切换",
+        "tech": "Canvas 2D · Curl Noise · 零依赖"
+      },
+      "morph": {
+        "title": "3D 形变",
+        "desc": "参数曲面 per-point morph：球→环面结→立方→波面，拖拽旋转、自动轮播",
+        "tech": "WebGL · ogl · 零依赖"
       }
     }
   }
