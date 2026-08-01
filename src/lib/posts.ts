@@ -1,7 +1,6 @@
 import fs from "fs";
 import path from "path";
 import matter from "gray-matter";
-import { getLocale } from "next-intl/server";
 
 export interface BlogPost {
   slug: string;
@@ -23,37 +22,34 @@ function calcReadMinutes(content: string): number {
 
 const contentDir = path.join(process.cwd(), "src/content/blog");
 
-async function getLocalizedFile(slug: string): Promise<string | null> {
-  const locale = await getLocale();
-  
+function getLocalizedFile(slug: string, locale: string): string | null {
   // Try locale-specific file first (e.g., xxx.zh.mdx)
   const localizedPath = path.join(contentDir, `${slug}.${locale}.mdx`);
   if (fs.existsSync(localizedPath)) {
     return fs.readFileSync(localizedPath, "utf-8");
   }
-  
+
   // Fall back to English
   const enPath = path.join(contentDir, `${slug}.en.mdx`);
   if (fs.existsSync(enPath)) {
     return fs.readFileSync(enPath, "utf-8");
   }
-  
+
   // Legacy: try unqualified file
   const legacyPath = path.join(contentDir, `${slug}.mdx`);
   if (fs.existsSync(legacyPath)) {
     return fs.readFileSync(legacyPath, "utf-8");
   }
-  
+
   return null;
 }
 
-export async function getAllPosts(): Promise<BlogPost[]> {
+export function getAllPosts(locale: string): BlogPost[] {
   if (!fs.existsSync(contentDir)) return [];
 
-  // Get unique slugs (strip locale suffix)
   const files = fs.readdirSync(contentDir).filter((f) => f.endsWith(".mdx"));
   const slugSet = new Set<string>();
-  
+
   files.forEach((file) => {
     const slug = file
       .replace(/\.(en|zh)\.mdx$/, "")
@@ -61,13 +57,11 @@ export async function getAllPosts(): Promise<BlogPost[]> {
     slugSet.add(slug);
   });
 
-  const posts = await Promise.all(
-    Array.from(slugSet).map(async (slug) => {
-      const fileContent = await getLocalizedFile(slug);
+  return Array.from(slugSet)
+    .map((slug) => {
+      const fileContent = getLocalizedFile(slug, locale);
       if (!fileContent) return null;
-
       const { data, content } = matter(fileContent);
-
       return {
         slug,
         title: data.title || slug,
@@ -76,21 +70,16 @@ export async function getAllPosts(): Promise<BlogPost[]> {
         tags: data.tags || [],
         content,
         readMinutes: calcReadMinutes(content),
-      };
+      } as BlogPost;
     })
-  );
-
-  return posts
     .filter((p): p is BlogPost => p !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }
 
-export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
-  const fileContent = await getLocalizedFile(slug);
+export function getPostBySlug(slug: string, locale: string): BlogPost | null {
+  const fileContent = getLocalizedFile(slug, locale);
   if (!fileContent) return null;
-
   const { data, content } = matter(fileContent);
-
   return {
     slug,
     title: data.title || slug,

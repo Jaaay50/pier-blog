@@ -17,7 +17,8 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  // generateMetadata 在靜態生成時無 locale 上下文，預設 en 足夠（title/desc 不影響頁面靜態化）
+  const post = getPostBySlug(slug, "en");
   if (!post) return {};
 
   const ogUrl = new URL("https://ethanpier.com/og");
@@ -48,17 +49,17 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function BlogPostPage({ params }: PageProps) {
   const { slug } = await params;
-  const post = await getPostBySlug(slug);
+  const locale = await getLocale();
+  const post = getPostBySlug(slug, locale);
   const t = await getTranslations("blog");
   const tFooter = await getTranslations("footer");
-  const locale = await getLocale();
 
   if (!post) {
     notFound();
   }
 
   const { content, headings } = await compileMDXWithHeadings(post.content);
-  const related = getRelatedPosts(post, await getAllPosts());
+  const related = getRelatedPosts(post, getAllPosts(locale));
 
   return (
     <main className="min-h-screen">

@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { ThemedGradientText } from "@/components/ThemedGradientText";
 import DecryptedText from "@/components/reactbits/DecryptedText";
@@ -9,9 +9,10 @@ import { ActivityHeatmap } from "@/components/viz/ActivityHeatmap";
 import { getAllPosts } from "@/lib/posts";
 
 export default async function AboutPage() {
+  const locale = await getLocale();
   const t = await getTranslations("about");
   const tFooter = await getTranslations("footer");
-  const posts = await getAllPosts();
+  const posts = getAllPosts(locale);
 
   const skills = [
     {

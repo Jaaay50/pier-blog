@@ -1,4 +1,4 @@
-import { getTranslations } from "next-intl/server";
+import { getTranslations, getLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { ImmersiveHero } from "@/components/ImmersiveHero";
 import { SkillsShowcase } from "@/components/SkillsShowcase";
@@ -10,10 +10,11 @@ import { getAllPosts } from "@/lib/posts";
 import { getGitHubStats } from "@/lib/github";
 
 export default async function HomePage() {
+  const locale = await getLocale();
   const t = await getTranslations("home");
   const tBlog = await getTranslations("blog");
   const tFooter = await getTranslations("footer");
-  const posts = (await getAllPosts()).slice(0, 3);
+  const posts = getAllPosts(locale).slice(0, 3);
   const githubStats = await getGitHubStats();
 
   return (
