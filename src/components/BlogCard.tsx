@@ -10,6 +10,7 @@ interface BlogPost {
   description: string;
   date: string;
   tags: string[];
+  readMinutes?: number;
 }
 
 interface BlogCardProps {
@@ -37,6 +38,12 @@ export function BlogCard({ post }: BlogCardProps) {
             }
           )}
         </time>
+        {post.readMinutes != null && (
+          <>
+            <span>•</span>
+            <span>{locale === "zh" ? `${post.readMinutes} 分钟` : `${post.readMinutes} min read`}</span>
+          </>
+        )}
         <span>•</span>
         <div className="flex gap-2">
           {post.tags.map((tag) => (

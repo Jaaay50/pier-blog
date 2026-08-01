@@ -10,6 +10,15 @@ export interface BlogPost {
   description: string;
   tags: string[];
   content: string;
+  readMinutes: number;
+}
+
+/** 中英混排阅读时间：中文 300 字/分钟，英文 200 词/分钟 */
+function calcReadMinutes(content: string): number {
+  const cjk = (content.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g) || []).length;
+  const ascii = content.replace(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g, " ");
+  const words = ascii.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(cjk / 300 + words / 200));
 }
 
 const contentDir = path.join(process.cwd(), "src/content/blog");
@@ -66,6 +75,7 @@ export async function getAllPosts(): Promise<BlogPost[]> {
         description: data.description || "",
         tags: data.tags || [],
         content,
+        readMinutes: calcReadMinutes(content),
       };
     })
   );
@@ -88,6 +98,7 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     description: data.description || "",
     tags: data.tags || [],
     content,
+    readMinutes: calcReadMinutes(content),
   };
 }
 
@@ -130,6 +141,7 @@ export function getPostsForLocale(locale: "en" | "zh"): BlogPost[] {
         description: data.description || "",
         tags: data.tags || [],
         content,
+        readMinutes: calcReadMinutes(content),
       } as BlogPost;
     })
     .filter((p): p is BlogPost => p !== null)

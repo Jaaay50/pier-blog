@@ -39,12 +39,13 @@ export default async function BlogPage() {
       <section className="px-6 pb-20">
         <div className="mx-auto max-w-4xl">
           <BlogStatsFilter
-            posts={posts.map(({ slug, title, description, date, tags }) => ({
+            posts={posts.map(({ slug, title, description, date, tags, readMinutes }) => ({
               slug,
               title,
               description,
               date,
               tags,
+              readMinutes,
             }))}
             allLabel={t("allTag")}
           />

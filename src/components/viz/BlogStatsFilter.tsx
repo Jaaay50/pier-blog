@@ -10,6 +10,7 @@ interface BlogPost {
   description: string;
   date: string;
   tags: string[];
+  readMinutes?: number;
 }
 
 interface BlogStatsFilterProps {

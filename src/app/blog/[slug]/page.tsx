@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getTranslations, getLocale } from "next-intl/server";
+import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { getPostBySlug, getAllSlugs, getAllPosts } from "@/lib/posts";
 import { getRelatedPosts } from "@/lib/search";
@@ -9,9 +10,41 @@ import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { ScrollReveal } from "@/components/ScrollReveal";
+import { GiscusComments } from "@/components/GiscusComments";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+  const post = await getPostBySlug(slug);
+  if (!post) return {};
+
+  const ogUrl = new URL("https://ethanpier.com/og");
+  ogUrl.searchParams.set("title", post.title);
+  if (post.description) ogUrl.searchParams.set("description", post.description);
+  if (post.tags.length) ogUrl.searchParams.set("tags", post.tags.join(","));
+  ogUrl.searchParams.set("readMin", String(post.readMinutes));
+
+  return {
+    title: `${post.title} — Pier`,
+    description: post.description,
+    openGraph: {
+      title: post.title,
+      description: post.description,
+      type: "article",
+      publishedTime: post.date,
+      tags: post.tags,
+      images: [{ url: ogUrl.toString(), width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description: post.description,
+      images: [ogUrl.toString()],
+    },
+  };
 }
 
 export default async function BlogPostPage({ params }: PageProps) {
@@ -30,6 +63,32 @@ export default async function BlogPostPage({ params }: PageProps) {
 
   return (
     <main className="min-h-screen">
+      {/* JSON-LD 結構化數據 */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "BlogPosting",
+            headline: post.title,
+            description: post.description,
+            datePublished: post.date,
+            author: {
+              "@type": "Person",
+              name: "Ethan Pier",
+              url: "https://ethanpier.com",
+            },
+            publisher: {
+              "@type": "Person",
+              name: "Ethan Pier",
+              url: "https://ethanpier.com",
+            },
+            url: `https://ethanpier.com/blog/${post.slug}`,
+            keywords: post.tags.join(", "),
+            timeRequired: `PT${post.readMinutes}M`,
+          }),
+        }}
+      />
       <ScrollProgress />
       <Navbar />
 
@@ -55,6 +114,8 @@ export default async function BlogPostPage({ params }: PageProps) {
                   day: "numeric",
                 })}
               </time>
+              <span>•</span>
+              <span>{locale === "zh" ? `${post.readMinutes} 分钟` : `${post.readMinutes} min read`}</span>
             </div>
             <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
               {post.title}
@@ -116,6 +177,9 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </section>
       )}
+
+      {/* 留言（Giscus — GitHub Discussions） */}
+      <GiscusComments />
 
       {/* Footer */}
       <footer className="border-t border-[var(--border)] px-6 py-12">

@@ -14,6 +14,8 @@ const inter = Inter({
   weight: ["300", "400", "500", "600", "700"],
   variable: "--font-inter",
   display: "swap",
+  preload: true,          // 主 UI 字體，保留預載
+  adjustFontFallback: true,
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -21,20 +23,23 @@ const jetbrainsMono = JetBrains_Mono({
   weight: ["400", "500"],
   variable: "--font-jetbrains-mono",
   display: "swap",
+  preload: false,         // 代碼塊次要字體，不阻 LCP
 });
 
 const sourceSerif = Source_Serif_4({
   subsets: ["latin"],
-  weight: ["400", "500", "600"],
+  weight: ["400", "500", "600"],  // 500 用於 .dark .font-display，不可刪
   variable: "--font-serif",
   display: "swap",
+  preload: false,         // 正文次要字體，不阻 LCP
 });
 
 const dancingScript = Dancing_Script({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+  weight: ["700"],         // 只保留實際使用的最重 weight
   variable: "--font-dancing",
   display: "swap",
+  preload: false,         // 裝飾字體，不阻 LCP
 });
 
 export const metadata: Metadata = {
@@ -55,6 +60,22 @@ export const metadata: Metadata = {
     description:
       "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",
     type: "website",
+    images: [
+      {
+        url: "https://ethanpier.com/og?title=Pier%20%E2%80%94%20Frontend%20Engineer&description=Personal%20blog%20and%20portfolio%20by%20Ethan%20Pier",
+        width: 1200,
+        height: 630,
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Pier — Frontend Engineer",
+    description:
+      "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",
+    images: [
+      "https://ethanpier.com/og?title=Pier%20%E2%80%94%20Frontend%20Engineer&description=Personal%20blog%20and%20portfolio%20by%20Ethan%20Pier",
+    ],
   },
 };
 
