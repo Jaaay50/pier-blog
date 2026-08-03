@@ -17,33 +17,56 @@ interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
 }
 
+const SITE_URL = "https://ethanpier.com";
+
+function buildOgImageUrl(post: {
+  title: string;
+  description: string;
+  tags: string[];
+  readMinutes: number;
+}): string {
+  const ogUrl = new URL(`${SITE_URL}/og`);
+  ogUrl.searchParams.set("title", post.title);
+  if (post.description) ogUrl.searchParams.set("description", post.description);
+  if (post.tags.length) ogUrl.searchParams.set("tags", post.tags.join(","));
+  ogUrl.searchParams.set("readMin", String(post.readMinutes));
+  return ogUrl.toString();
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, slug } = await params;
   const post = getPostBySlug(slug, locale);
   if (!post) return {};
 
-  const ogUrl = new URL("https://ethanpier.com/og");
-  ogUrl.searchParams.set("title", post.title);
-  if (post.description) ogUrl.searchParams.set("description", post.description);
-  if (post.tags.length) ogUrl.searchParams.set("tags", post.tags.join(","));
-  ogUrl.searchParams.set("readMin", String(post.readMinutes));
+  const ogImage = buildOgImageUrl(post);
+  const canonicalUrl = `${SITE_URL}/${locale}/blog/${slug}`;
 
   return {
     title: `${post.title} — Pier`,
     description: post.description,
+    alternates: {
+      canonical: canonicalUrl,
+      languages: {
+        en: `${SITE_URL}/en/blog/${slug}`,
+        zh: `${SITE_URL}/zh/blog/${slug}`,
+        "x-default": `${SITE_URL}/en/blog/${slug}`,
+      },
+    },
     openGraph: {
       title: post.title,
       description: post.description,
       type: "article",
+      url: canonicalUrl,
       publishedTime: post.date,
       tags: post.tags,
-      images: [{ url: ogUrl.toString(), width: 1200, height: 630 }],
+      locale: locale === "zh" ? "zh_CN" : "en_US",
+      images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     twitter: {
       card: "summary_large_image",
       title: post.title,
       description: post.description,
-      images: [ogUrl.toString()],
+      images: [ogImage],
     },
   };
 }
@@ -96,17 +119,24 @@ export default async function BlogPostPage({ params }: PageProps) {
             headline: post.title,
             description: post.description,
             datePublished: post.date,
+            dateModified: post.date,
+            inLanguage: locale === "zh" ? "zh-CN" : "en-US",
+            image: buildOgImageUrl(post),
             author: {
               "@type": "Person",
               name: "Ethan Pier",
-              url: "https://ethanpier.com",
+              url: SITE_URL,
             },
             publisher: {
               "@type": "Person",
               name: "Ethan Pier",
-              url: "https://ethanpier.com",
+              url: SITE_URL,
             },
-            url: `https://ethanpier.com/blog/${post.slug}`,
+            url: `${SITE_URL}/${locale}/blog/${post.slug}`,
+            mainEntityOfPage: {
+              "@type": "WebPage",
+              "@id": `${SITE_URL}/${locale}/blog/${post.slug}`,
+            },
             keywords: post.tags.join(", "),
             timeRequired: `PT${post.readMinutes}M`,
           }),

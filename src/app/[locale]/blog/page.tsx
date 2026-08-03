@@ -1,10 +1,35 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { getAllPosts } from "@/lib/posts";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { BlogStatsFilter } from "@/components/viz/BlogStatsFilter";
 import { SiteFooter } from "@/components/SiteFooter";
+
+const SITE_URL = "https://ethanpier.com";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "blog" });
+
+  return {
+    title: `${t("title")} — Pier`,
+    description: t("subtitle"),
+    alternates: {
+      canonical: `${SITE_URL}/${locale}/blog`,
+      languages: {
+        en: `${SITE_URL}/en/blog`,
+        zh: `${SITE_URL}/zh/blog`,
+        "x-default": `${SITE_URL}/en/blog`,
+      },
+    },
+  };
+}
 
 export default async function BlogPage({
   params,
