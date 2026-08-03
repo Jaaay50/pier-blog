@@ -6,7 +6,6 @@ import { SkillsShowcase } from "@/components/SkillsShowcase";
 import { ProjectsBento } from "@/components/ProjectsBento";
 import { HorizontalArticles } from "@/components/HorizontalArticles";
 import { LabTeaser } from "@/components/LabTeaser";
-import { FresnelSphere } from "@/components/FresnelSphere";
 import { WaveGrid } from "@/components/WaveGrid";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TransitionLink } from "@/components/TransitionLink";
@@ -30,9 +29,6 @@ export default async function HomePage({
   return (
     <main className="relative min-h-screen">
       <Navbar />
-
-      {/* 前景元素：菲涅尔球（悬浮于 Skills 区右上） */}
-      <FresnelSphere initialX="85%" initialY="35%" size={140} />
 
       {/* 第一屏：全屏沉浸式 Hero */}
       <ImmersiveHero

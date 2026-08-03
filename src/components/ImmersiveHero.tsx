@@ -113,7 +113,7 @@ export function ImmersiveHero({
             <span aria-hidden="true">{title}</span>
           ) : (
             <>
-              {/* DOM 标题层：SSR 可见，粒子接管后淡出 */}
+              {/* DOM 标题层：SSR 可见，粒子可用时静态显示等待接管，降级时执行动画 */}
               <span
                 ref={anchorRef}
                 aria-hidden="true"
@@ -135,7 +135,7 @@ export function ImmersiveHero({
                             className="inline-block"
                             initial={
                               canUseParticles
-                                ? { opacity: 0 }
+                                ? { opacity: 1 }
                                 : { opacity: 0, y: 44, filter: "blur(12px)" }
                             }
                             animate={
@@ -144,7 +144,7 @@ export function ImmersiveHero({
                                 : { opacity: 1, y: 0, filter: "blur(0px)" }
                             }
                             transition={{
-                              duration: canUseParticles ? 0.3 : 0.7,
+                              duration: canUseParticles ? 0 : 0.7,
                               delay: canUseParticles
                                 ? 0
                                 : 0.25 + idx * (isZh ? 0.08 : 0.055),
