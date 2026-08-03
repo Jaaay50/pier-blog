@@ -7,6 +7,7 @@ import { ProjectsBento } from "@/components/ProjectsBento";
 import { HorizontalArticles } from "@/components/HorizontalArticles";
 import { LabTeaser } from "@/components/LabTeaser";
 import { SiteFooter } from "@/components/SiteFooter";
+import { Waterline } from "@/components/Waterline";
 import { TransitionLink } from "@/components/TransitionLink";
 import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { getAllPosts } from "@/lib/posts";
@@ -113,11 +114,8 @@ export default async function HomePage({
         readMore={tBlog("readMore")}
       />
 
-      {/* 静态发丝分隔线（原 WaveGrid 3D 波浪，视觉减法后移除） */}
-      <div
-        aria-hidden
-        className="mx-auto my-24 h-px w-full max-w-6xl bg-gradient-to-r from-transparent via-[var(--border)] to-transparent"
-      />
+      {/* 静态发丝分隔线（原 WaveGrid 3D 波浪，视觉减法后移除；Phase 10.3 组件化为 Waterline） */}
+      <Waterline className="my-24" />
 
       {/* Footer */}
       <SiteFooter />
