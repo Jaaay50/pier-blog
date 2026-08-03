@@ -36,7 +36,7 @@
   --gradient-text-3: #d4a27f;
 
   /* 字体角色 */
-  --font-display: var(--font-serif), Georgia, "Source Serif 4", serif;
+  --font-display: var(--font-serif), Georgia, "Source Serif 4", var(--font-noto-serif), "Songti SC", serif;
   --font-ui: var(--font-inter), -apple-system, sans-serif;
 }
 
@@ -205,6 +205,18 @@ html.custom-cursor-on body {
 
 .dark .font-display {
   font-weight: 500;
+}
+
+/* 中文标题/正文衡线字：轻微拉开字距（方块字需要呼吸感） */
+html[lang="zh"] .font-display {
+  letter-spacing: 0.02em;
+}
+
+html[lang="zh"] .prose h1,
+html[lang="zh"] .prose h2,
+html[lang="zh"] .prose h3,
+html[lang="zh"] .prose h4 {
+  letter-spacing: 0.02em;
 }
 
 ::selection {

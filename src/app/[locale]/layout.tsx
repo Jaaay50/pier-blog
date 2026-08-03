@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Source_Serif_4, Dancing_Script } from "next/font/google";
+import { Inter, JetBrains_Mono, Source_Serif_4, Noto_Serif_SC, Dancing_Script } from "next/font/google";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
@@ -35,6 +35,15 @@ const sourceSerif = Source_Serif_4({
   variable: "--font-serif",
   display: "swap",
   preload: false,
+});
+
+const notoSerifSC = Noto_Serif_SC({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-noto-serif",
+  display: "swap",
+  preload: false,
+  adjustFontFallback: false,
 });
 
 const dancingScript = Dancing_Script({
@@ -111,7 +120,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       // 預設深色，與 ThemeProvider defaultTheme="dark" 一致。
       // 靜態 HTML 直接帶 dark class，避免水合前的淺→深閃白。
       // suppressHydrationWarning 允許 next-themes 在客戶端靜默覆寫此 class。
-      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} ${dancingScript.variable}`}
+      className={`dark ${inter.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} ${notoSerifSC.variable} ${dancingScript.variable}`}
       suppressHydrationWarning
     >
       <head>
