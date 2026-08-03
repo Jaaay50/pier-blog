@@ -140,7 +140,7 @@ function ProjectCard({
       href={project.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="card-interactive group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-6"
+      className="card-glass card-glass-hover group relative flex h-full flex-col justify-between overflow-hidden rounded-2xl p-6"
       onMouseMove={handleMouseMove}
       onMouseEnter={onHover}
       onMouseLeave={handleMouseLeave}

@@ -25,7 +25,7 @@ export function BlogCard({ post }: BlogCardProps) {
     <AnimatedCard className="h-full">
       <TransitionLink
         href={`/blog/${post.slug}`}
-        className="card-dotted group flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--border-hover)] hover:shadow-lg"
+        className="card-glass card-glass-hover group flex h-full flex-col rounded-xl p-6"
       >
         {/* Tags — 頂部分類標識 */}
         {post.tags.length > 0 && (

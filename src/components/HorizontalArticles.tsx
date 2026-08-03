@@ -114,7 +114,7 @@ function ArticleCard({ post, index, readMore }: ArticleCardProps) {
     >
       <Link
         href={`/blog/${post.slug}`}
-        className="card-interactive group relative flex h-[28rem] flex-col justify-between overflow-hidden rounded-2xl p-8"
+        className="card-glass card-glass-hover group relative flex h-[28rem] flex-col justify-between overflow-hidden rounded-2xl p-8"
       >
         {/* 背景装饰（视差慢） */}
         <motion.div

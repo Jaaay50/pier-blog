@@ -92,7 +92,7 @@ export default async function AboutPage({
             {skills.map((skill) => (
               <SpotlightCard
                 key={skill.category}
-                className="border-[var(--border)] bg-[var(--bg-card)] p-6"
+                className="p-6"
                 spotlightColor="rgba(59, 130, 246, 0.15)"
               >
                 <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">

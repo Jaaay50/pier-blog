@@ -132,7 +132,7 @@ export default async function PortfolioPage({
               return (
                 <SpotlightCard
                   key={project.id}
-                  className="group flex h-full flex-col border-[var(--border)] bg-[var(--bg-card)] p-8"
+                  className="group flex h-full flex-col p-8"
                   spotlightColor="rgba(217, 119, 87, 0.12)"
                 >
                   {/* 顶部：年份 */}
@@ -204,7 +204,7 @@ export default async function PortfolioPage({
                   href={project.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group flex items-center justify-between rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-5 transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-elevated)]"
+                  className="card-glass card-glass-hover group flex items-center justify-between rounded-lg p-5"
                 >
                   <div className="min-w-0">
                     <div className="mb-1 flex items-center gap-3">

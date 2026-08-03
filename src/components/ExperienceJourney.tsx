@@ -177,7 +177,7 @@ function JourneyCard({ exp, active }: { exp: Experience; active: boolean }) {
         {exp.period}
       </div>
 
-      <div className="card-interactive relative rounded-2xl p-10 backdrop-blur-sm">
+      <div className="card-glass card-glass-hover relative rounded-2xl p-10">
         <div className="mb-2 text-sm text-[var(--text-muted)]">{exp.period}</div>
         <h3 className="mb-1 text-2xl font-semibold tracking-tight">
           {exp.title}

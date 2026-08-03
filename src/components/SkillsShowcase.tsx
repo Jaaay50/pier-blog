@@ -127,7 +127,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
           >
             <SpotlightCard
               spotlightColor={spotlight}
-              className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
+              className="group h-full !p-0 overflow-hidden"
             >
               <div
                 className="relative h-44 overflow-hidden"
@@ -192,7 +192,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
           >
             <SpotlightCard
               spotlightColor={spotlight}
-              className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
+              className="group h-full !p-0 overflow-hidden"
             >
               <div className="relative h-44 overflow-hidden">
                 {mounted && webglOk ? (
@@ -239,7 +239,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
           >
             <SpotlightCard
               spotlightColor={spotlight}
-              className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
+              className="group h-full !p-0 overflow-hidden"
             >
               <div
                 className="relative flex h-44 flex-col items-center justify-center gap-4 overflow-hidden"
