@@ -2,6 +2,7 @@
 
 import { TransitionLink } from '@/components/TransitionLink';
 import { PierWordmark } from '@/components/brand/PierWordmark';
+import { PierGlyph } from '@/components/brand/PierGlyph';
 import { useTranslations } from 'next-intl';
 
 interface SiteFooterProps {
@@ -31,7 +32,11 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
   const tNav = useTranslations('nav');
 
   return (
-    <footer className="mt-auto border-t border-[var(--border)]">
+    <footer className="relative mt-auto overflow-hidden border-t border-[var(--border)]">
+      {/* Π glyph 水印：右下角极淡 */}
+      <div className="pointer-events-none absolute -bottom-6 -right-4" aria-hidden>
+        <PierGlyph size={140} className="text-[var(--text-muted)] opacity-[0.04]" />
+      </div>
       <div className={`mx-auto ${maxWidth} px-6 py-12`}>
         {/* Three-column grid */}
         <div className="grid gap-10 sm:grid-cols-3">

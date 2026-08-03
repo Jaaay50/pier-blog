@@ -206,7 +206,7 @@ export async function GET(request: NextRequest) {
           )}
         </div>
 
-        {/* 底部：tags */}
+        {/* 底部：tags + Π glyph 签名 */}
         <div
           style={{
             display: "flex",
@@ -231,6 +231,22 @@ export async function GET(request: NextRequest) {
               {tag}
             </span>
           ))}
+          {/* Π 桥墩 glyph：flex 内嵌品牌签名（横梁+双桩+灯点） */}
+          <div
+            style={{
+              marginLeft: "auto",
+              width: "44px",
+              height: "44px",
+              display: "flex",
+              position: "relative",
+              opacity: 0.9,
+            }}
+          >
+            <div style={{ position: "absolute", left: "3px", top: "6px", width: "38px", height: "4px", borderRadius: "2px", backgroundColor: "#f2f4f8", display: "flex" }} />
+            <div style={{ position: "absolute", left: "11px", top: "10px", width: "4px", height: "26px", borderRadius: "2px", backgroundColor: "#f2f4f8", display: "flex" }} />
+            <div style={{ position: "absolute", left: "29px", top: "10px", width: "4px", height: "26px", borderRadius: "2px", backgroundColor: "#f2f4f8", display: "flex" }} />
+            <div style={{ position: "absolute", left: "19px", top: "19px", width: "6px", height: "6px", borderRadius: "3px", backgroundColor: accent.main, display: "flex" }} />
+          </div>
         </div>
       </div>
     ),

@@ -159,5 +159,10 @@
         "tech": "WebGL · ogl · 0 deps"
       }
     }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "This lamp doesn't reach here — the page may have moved or been removed.",
+    "backHome": "Back to home"
   }
 }

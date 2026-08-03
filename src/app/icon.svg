@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="32" height="32">
+  <style>
+    .structure { fill: #f5f5f5; stroke: #f5f5f5; }
+    .lamp { fill: #6a9bcc; }
+    @media (prefers-color-scheme: light) {
+      .structure { fill: #141413; stroke: #141413; }
+      .lamp { fill: #d97757; }
+    }
+  </style>
+  <!-- 横梁 -->
+  <rect class="structure" x="7" y="10" width="34" height="4" rx="2" stroke="none" />
+  <!-- 左桩 + 桩脚 -->
+  <path class="structure" d="M15 14 V36 M15 36 L12.5 42 M15 36 L17.5 42"
+        fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 右桩 + 桩脚 -->
+  <path class="structure" d="M33 14 V36 M33 36 L30.5 42 M33 36 L35.5 42"
+        fill="none" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- 桩间灯点（深色科技蓝 / 浅色陶土橙） -->
+  <circle class="lamp" cx="24" cy="24" r="3" stroke="none" />
+</svg>
