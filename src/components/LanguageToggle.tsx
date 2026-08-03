@@ -18,7 +18,8 @@ export function LanguageToggle() {
     startTransition(() => {
       // URL 路由方案：同一路径切换 locale 前缀（/en/blog → /zh/blog）
       // next-intl middleware 会同步更新 NEXT_LOCALE cookie 供下次访问记住偏好
-      router.replace(pathname, { locale: nextLocale });
+      // scroll: false：保持当前滚动位置（Next.js 默认导航后滚回顶部）
+      router.replace(pathname, { locale: nextLocale, scroll: false });
     });
   };
 
