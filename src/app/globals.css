@@ -250,7 +250,24 @@ html[lang="zh"] .prose h4 {
   border: 1px solid var(--border);
   background: var(--bg-card);
   box-shadow: var(--shadow-card);
+  /* 点阵纹理：text-primary 混色源，双主题自动适配（浅色暖墨点 / 深色微光点） */
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--text-primary) 3%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
   transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.3s ease, background-color 0.3s ease;
+}
+
+/* 非 .card-interactive 卡面（SpotlightCard 根节点 / BlogCard / Bento 卡）同款点阵 */
+.card-dotted {
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--text-primary) 3%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
 }
 
 .card-interactive:hover {
