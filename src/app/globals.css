@@ -430,24 +430,99 @@ html[lang="zh"] .prose h4 {
   box-shadow: 0 0 20px var(--glow-color);
 }
 
-/* Lab 引流带：玻璃态卡片双主题材质（Phase 10.4）
-   Tailwind 4 dark: 变体默认走 prefers-color-scheme，与本站 .dark class 策略不兼容，
-   因此边框内发光与 hover glow 改用 .dark 选择器实现 */
-.lab-teaser-card {
-  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+/* ============================================
+   液态玻璃材质（手写 Apple Liquid Glass）
+   层 1：跨浏览器磨砂 + 边缘高光
+   层 2：对角 sheen（光泽）
+   层 3：Chromium 折射（SVG feDisplacementMap）
+   ============================================ */
+
+.glass-card {
+  /* 不设 position：LabTeaser 已用 Tailwind absolute 定位；
+     isolation 建立堆叠上下文供 ::before z-index:-1 使用 */
+  isolation: isolate;
+
+  /* 磨砂底色：浅色半透白，深色半透黑 */
+  background: rgba(255, 255, 255, 0.12);
+
+  /* 跨浏览器磨砂（注：Tailwind/LightningCSS 优化器会把 -webkit-backdrop-filter
+     误判为“前缀已足够”而丢掉标准 backdrop-filter 声明，导致 Chrome 读到 none。
+     因此标准属性写在前、-webkit 前缀写在后，保住两条都进 CSSOM） */
+  backdrop-filter: blur(10px) saturate(170%) brightness(1.08);
+  -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(1.08);
+  backdrop-filter: blur(10px) saturate(170%) brightness(1.08);
+
+  /* 边缘光（玻璃厚度）：顶部强高光 + 底部弱反光 + 浮影 */
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.25),
+    inset 0 1px 1px rgba(255, 255, 255, 0.5),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.25);
+
+  border: 1px solid rgba(255, 255, 255, 0.22);
+
   transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
-.dark .lab-teaser-card {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+.dark .glass-card {
+  background: rgba(22, 22, 22, 0.4);
+  backdrop-filter: blur(12px) saturate(160%) brightness(1.12);
+  -webkit-backdrop-filter: blur(12px) saturate(160%) brightness(1.12);
+  backdrop-filter: blur(12px) saturate(160%) brightness(1.12);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.5),
+    inset 0 1px 1px rgba(255, 255, 255, 0.12),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
-.lab-teaser-card:hover {
-  transform: translateY(-2px);
+/* 对角 sheen（光泽掠过） */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.08) 28%,
+    transparent 58%
+  );
+  mix-blend-mode: screen;
+  pointer-events: none;
 }
 
-.dark .lab-teaser-card:hover {
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 20px rgba(106, 155, 204, 0.15);
+/* Chromium 真折射（Safari/Firefox 降级为上述磨砂） */
+@supports (backdrop-filter: url(#liquid-lens)) {
+  .glass-card {
+    backdrop-filter: blur(3px) url(#liquid-lens) saturate(170%) brightness(1.08);
+    -webkit-backdrop-filter: blur(3px) url(#liquid-lens) saturate(170%) brightness(1.08);
+    backdrop-filter: blur(3px) url(#liquid-lens) saturate(170%) brightness(1.08);
+  }
+  .dark .glass-card {
+    backdrop-filter: blur(3.5px) url(#liquid-lens) saturate(160%) brightness(1.12);
+    -webkit-backdrop-filter: blur(3.5px) url(#liquid-lens) saturate(160%) brightness(1.12);
+    backdrop-filter: blur(3.5px) url(#liquid-lens) saturate(160%) brightness(1.12);
+  }
+}
+
+/* hover 轻浮（整块玻璃板）*/
+/* 注意：.glass-card 自身不带 transform 的静态值；LabTeaser 里由 motion 内联
+   transform 控制 translateY(-50%) 垂直居中，hover 不能再写 transform（会覆盖内联值）。
+   上浮效果在 LabTeaser 里通过 motion 的 whileHover 实现（见组件）。 */
+
+.dark .glass-card:hover {
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.6),
+    inset 0 1px 1px rgba(255, 255, 255, 0.15),
+    inset 0 -1px 1px rgba(255, 255, 255, 0.1),
+    0 0 24px rgba(106, 155, 204, 0.2); /* tech-blue glow */
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .glass-card {
+    transition: none;
+  }
 }
 
 /* Lab 引流带 CTA：深色 hover 加 glow（与 .btn-primary 同模式） */

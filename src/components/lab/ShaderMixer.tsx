@@ -116,9 +116,11 @@ interface ShaderMixerProps {
     zoom: string;
     randomize: string;
   };
+  /** 只渲染 canvas 铺满容器，隐藏控件区（LabTeaser 幕布用） */
+  canvasOnly?: boolean;
 }
 
-export default function ShaderMixer({ quality, labels }: ShaderMixerProps) {
+export default function ShaderMixer({ quality, labels, canvasOnly = false }: ShaderMixerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [params, setParams] = useState<Params>(DEFAULTS);
   const paramsRef = useRef(params);
@@ -268,39 +270,41 @@ export default function ShaderMixer({ quality, labels }: ShaderMixerProps) {
   return (
     <div className="flex h-full flex-col">
       <div ref={hostRef} className="relative min-h-0 flex-1 overflow-hidden" />
-      <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[var(--border)] bg-[var(--bg-card)] p-4">
-        {sliders.map((s) => (
-          <label key={s.key} className="flex flex-col gap-1.5">
-            <span className="flex items-center justify-between text-xs text-[var(--text-muted)]">
-              {s.label}
-              <span className="font-mono tabular-nums">
-                {params[s.key].toFixed(2)}
+      {!canvasOnly && (
+        <div className="grid grid-cols-2 gap-x-5 gap-y-3 border-t border-[var(--border)] bg-[var(--bg-card)] p-4">
+          {sliders.map((s) => (
+            <label key={s.key} className="flex flex-col gap-1.5">
+              <span className="flex items-center justify-between text-xs text-[var(--text-muted)]">
+                {s.label}
+                <span className="font-mono tabular-nums">
+                  {params[s.key].toFixed(2)}
+                </span>
               </span>
-            </span>
-            <input
-              type="range"
-              min={s.min}
-              max={s.max}
-              step={s.step}
-              value={params[s.key]}
-              onChange={(e) =>
-                setParams((prev) => ({
-                  ...prev,
-                  [s.key]: parseFloat(e.target.value),
-                }))
-              }
-              className="lab-slider"
-            />
-          </label>
-        ))}
-        <button
-          type="button"
-          onClick={randomize}
-          className="col-span-2 mt-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-        >
-          {labels.randomize}
-        </button>
-      </div>
+              <input
+                type="range"
+                min={s.min}
+                max={s.max}
+                step={s.step}
+                value={params[s.key]}
+                onChange={(e) =>
+                  setParams((prev) => ({
+                    ...prev,
+                    [s.key]: parseFloat(e.target.value),
+                  }))
+                }
+                className="lab-slider"
+              />
+            </label>
+          ))}
+          <button
+            type="button"
+            onClick={randomize}
+            className="col-span-2 mt-1 rounded-lg border border-[var(--border)] px-3 py-2 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+          >
+            {labels.randomize}
+          </button>
+        </div>
+      )}
     </div>
   );
 }
