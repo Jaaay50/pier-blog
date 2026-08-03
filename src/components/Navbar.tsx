@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "@/i18n/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { motion } from "motion/react";
 import { ThemeToggle } from "./ThemeToggle";
 import { LanguageToggle } from "./LanguageToggle";
@@ -12,6 +12,7 @@ import { PierWordmark } from "./brand/PierWordmark";
 
 export function Navbar() {
   const pathname = usePathname();
+  const locale = useLocale();
   const t = useTranslations("nav");
 
   const navLinks = [
@@ -49,9 +50,12 @@ export function Navbar() {
                   >
                     {link.label}
                   </TransitionLink>
-                  {/* Phase 4：当前路由弹性下划线（layoutId 跨链接滑动） */}
+                  {/* Phase 4：当前路由弹性下划线（layoutId 跨链接滑动）
+                      key 绑定 locale：语言切换时下划线 remount 直接出现在新位置，
+                      不做跨文案宽度的弹簧滑动；同 locale 页面间导航保留滑动 */}
                   {isActive && (
                     <motion.span
+                      key={`${locale}-nav-underline`}
                       layoutId="nav-underline"
                       className="absolute -bottom-1.5 left-0 right-0 h-0.5 rounded-full bg-[var(--accent)]"
                       transition={{ type: "spring", stiffness: 400, damping: 30 }}
