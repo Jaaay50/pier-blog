@@ -414,6 +414,78 @@ html[lang="zh"] .prose h4 {
   transform: translateY(-1px) scale(1.01);
 }
 
+/* ============================================
+   卡片玻璃表面系统（Phase 10.7）
+   四层：半透底+blur / 顶部内高光 / 双层阴影 / 点阵
+   背景静态，原生 blur 走 GPU 合成器快速路径（无 10.5 回读问题）。
+   注：backdrop-filter 标准属性在前、-webkit 在后、标准再写一遍，
+   防 LightningCSS 裁掉标准声明（同 .glass-card 已踩坑）。
+   ============================================ */
+.card-glass {
+  position: relative;
+  background-color: rgba(255, 255, 255, 0.55);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  border: 1px solid var(--border);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),   /* 顶部内高光：玻璃厚度 */
+    0 1px 2px rgba(20, 20, 19, 0.05),          /* 贴地锐影 */
+    0 8px 24px rgba(20, 20, 19, 0.06);         /* 环境软影 */
+  /* 点阵提浓：3% → 4.5%（半透底上需更浓才可见） */
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--text-primary) 4.5%, transparent) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease,
+    transform 0.3s ease, background-color 0.3s ease;
+}
+
+.dark .card-glass {
+  background-color: rgba(26, 26, 26, 0.5);
+  backdrop-filter: blur(16px) saturate(1.3);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3);
+  background-image: radial-gradient(
+    circle at 1px 1px,
+    color-mix(in srgb, var(--text-primary) 5%, transparent) 1px,
+    transparent 1px
+  );
+}
+
+/* hover：软影加深上移（浅色 lift、深色 lift+glow，与 card-interactive 语言一致） */
+.card-glass-hover:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-3px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 2px 4px rgba(20, 20, 19, 0.06),
+    0 16px 40px rgba(20, 20, 19, 0.1);
+}
+
+.dark .card-glass-hover:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 2px 4px rgba(0, 0, 0, 0.5),
+    0 16px 40px rgba(0, 0, 0, 0.4),
+    0 0 24px var(--glow-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-glass,
+  .card-glass-hover:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
 /* CTA 按钮：浅色纯色（Claude 克制），深色带 glow（Kimi 流光） */
 .btn-primary {
   background: var(--accent);
