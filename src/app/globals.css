@@ -432,7 +432,9 @@ html[lang="zh"] .prose h4 {
 
 /* ============================================
    液态玻璃材质（手写 Apple Liquid Glass）
-   层 1：跨浏览器磨砂 + 边缘高光
+   折射已下沉到 ShaderMixer GLSL（圆角矩形 SDF 透镜 + 色差），
+   DOM 层只保留原生 blur 磨砂与边缘光（原生 blur 走 GPU，便宜）：
+   层 1：跨浏览器磨砂（薄，让后面 shader 折射透出）+ 边缘高光
    层 2：对角 sheen（光泽）
    ============================================ */
 
@@ -441,15 +443,18 @@ html[lang="zh"] .prose h4 {
      isolation 建立堆叠上下文供 ::before z-index:-1 使用 */
   isolation: isolate;
 
-  /* 磨砂底色：浅色半透白，深色半透黑 */
-  background: rgba(255, 255, 255, 0.12);
+  /* 磨砂底色：浅色半透白，深色半透黑。
+     Phase 10.6：下调不透明度（浅 0.12→0.08 / 深 0.4→0.28），
+     让后面 shader 透镜的折射弯曲能透出来 */
+  background: rgba(255, 255, 255, 0.08);
 
   /* 跨浏览器磨砂（注：Tailwind/LightningCSS 优化器会把 -webkit-backdrop-filter
      误判为“前缀已足够”而丢掉标准 backdrop-filter 声明，导致 Chrome 读到 none。
-     因此标准属性写在前、-webkit 前缀写在后，保住两条都进 CSSOM） */
-  backdrop-filter: blur(10px) saturate(170%) brightness(1.08);
-  -webkit-backdrop-filter: blur(10px) saturate(170%) brightness(1.08);
-  backdrop-filter: blur(10px) saturate(170%) brightness(1.08);
+     因此标准属性写在前、-webkit 前缀写在后，保住两条都进 CSSOM。
+     Phase 10.6：blur 从 10px 降到 6px（shader 透镜已提供玻璃感，磨砂只需薄一层） */
+  backdrop-filter: blur(6px) saturate(170%) brightness(1.08);
+  -webkit-backdrop-filter: blur(6px) saturate(170%) brightness(1.08);
+  backdrop-filter: blur(6px) saturate(170%) brightness(1.08);
 
   /* 边缘光（玻璃厚度）：顶部强高光 + 底部弱反光 + 浮影 */
   box-shadow:
@@ -463,10 +468,10 @@ html[lang="zh"] .prose h4 {
 }
 
 .dark .glass-card {
-  background: rgba(22, 22, 22, 0.4);
-  backdrop-filter: blur(12px) saturate(160%) brightness(1.12);
-  -webkit-backdrop-filter: blur(12px) saturate(160%) brightness(1.12);
-  backdrop-filter: blur(12px) saturate(160%) brightness(1.12);
+  background: rgba(22, 22, 22, 0.28);
+  backdrop-filter: blur(6px) saturate(160%) brightness(1.12);
+  -webkit-backdrop-filter: blur(6px) saturate(160%) brightness(1.12);
+  backdrop-filter: blur(6px) saturate(160%) brightness(1.12);
   box-shadow:
     0 8px 32px rgba(0, 0, 0, 0.5),
     inset 0 1px 1px rgba(255, 255, 255, 0.12),
@@ -490,6 +495,8 @@ html[lang="zh"] .prose h4 {
   mix-blend-mode: screen;
   pointer-events: none;
 }
+
+
 
 /* hover 轻浮（整块玻璃板）*/
 /* 注意：.glass-card 自身不带 transform 的静态值；LabTeaser 里由 motion 内联

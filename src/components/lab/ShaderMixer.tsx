@@ -29,6 +29,9 @@ uniform float uHue;
 uniform float uFlowSpeed;
 uniform float uOctaves;
 uniform float uZoom;
+uniform vec4 uLensRect;     // 透镜矩形 (x, y, w, h)，canvas UV 空间 [0,1]，y 向上
+uniform float uLensRadius;  // 圆角半径（UV 单位）
+uniform float uLensStrength;// 折射强度（0 = 关闭）
 
 // value noise：网格随机 + smoothstep 插值
 float hash(vec2 p) {
@@ -68,13 +71,9 @@ vec3 hsv2rgb(vec3 c) {
   return c.z * mix(K.xxx, clamp(p - K.xxx, 0.0, 1.0), c.y);
 }
 
-void main() {
-  vec2 uv = (gl_FragCoord.xy * 2.0 - uResolution) / min(uResolution.x, uResolution.y);
-  uv *= uZoom;
-
-  float t = uTime * uFlowSpeed;
-
-  // domain warping：q 扭曲 r，r 扭曲最终 fbm，产生流体感
+// 场着色：domain warping 产生流体感，输入为噪声域坐标
+// （从 main 抽出，便于色差时对偏移 UV 多次采样）
+vec3 shadeField(vec2 uv, float t) {
   vec2 q = vec2(
     fbm(uv + vec2(0.0, 0.0) + t * 0.15),
     fbm(uv + vec2(5.2, 1.3) - t * 0.12)
@@ -93,6 +92,69 @@ void main() {
   vec3 col = hsv2rgb(vec3(hue, sat, val));
   // 暗部压向深色而不是纯黑，柔和
   col = mix(vec3(0.02, 0.02, 0.04), col, smoothstep(0.0, 0.9, val));
+  return col;
+}
+
+// 圆角矩形 SDF（标准公式）
+float sdRoundedBox(vec2 p, vec2 b, float r) {
+  vec2 q = abs(p) - b + r;
+  return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r;
+}
+
+// 透镜 UV 重映射：圆角矩形边缘向外弯折 + 中心轻微放大（凸透镜感）
+// 输入/输出均为 canvas UV 空间 [0,1]（y 向上）
+vec2 lensUV(vec2 uv, out float rim) {
+  rim = 0.0;
+  if (uLensStrength <= 0.0) return uv;
+  vec2 center = uLensRect.xy + uLensRect.zw * 0.5;
+  vec2 half_ = uLensRect.zw * 0.5;
+  // 修正宽高比，SDF 在各向同性空间（均以 canvas 高度为单位）计算
+  float aspect = uResolution.x / uResolution.y;
+  vec2 p = (uv - center) * vec2(aspect, 1.0);
+  vec2 b = half_ * vec2(aspect, 1.0);
+  float d = sdRoundedBox(p, b, uLensRadius);
+  if (d > 0.0) return uv;                 // 透镜外不动
+  // 边缘带：越靠边折射越强，中心清透
+  float edge = smoothstep(-0.06, 0.0, d); // 内缘 0 → 边缘 1
+  rim = edge;
+  vec2 dir = normalize(p + vec2(1e-6));
+  // 边缘向外弯折 + 整体轻微放大
+  vec2 displaced = uv - dir * edge * uLensStrength / vec2(aspect, 1.0);
+  vec2 zoomed = center + (uv - center) * (1.0 - 0.04 * (1.0 - edge));
+  return mix(zoomed, displaced, edge);
+}
+
+// canvas UV [0,1]（y 向上）→ 噪声域各向同性坐标（与原始变换等价）
+vec2 toField(vec2 uvN) {
+  vec2 aspect = uResolution / min(uResolution.x, uResolution.y);
+  return (uvN * 2.0 - 1.0) * aspect * uZoom;
+}
+
+void main() {
+  // canvas 坐标转 UV 空间 [0,1]，y 向上（GL 原生）
+  vec2 uvN = gl_FragCoord.xy / uResolution;
+  float t = uTime * uFlowSpeed;
+
+  // 透镜 UV 重映射（strength 为 0 时直通，无额外开销）
+  float rim;
+  vec2 uvLens = lensUV(uvN, rim);
+
+  vec3 col;
+  // 色差：rim 区域 RGB 三通道用微偏移 UV 各采一次场
+  // （偏移 ~0.0015 * rim；透镜外 rim=0 走单次采样，帧率不受影响）
+  if (rim > 0.001) {
+    float shift = 0.0015 * rim;
+    vec3 cR = shadeField(toField(uvLens + vec2(shift, 0.0)), t);
+    vec3 cG = shadeField(toField(uvLens), t);
+    vec3 cB = shadeField(toField(uvLens - vec2(shift, 0.0)), t);
+    col = vec3(cR.r, cG.g, cB.b);
+  } else {
+    col = shadeField(toField(uvLens), t);
+  }
+
+  // 透镜内亮度轻提，边缘叠白色高光
+  col *= 1.0 + 0.06 * rim;
+  col += vec3(0.08 * rim);
 
   gl_FragColor = vec4(col, 1.0);
 }
@@ -118,16 +180,37 @@ interface ShaderMixerProps {
   };
   /** 只渲染 canvas 铺满容器，隐藏控件区（LabTeaser 幕布用） */
   canvasOnly?: boolean;
+  /**
+   * 圆角矩形透镜（shader 内折射，LabTeaser 玻璃板用）。
+   * rect 为 canvas UV 空间 [0,1]（y 向上）的 (x, y, w, h)；
+   * radius 为 UV 单位圆角半径（各向同性空间，以 canvas 高度为单位）；
+   * strength 为折射强度（0 = 关闭，默认）。与 canvasOnly 相互独立。
+   */
+  lens?: {
+    rect: [number, number, number, number];
+    radius: number;
+    strength: number;
+  };
 }
 
-export default function ShaderMixer({ quality, labels, canvasOnly = false }: ShaderMixerProps) {
+export default function ShaderMixer({
+  quality,
+  labels,
+  canvasOnly = false,
+  lens,
+}: ShaderMixerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [params, setParams] = useState<Params>(DEFAULTS);
   const paramsRef = useRef(params);
+  const lensRef = useRef(lens);
 
   useEffect(() => {
     paramsRef.current = params;
   }, [params]);
+
+  useEffect(() => {
+    lensRef.current = lens;
+  }, [lens]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -186,6 +269,9 @@ export default function ShaderMixer({ quality, labels, canvasOnly = false }: Sha
     const uFlow = gl.getUniformLocation(prog, "uFlowSpeed");
     const uOct = gl.getUniformLocation(prog, "uOctaves");
     const uZoom = gl.getUniformLocation(prog, "uZoom");
+    const uLensRect = gl.getUniformLocation(prog, "uLensRect");
+    const uLensRadius = gl.getUniformLocation(prog, "uLensRadius");
+    const uLensStrength = gl.getUniformLocation(prog, "uLensStrength");
 
     // FBM 每像素 6 层循环开销大，渲染分辨率限 0.75x（视觉几乎无差）
     const renderScale = quality.tier === "high" ? 0.75 : 0.5;
@@ -215,6 +301,14 @@ export default function ShaderMixer({ quality, labels, canvasOnly = false }: Sha
       gl.uniform1f(uFlow, p.flowSpeed);
       gl.uniform1f(uOct, p.octaves);
       gl.uniform1f(uZoom, p.zoom);
+      const lensV = lensRef.current;
+      if (lensV && lensV.strength > 0) {
+        gl.uniform4f(uLensRect, lensV.rect[0], lensV.rect[1], lensV.rect[2], lensV.rect[3]);
+        gl.uniform1f(uLensRadius, lensV.radius);
+        gl.uniform1f(uLensStrength, lensV.strength);
+      } else {
+        gl.uniform1f(uLensStrength, 0);
+      }
       gl.drawArrays(gl.TRIANGLES, 0, 3);
     };
 
