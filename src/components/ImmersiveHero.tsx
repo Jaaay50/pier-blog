@@ -112,10 +112,14 @@ export function ImmersiveHero({
         <h1 className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]">
           <span className="sr-only">{title}</span>
           {!mounted ? (
-            <span aria-hidden="true">{title}</span>
+            /* SSR/水合前标题：ParticleGate 判定粒子可用时由 CSS 首帧隐藏 */
+            <span aria-hidden="true" className="hero-title-ssr">
+              {title}
+            </span>
           ) : (
             <>
-              {/* DOM 标题层：粒子模式下立即隐藏（仅作采样锚点），降级/失败时执行逐字动画 */}
+              {/* DOM 标题层：粒子模式下立即隐藏（仅作采样锚点），降级/失败时执行逐字动画
+                  首帧门控：data-particles-ready 存在时 CSS 直接透明，避免 SSR 白字闪现 */}
               <span
                 key={particleMode ? "particle" : "fallback"}
                 ref={anchorRef}

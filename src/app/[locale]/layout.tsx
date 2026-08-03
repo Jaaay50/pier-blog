@@ -9,6 +9,7 @@ import { CustomCursor } from "@/components/CustomCursor";
 import { PerformanceMonitor } from "@/components/PerformanceMonitor";
 import { RippleProvider } from "@/components/RippleProvider";
 import { SpeculationRules } from "@/components/SpeculationRules";
+import { ParticleGateScript } from "@/components/ParticleGate";
 import { locales, type Locale } from "@/i18n/config";
 import "../globals.css";
 
@@ -114,6 +115,11 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
       className={`dark ${inter.variable} ${jetbrainsMono.variable} ${sourceSerif.variable} ${dancingScript.variable}`}
       suppressHydrationWarning
     >
+      <head>
+        {/* 首帧粒子门控：在浏览器解析 body 前同步判断 WebGL 能力，
+            可用时打 data-particles-ready 标记，CSS 直接让 SSR 标题第一帧就透明 */}
+        <ParticleGateScript />
+      </head>
       <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
         <SpeculationRules />
         <div className="ambient-bg" aria-hidden="true">

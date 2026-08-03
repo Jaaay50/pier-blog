@@ -620,3 +620,22 @@ html:not(.dark) [data-theme='dark'] {
   transition: transform 0.15s ease;
 }
 .lab-slider::-moz-range-thumb:hover { transform: scale(1.2); }
+
+/* ============================================
+   Hero 标题首帧门控（ParticleGate）
+   data-particles-ready 由 <head> 内联阻塞脚本在首帧绘制前设置：
+   WebGL 粒子可用时，SSR 标题从第一帧起就不绘制，
+   消除「白字短暂可见 → 消失 → 粒子聚合」的闪现。
+   兼容：文字仍在 HTML 中（SEO / 无 JS 环境不受影响）。
+   兑底：若后续 JS 加载失败（水合未发生），3s 后自动淡入恢复可见。
+   ============================================ */
+html[data-particles-ready] .hero-title-ssr {
+  opacity: 0;
+  animation: hero-gate-reveal 0.4s ease 3s forwards;
+}
+
+@keyframes hero-gate-reveal {
+  to {
+    opacity: 1;
+  }
+}
