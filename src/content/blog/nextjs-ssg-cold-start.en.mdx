@@ -21,8 +21,8 @@ Every request was hitting a Serverless Function. Nothing was being cached.
 
 My blog uses [next-intl](https://next-intl.dev) for internationalization. The original implementation used a cookie-based locale detection strategy: middleware would read or set a `NEXT_LOCALE` cookie, and `i18n/request.ts` would call `cookies()` to retrieve it.
 
-```typescript
-// ❌ Original i18n/request.ts
+```typescript title="i18n/request.ts"
+// ❌ Original implementation
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 

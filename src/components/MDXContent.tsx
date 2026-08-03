@@ -6,6 +6,7 @@ import rehypeSlug from "rehype-slug";
 import { visit } from "unist-util-visit";
 import type { Root, Element } from "hast";
 import { Callout } from "@/components/mdx/Callout";
+import { CodeBlockWrapper } from "@/components/mdx/CodeBlockWrapper";
 
 export interface Heading {
   id: string;
@@ -60,7 +61,32 @@ const mdxComponents = {
       className="not-prose my-6 border-l-[3px] border-[var(--border-hover)] bg-[var(--bg-card)] px-5 py-4 text-sm italic leading-relaxed text-[var(--text-secondary)] [&>p]:m-0"
     />
   ),
+  // 代码块：包一层 client wrapper 注入复制按钮（pre 本身仍是 SSR 产物）
+  pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
+    <CodeBlockWrapper>
+      <pre {...props} />
+    </CodeBlockWrapper>
+  ),
 };
+
+/** mdast 阶段注入 meta（remark 插件）：默认给所有 fenced code block 加 showLineNumbers */
+function remarkInjectLineNumbers() {
+  return (tree: unknown) => {
+    const mdast = tree as { children?: unknown[] };
+    const walk = (n: unknown) => {
+      if (!n || typeof n !== "object") return;
+      const node = n as { type?: string; meta?: string | null; children?: unknown[] };
+      if (node.type === "code") {
+        node.meta = node.meta ?? "";
+        if (!node.meta.includes("showLineNumbers")) {
+          node.meta = `${node.meta} showLineNumbers`.trim();
+        }
+      }
+      node.children?.forEach(walk);
+    };
+    mdast.children?.forEach(walk);
+  };
+}
 
 export async function compileMDXWithHeadings(
   source: string
@@ -70,6 +96,7 @@ export async function compileMDXWithHeadings(
   const code = String(
     await compile(source, {
       outputFormat: "function-body",
+      remarkPlugins: [remarkInjectLineNumbers],
       rehypePlugins: [
         rehypeSlug,
         [

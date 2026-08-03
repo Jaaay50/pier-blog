@@ -21,8 +21,8 @@ x-vercel-cache: MISS
 
 博客用 [next-intl](https://next-intl.dev) 做国际化。原来的方案是 cookie 检测：middleware 读写 `NEXT_LOCALE` cookie，`i18n/request.ts` 调用 `cookies()` 取值。
 
-```typescript
-// ❌ 原来的 i18n/request.ts
+```typescript title="i18n/request.ts"
+// ❌ 原来的方案
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 

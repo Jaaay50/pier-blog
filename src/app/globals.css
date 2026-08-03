@@ -450,6 +450,68 @@ html[lang="zh"] .prose h4 {
   margin: 1.5rem 0;
 }
 
+/* 代码块标题栏（```lang title="x" 时由 pretty-code 产出） */
+[data-rehype-pretty-code-title] {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 1.5rem 0 -2.75rem;
+  padding: 0.55rem 1rem;
+  border: 1px solid var(--border);
+  border-bottom: none;
+  border-radius: 12px 12px 0 0;
+  background: var(--bg-card);
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* 标题栏右端 Π glyph 微标（CSS 绘制：横梁+双桩+灯点） */
+[data-rehype-pretty-code-title]::after {
+  content: "";
+  margin-left: auto;
+  width: 14px;
+  height: 14px;
+  background:
+    /* 灯点 */
+    radial-gradient(circle at 50% 52%, var(--accent) 0 1.5px, transparent 1.5px),
+    /* 横梁 */
+    linear-gradient(to bottom, var(--text-muted) 0 1.5px, transparent 1.5px) 1px 1px / 12px 3px no-repeat,
+    /* 左桩 */
+    linear-gradient(to bottom, var(--text-muted) 0 100%, transparent 0) 3px 3px / 1.5px 10px no-repeat,
+    /* 右桩 */
+    linear-gradient(to bottom, var(--text-muted) 0 100%, transparent 0) 9.5px 3px / 1.5px 10px no-repeat;
+  opacity: 0.55;
+}
+
+/* title 存在时 pre 上圆角收起、上边界与标题条衔接 */
+[data-rehype-pretty-code-title] + [data-rehype-pretty-code-figure] pre,
+[data-rehype-pretty-code-title] + figure pre {
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
+}
+
+/* 行号：grid counter 方案（.codeblock-line-numbers 由 pretty-code meta 触发） */
+[data-rehype-pretty-code-figure] code {
+  counter-reset: line;
+}
+
+code[data-line-numbers] > [data-line]::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 1.75rem;
+  margin-right: 1.25rem;
+  text-align: right;
+  color: var(--text-muted);
+  opacity: 0.5;
+  font-size: 0.8em;
+  user-select: none;
+}
+
+code[data-line-numbers-max-digits="2"] > [data-line]::before { width: 2.25rem; }
+code[data-line-numbers-max-digits="3"] > [data-line]::before { width: 2.75rem; }
+
 [data-rehype-pretty-code-figure] code {
   font-family: var(--font-jetbrains-mono), monospace;
   font-size: 0.875rem;
