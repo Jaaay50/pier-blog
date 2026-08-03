@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, useInView } from "motion/react";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
@@ -30,10 +30,11 @@ interface SkillsShowcaseProps {
 
 /**
  * 第二屏：技能展示
- * 3 张 SpotlightCard，每张内嵌一个「活的」动效 demo：
- * 1. WebGL 粒子 — 卡片内跑实时 Particles
- * 2. 动效工程 — 卡片内跑 Aurora 流光
- * 3. 像素级打磨 — 迷你双主题切换 demo
+ * 3 张 SpotlightCard，视觉减法后的动效分工：
+ * 1. WebGL 粒子 — 默认静态渐变，首次 hover 启动 Particles（启动后保持挂载）
+ * 2. 动效工程 — Aurora 流光，本区块唯一默认运行的活 demo
+ * 3. 像素级打磨 — GradientText 默认暂停，hover 时流动
+ * 触屏设备无 hover：Card 1/3 保持静态（性能优先）
  * 滚动进入视口时 3D 飞入（rotateX + translateY + stagger）
  */
 export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps) {
@@ -44,6 +45,21 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
   const webglOk = !!quality?.enabled;
   const sectionRef = useRef<HTMLDivElement>(null);
   const inView = useInView(sectionRef, { once: true, margin: "-20% 0px" });
+
+  // hover 门控：仅精确指针设备启用（触屏无 hover，永远静态）
+  const [finePointer, setFinePointer] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(hover: hover) and (pointer: fine)");
+    const sync = () => setFinePointer(mq.matches);
+    sync();
+    mq.addEventListener("change", sync);
+    return () => mq.removeEventListener("change", sync);
+  }, []);
+
+  // Card 1：首次 hover 后挂载 Particles，之后保持（避免 WebGL context 反复创建/销毁）
+  const [card1Live, setCard1Live] = useState(false);
+  // Card 3：hover 期间 GradientText 流动，离开暂停
+  const [card3Hovered, setCard3Hovered] = useState(false);
 
   const isDark = mounted && resolvedTheme === "dark";
 
@@ -113,24 +129,36 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
               spotlightColor={spotlight}
               className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
             >
-              <div className="relative h-44 overflow-hidden">
-                {mounted && webglOk ? (
-                  <Particles
-                    particleCount={Math.round(160 * (quality?.particleMultiplier ?? 1))}
-                    particleSpread={8}
-                    speed={0.25}
-                    particleColors={
-                      isDark
-                        ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
-                        : ["#d97757", "#d4a27f", "#3d3d3a"]
-                    }
-                    moveParticlesOnHover={quality?.mouseInteraction}
-                    particleHoverFactor={2}
-                    particleBaseSize={80}
-                    alphaParticles
-                    pixelRatio={quality?.dpr ?? 1}
+              <div
+                className="relative h-44 overflow-hidden"
+                onMouseEnter={() => {
+                  if (finePointer && webglOk) setCard1Live(true);
+                }}
+              >
+                {mounted && webglOk && card1Live ? (
+                  <motion.div
                     className="absolute inset-0"
-                  />
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.6 }}
+                  >
+                    <Particles
+                      particleCount={Math.round(160 * (quality?.particleMultiplier ?? 1))}
+                      particleSpread={8}
+                      speed={0.25}
+                      particleColors={
+                        isDark
+                          ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
+                          : ["#d97757", "#d4a27f", "#3d3d3a"]
+                      }
+                      moveParticlesOnHover={quality?.mouseInteraction}
+                      particleHoverFactor={2}
+                      particleBaseSize={80}
+                      alphaParticles
+                      pixelRatio={quality?.dpr ?? 1}
+                      className="absolute inset-0"
+                    />
+                  </motion.div>
                 ) : (
                   <div
                     className="absolute inset-0"
@@ -213,7 +241,11 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
               spotlightColor={spotlight}
               className="group h-full border-[var(--border)] bg-[var(--bg-card)] !p-0 overflow-hidden"
             >
-              <div className="relative flex h-44 flex-col items-center justify-center gap-4 overflow-hidden">
+              <div
+                className="relative flex h-44 flex-col items-center justify-center gap-4 overflow-hidden"
+                onMouseEnter={() => setCard3Hovered(true)}
+                onMouseLeave={() => setCard3Hovered(false)}
+              >
                 <GradientText
                   colors={
                     isDark
@@ -221,6 +253,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
                       : ["#d97757", "#c6613f", "#d4a27f", "#d97757"]
                   }
                   animationSpeed={4}
+                  paused={finePointer ? !card3Hovered : true}
                   className="text-3xl font-bold"
                 >
                   Aa

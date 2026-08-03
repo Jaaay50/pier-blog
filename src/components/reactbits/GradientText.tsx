@@ -12,6 +12,8 @@ interface GradientTextProps {
   direction?: 'horizontal' | 'vertical' | 'diagonal';
   pauseOnHover?: boolean;
   yoyo?: boolean;
+  /** 受控暂停：true 时渐变静止（外部驱动，如卡片 hover 门控）。默认 false，不影响既有调用方 */
+  paused?: boolean;
 }
 
 export default function GradientText({
@@ -22,7 +24,8 @@ export default function GradientText({
   showBorder = false,
   direction = 'horizontal',
   pauseOnHover = false,
-  yoyo = true
+  yoyo = true,
+  paused = false
 }: GradientTextProps) {
   const [isPaused, setIsPaused] = useState(false);
   const progress = useMotionValue(0);
@@ -32,7 +35,7 @@ export default function GradientText({
   const animationDuration = animationSpeed * 1000;
 
   useAnimationFrame(time => {
-    if (isPaused) {
+    if (isPaused || paused) {
       lastTimeRef.current = null;
       return;
     }

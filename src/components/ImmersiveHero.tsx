@@ -71,7 +71,7 @@ export function ImmersiveHero({
         ) : !quality.enabled ? (
           <StaticHeroFallback isDark={isDark} />
         ) : isDark ? (
-          <div className="absolute inset-0 opacity-45">
+          <div className="absolute inset-0 opacity-[0.22]">
             <Galaxy
               mouseInteraction={quality.mouseInteraction}
               mouseRepulsion={quality.mouseInteraction}
@@ -87,7 +87,7 @@ export function ImmersiveHero({
             />
           </div>
         ) : (
-          <div className="absolute inset-0 opacity-40">
+          <div className="absolute inset-0 opacity-[0.18]">
             <Aurora
               colorStops={["#d97757", "#e8c4a0", "#c6613f"]}
               amplitude={1.2}

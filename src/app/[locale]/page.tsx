@@ -6,7 +6,6 @@ import { SkillsShowcase } from "@/components/SkillsShowcase";
 import { ProjectsBento } from "@/components/ProjectsBento";
 import { HorizontalArticles } from "@/components/HorizontalArticles";
 import { LabTeaser } from "@/components/LabTeaser";
-import { WaveGrid } from "@/components/WaveGrid";
 import { SiteFooter } from "@/components/SiteFooter";
 import { TransitionLink } from "@/components/TransitionLink";
 import { MagneticWrapper } from "@/components/MagneticWrapper";
@@ -114,8 +113,11 @@ export default async function HomePage({
         readMore={tBlog("readMore")}
       />
 
-      {/* 前景元素：波动网格分隔带 */}
-      <WaveGrid />
+      {/* 静态发丝分隔线（原 WaveGrid 3D 波浪，视觉减法后移除） */}
+      <div
+        aria-hidden
+        className="mx-auto my-24 h-px w-full max-w-6xl bg-gradient-to-r from-transparent via-[var(--border)] to-transparent"
+      />
 
       {/* Footer */}
       <SiteFooter />
