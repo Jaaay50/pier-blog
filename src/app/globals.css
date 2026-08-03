@@ -191,6 +191,108 @@ html.custom-cursor-on body {
   }
 }
 
+/* ============================================
+   品牌字标：Pier（i 的 tittle = 桥下灯点）
+   hover：tittle 散成微粒再聚回；reduced-motion 静止
+   ============================================ */
+.pier-wordmark {
+  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+}
+
+.pier-wordmark-text {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+.pier-letter-i {
+  position: relative;
+  display: inline-block;
+}
+
+/* 隐藏字体自带的 tittle：用 accent 圆点替代 */
+.pier-letter-i > .pier-tittle {
+  position: absolute;
+  left: 50%;
+  border-radius: 9999px;
+  pointer-events: none;
+}
+
+/* 主 tittle：升高 0.15em、比正常大、accent 填充 */
+.pier-tittle-core {
+  top: -0.22em;
+  width: 0.17em;
+  height: 0.17em;
+  background: var(--accent);
+  transform: translateX(-50%);
+  transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
+}
+
+/* 散开微粒：默认藏在与 core 同位 */
+.pier-tittle-p1,
+.pier-tittle-p2,
+.pier-tittle-p3 {
+  top: -0.22em;
+  width: 0.09em;
+  height: 0.09em;
+  background: var(--accent);
+  opacity: 0;
+  transform: translateX(-50%);
+  transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
+}
+
+/* hover：core 淡出，微粒四散上飘后回落（transition 自动双向） */
+.group\/wordmark:hover .pier-tittle-core {
+  opacity: 0;
+  transform: translateX(-50%) translateY(-0.1em) scale(0.6);
+}
+.group\/wordmark:hover .pier-tittle-p1 {
+  opacity: 1;
+  transform: translateX(-160%) translateY(-0.32em);
+  transition-delay: 0.02s;
+}
+.group\/wordmark:hover .pier-tittle-p2 {
+  opacity: 1;
+  transform: translateX(40%) translateY(-0.5em);
+  transition-delay: 0.06s;
+}
+.group\/wordmark:hover .pier-tittle-p3 {
+  opacity: 1;
+  transform: translateX(120%) translateY(-0.18em);
+  transition-delay: 0.1s;
+}
+
+/* Footer 水线尾线：基线向右渐隐 */
+.pier-wordmark-waterline {
+  display: inline-block;
+  width: 3.5em;
+  height: 1px;
+  margin-left: 0.6em;
+  background: linear-gradient(to right, var(--border-hover), transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pier-tittle-core,
+  .pier-tittle-p1,
+  .pier-tittle-p2,
+  .pier-tittle-p3 {
+    transition: none;
+  }
+  .group\/wordmark:hover .pier-tittle-core {
+    opacity: 1;
+    transform: translateX(-50%);
+  }
+  .group\/wordmark:hover .pier-tittle-p1,
+  .group\/wordmark:hover .pier-tittle-p2,
+  .group\/wordmark:hover .pier-tittle-p3 {
+    opacity: 0;
+    transform: translateX(-50%);
+  }
+}
+
 /* Display 层级：浅色衬线 400（Claude 编辑风），深色衬线 500（适配暗底） */
 .font-display {
   font-family: var(--font-display);

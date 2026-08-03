@@ -8,6 +8,7 @@ import { LanguageToggle } from "./LanguageToggle";
 import { SearchModal } from "./SearchModal";
 import { TransitionLink } from "./TransitionLink";
 import { MagneticWrapper } from "./MagneticWrapper";
+import { PierWordmark } from "./brand/PierWordmark";
 
 export function Navbar() {
   const pathname = usePathname();
@@ -27,9 +28,10 @@ export function Navbar() {
           <MagneticWrapper strength={0.2}>
             <TransitionLink
               href="/"
-              className="text-lg font-semibold tracking-tight transition-opacity hover:opacity-75"
+              aria-label="Pier"
+              className="text-lg transition-opacity hover:opacity-90"
             >
-              Pier
+              <PierWordmark />
             </TransitionLink>
           </MagneticWrapper>
           <div className="flex items-center gap-6">

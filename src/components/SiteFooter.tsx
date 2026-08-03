@@ -1,6 +1,7 @@
 'use client';
 
 import { TransitionLink } from '@/components/TransitionLink';
+import { PierWordmark } from '@/components/brand/PierWordmark';
 import { useTranslations } from 'next-intl';
 
 interface SiteFooterProps {
@@ -36,9 +37,9 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
         <div className="grid gap-10 sm:grid-cols-3">
           {/* Col 1: Brand */}
           <div>
-            <p className="mb-2 text-sm font-semibold tracking-tight text-[var(--text-primary)]">
-              Pier
-            </p>
+            <div className="mb-2 text-sm text-[var(--text-primary)]">
+              <PierWordmark withWaterline />
+            </div>
             <p className="text-sm leading-relaxed text-[var(--text-muted)]">
               {t('tagline')}
             </p>
