@@ -430,6 +430,39 @@ html[lang="zh"] .prose h4 {
   box-shadow: 0 0 20px var(--glow-color);
 }
 
+/* Lab 引流带：玻璃态卡片双主题材质（Phase 10.4）
+   Tailwind 4 dark: 变体默认走 prefers-color-scheme，与本站 .dark class 策略不兼容，
+   因此边框内发光与 hover glow 改用 .dark 选择器实现 */
+.lab-teaser-card {
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.dark .lab-teaser-card {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+.lab-teaser-card:hover {
+  transform: translateY(-2px);
+}
+
+.dark .lab-teaser-card:hover {
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08), 0 0 20px rgba(106, 155, 204, 0.15);
+}
+
+/* Lab 引流带 CTA：深色 hover 加 glow（与 .btn-primary 同模式） */
+.lab-teaser-cta {
+  transition: background-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+}
+
+.lab-teaser-cta:hover {
+  transform: scale(1.03);
+}
+
+.dark .lab-teaser-cta:hover {
+  box-shadow: 0 0 20px var(--glow-color);
+}
+
 /* Prose for blog content */
 .prose {
   --tw-prose-body: var(--text-primary);

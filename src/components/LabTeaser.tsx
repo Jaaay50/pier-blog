@@ -40,7 +40,7 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
   return (
     <section
       ref={ref}
-      className="relative mx-6 my-12 overflow-hidden rounded-2xl border border-[var(--border)] md:mx-auto md:max-w-6xl"
+      className="lab-teaser-card group relative mx-6 my-12 overflow-hidden rounded-2xl border-[1.5px] border-[var(--border-hover)] md:mx-auto md:max-w-6xl"
     >
       {/* 背景：ShaderMixer 幕布（pointer-events-none 让文字可选） */}
       <div className="pointer-events-none absolute inset-0">
@@ -49,8 +49,10 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
         ) : (
           <div className="h-full bg-gradient-to-br from-[var(--bg-secondary)] via-[var(--bg-card)] to-[var(--bg-elevated)]" />
         )}
-        {/* 右侧遮罩让文字可读 */}
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--bg-primary)]/40 to-[var(--bg-primary)]/90 md:to-[var(--bg-primary)]/80" />
+        {/* 玻璃态遮罩：磨砂渐变 + backdrop-blur，透出后方 Shader 流动 */}
+        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--bg-primary)]/50 to-[var(--bg-primary)]/85 backdrop-blur-2xl" />
+        {/* 文字区反光 highlight（模拟玻璃表面） */}
+        <div className="absolute bottom-0 right-0 top-0 w-2/5 bg-gradient-to-l from-white/[0.02] to-transparent dark:from-white/[0.01]" />
       </div>
 
       {/* 内容 */}
@@ -61,16 +63,16 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
           animate={inView ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--text-muted)]">
             Lab
           </p>
-          <p className="mb-8 text-sm leading-relaxed text-[var(--text-secondary)]">
+          <p className="mb-8 text-sm leading-relaxed text-[var(--text-primary)]">
             {label}
           </p>
           <MagneticWrapper strength={0.2}>
             <TransitionLink
               href="/lab"
-              className="inline-block rounded-xl border border-[var(--accent)] px-6 py-2.5 text-sm font-medium text-[var(--accent)] transition-all hover:bg-[var(--accent)] hover:text-[var(--bg-primary)]"
+              className="lab-teaser-cta inline-block rounded-xl bg-[var(--accent)] px-6 py-3 text-sm font-medium text-white hover:bg-[var(--accent-hover)]"
             >
               {enterLab} →
             </TransitionLink>
