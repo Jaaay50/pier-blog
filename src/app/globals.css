@@ -192,6 +192,38 @@ html.custom-cursor-on body {
 }
 
 /* ============================================
+   ScrollProgress：文章页顶部进度线
+   ============================================ */
+.scroll-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--accent);
+  transform-origin: 0 50%;
+  z-index: 40; /* 低于 Navbar(50) */
+  /* View Transitions 隔离：不进入 root 快照，避免进度线闪跳 */
+  view-transition-name: scroll-progress;
+}
+
+.scroll-progress-glow {
+  position: absolute;
+  right: -1px;
+  top: 0;
+  width: 8px;
+  height: 2px;
+  background: linear-gradient(to right, var(--accent), transparent);
+  filter: blur(1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scroll-progress-glow {
+    display: none;
+  }
+}
+
+/* ============================================
    品牌字标：Pier（i 的 tittle = 桥下灯点）
    hover：tittle 散成微粒再聚回；reduced-motion 静止
    ============================================ */
@@ -656,6 +688,11 @@ html.theme-transitioning::view-transition-new(root) {
 /* 主题切换期间 ambient-bg 必须回归 root 快照：
    否则它会独立做 0.25s 交叉淡入，与 0.5s 圆形扩散不同步，
    光晕区域提前变色 → 闪烁 */
+/* 主题切换期间 scroll-progress 同样回归 root 快照（与 ambient-bg 同步） */
+html.theme-transitioning .scroll-progress {
+  view-transition-name: none;
+}
+
 html.theme-transitioning .ambient-bg {
   view-transition-name: none;
 }

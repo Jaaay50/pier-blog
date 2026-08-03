@@ -1,58 +1,29 @@
+"use client";
+
+import { motion, useScroll, useSpring, useReducedMotion } from "motion/react";
+
 /**
- * 页面滚动进度指示器
- * 性能优化：用 ref 直接操作 DOM 的 width style，完全跳过 React 重新渲染。
+ * ScrollProgress：文章页顶部 2px 进度线。
+ * - scaleX 由全页滚动进度驱动（motion useScroll）
+ * - 线尾 8px 微光渐变（reduced-motion 下去掉，保留进度条本体——它是信息不是装饰）
+ * - z-index 低于 Navbar(50)；view-transition-name 隔离，不与路由快照冲突
  */
-'use client';
-
-import { useEffect, useRef } from 'react';
-
 export function ScrollProgress() {
-  const barRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const bar = barRef.current;
-    if (!bar) return;
-
-    let rafId: number | null = null;
-
-    const updateProgress = () => {
-      rafId = null;
-      const scrollTop = window.scrollY;
-      const docHeight = document.documentElement.scrollHeight - window.innerHeight;
-      const pct = docHeight > 0 ? (scrollTop / docHeight) * 100 : 0;
-      bar.style.width = `${pct}%`;
-    };
-
-    const handleScroll = () => {
-      // 每帧最多执行一次（debounce to rAF）
-      if (rafId === null) {
-        rafId = requestAnimationFrame(updateProgress);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    updateProgress();
-
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-      if (rafId !== null) cancelAnimationFrame(rafId);
-    };
-  }, []);
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 180,
+    damping: 28,
+    restDelta: 0.001,
+  });
+  const reduced = useReducedMotion();
 
   return (
-    <div
-      className="fixed top-0 left-0 right-0 h-1 z-[9999] pointer-events-none"
-      style={{ background: 'var(--bg-secondary)' }}
+    <motion.div
+      aria-hidden
+      className="scroll-progress"
+      style={{ scaleX }}
     >
-      <div
-        ref={barRef}
-        style={{
-          width: '0%',
-          height: '100%',
-          background: 'var(--gradient-brand)',
-          boxShadow: '0 0 10px var(--glow-color)',
-        }}
-      />
-    </div>
+      {!reduced && <span className="scroll-progress-glow" />}
+    </motion.div>
   );
 }
