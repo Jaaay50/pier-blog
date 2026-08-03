@@ -14,7 +14,7 @@ export interface WebGLQuality {
   webglSupported: boolean;
   reducedMotion: boolean;
   tier: WebGLTier;
-  /** 渲染像素比（high: 最高 2，medium/low: 1） */
+  /** 渲染像素比（high: 最高 1.5，medium/low: 1） */
   dpr: number;
   /** 粒子数量缩放系数 */
   particleMultiplier: number;
@@ -72,7 +72,10 @@ export function getWebGLQuality(): WebGLQuality {
     window.matchMedia('(pointer: coarse)').matches;
 
   const profile = {
-    high: { dpr: Math.min(window.devicePixelRatio || 1, 2), particleMultiplier: 1 },
+    // high tier dpr 上限 1.5（10.8 从 2 收紧）：shader 流体/粒子是低频视觉，
+    // 1.5× 与 2× 肉眼几乎无差，但像素量降 44%（1.5²/2²），
+    // 直接缓解 Hero 双 canvas（Galaxy + ParticleTitle）同屏的 GPU 负担
+    high: { dpr: Math.min(window.devicePixelRatio || 1, 1.5), particleMultiplier: 1 },
     medium: { dpr: 1, particleMultiplier: 0.6 },
     low: { dpr: 1, particleMultiplier: 0.35 },
   }[tier];
