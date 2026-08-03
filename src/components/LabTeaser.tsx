@@ -16,7 +16,7 @@ const ShaderMixer = dynamic(() => import("@/components/lab/ShaderMixer"), {
  *
  * 结构：ShaderMixer canvasOnly 铺满 section 当流动幕布，
  * 右侧绝对定位一块离散玻璃板（.glass-card）悬浮其上。
- * 材质三层：跨浏览器磨砂 + 边缘光 → 对角 sheen → Chromium feDisplacementMap 折射。
+ * 材质两层：跨浏览器磨砂 + 边缘光 → 对角 sheen。
  * WebGL 不可用时背景降为静态渐变，玻璃材质保留。
  */
 interface LabTeaserProps {
@@ -66,36 +66,6 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
         whileHover={{ y: "calc(-50% - 3px)", transition: { duration: 0.25, ease: "easeOut" } }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
       >
-        {/* 内联 SVG 滤镜定义：Chromium 折射位移场（Safari/Firefox 由 @supports 降级忽略） */}
-        <svg className="absolute" width="0" height="0" aria-hidden>
-          <defs>
-            <filter
-              id="liquid-lens"
-              x="-50%"
-              y="-50%"
-              width="200%"
-              height="200%"
-              colorInterpolationFilters="sRGB"
-            >
-              <feTurbulence
-                type="fractalNoise"
-                baseFrequency="0.015 0.02"
-                numOctaves="3"
-                seed="42"
-                result="noise"
-              />
-              <feDisplacementMap
-                in="SourceGraphic"
-                in2="noise"
-                scale="30"
-                xChannelSelector="R"
-                yChannelSelector="G"
-                result="displaced"
-              />
-            </filter>
-          </defs>
-        </svg>
-
         {/* 玻璃板内容 */}
         <div className="relative z-10 text-right">
           <p className="mb-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--text-muted)]">

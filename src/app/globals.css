@@ -434,7 +434,6 @@ html[lang="zh"] .prose h4 {
    液态玻璃材质（手写 Apple Liquid Glass）
    层 1：跨浏览器磨砂 + 边缘高光
    层 2：对角 sheen（光泽）
-   层 3：Chromium 折射（SVG feDisplacementMap）
    ============================================ */
 
 .glass-card {
@@ -490,20 +489,6 @@ html[lang="zh"] .prose h4 {
   );
   mix-blend-mode: screen;
   pointer-events: none;
-}
-
-/* Chromium 真折射（Safari/Firefox 降级为上述磨砂） */
-@supports (backdrop-filter: url(#liquid-lens)) {
-  .glass-card {
-    backdrop-filter: blur(3px) url(#liquid-lens) saturate(170%) brightness(1.08);
-    -webkit-backdrop-filter: blur(3px) url(#liquid-lens) saturate(170%) brightness(1.08);
-    backdrop-filter: blur(3px) url(#liquid-lens) saturate(170%) brightness(1.08);
-  }
-  .dark .glass-card {
-    backdrop-filter: blur(3.5px) url(#liquid-lens) saturate(160%) brightness(1.12);
-    -webkit-backdrop-filter: blur(3.5px) url(#liquid-lens) saturate(160%) brightness(1.12);
-    backdrop-filter: blur(3.5px) url(#liquid-lens) saturate(160%) brightness(1.12);
-  }
 }
 
 /* hover 轻浮（整块玻璃板）*/
