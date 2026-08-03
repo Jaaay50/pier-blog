@@ -7,71 +7,134 @@ tags: ["性能", "Next.js", "Web Vitals"]
 
 ## 为什么性能很重要
 
-性能不是美学问题，而是用户留存的直接推手。每增加 100ms 延迟，转化率就会下降 1%。移动端用户在 3 秒后的跳出率超过 50%。
+每 100ms 延迟对应约 1% 的营收损失。但更重要的是，性能本身就是一种用户体验特性——快的应用让人觉得响应灵敏、可靠、专业。
 
-## Core Web Vitals
+真正要看的三个数字：
 
-Google 的 Core Web Vitals 给了我们三个可量化的北极星指标：
+| 指标 | 目标 | 衡量什么 |
+|--------|--------|-----------------|
+| LCP | < 2.5s | 视觉完成度 |
+| FID/INP | < 100ms | 交互响应性 |
+| CLS | < 0.1 | 视觉稳定性 |
 
-- **LCP (Largest Contentful Paint)** — 最大内容元素的渲染时间。目标 < 2.5s。
-- **FID (First Input Delay)** — 首次交互延迟。目标 < 100ms。
-- **CLS (Cumulative Layout Shift)** — 累积布局偏移。目标 < 0.1。
+## Core Web Vitals 落地
 
-这三个指标不是凭空定的，它们直接对应用户感知的三个维度：加载速度、响应性、视觉稳定性。
+### LCP — Largest Contentful Paint
 
-## 懒加载策略
-
-不要一次性加载整个应用。Next.js 的动态导入让代码分割变得非常简单：
+影响最大的几个优化手段：
 
 ```tsx
+// 1. 预加载关键图片
+<link rel="preload" as="image" href="/hero.webp" />
+
+// 2. 使用 Next.js priority 标记
+<Image
+  src={hero}
+  alt="Hero"
+  priority                       // 首屏预加载
+  sizes="(max-width: 768px) 100vw, 50vw"
+  placeholder="blur"             // 即时感知加载
+/>
+
+// 3. 内联关键 CSS（Next.js 自动处理）
+```
+
+### INP — Interaction to Next Paint
+
+拆分长任务：
+
+```typescript
+// 差：阻塞主线程
+function processLargeList(items: Item[]) {
+  items.forEach(item => heavyComputation(item));
+}
+
+// 好：分块之间让出控制权给浏览器
+async function processLargeList(items: Item[]) {
+  const chunks = chunkArray(items, 50);
+
+  for (const chunk of chunks) {
+    chunk.forEach(item => heavyComputation(item));
+    // 让浏览器有机会渲染和响应输入
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+}
+```
+
+### CLS — Cumulative Layout Shift
+
+最常见的几个元凶：
+
+```css
+/* 为动态内容预留空间 */
+.hero-image {
+  aspect-ratio: 16 / 9;
+  width: 100%;
+}
+
+/* 防止字体切换造成偏移 */
+@font-face {
+  font-family: 'Inter';
+  font-display: optional; /* 或用 'swap' 配合 size-adjust */
+  size-adjust: 100%;
+}
+```
+
+## 代码分割策略
+
+```typescript
 import dynamic from 'next/dynamic';
 
-const HeavyChart = dynamic(() => import('@/components/Chart'), {
+// 路由级：App Router 自动处理
+// 组件级：用于重型库
+const Chart = dynamic(() => import('@/components/Chart'), {
   loading: () => <ChartSkeleton />,
   ssr: false,
 });
+
+// 库级：只导入需要的部分
+import { format } from 'date-fns/format';  // 而不是 'date-fns'
 ```
 
-关键在于：只有当组件真正需要时才加载。视口外的组件用 `IntersectionObserver` 触发。
+## 打包体积分析
 
-## 图片优化
+```bash
+# 每周审计命令
+ANALYZE=true next build
 
-图片占了典型网页 50% 以上的体积。Next.js `<Image>` 组件自动处理：
-
-- 响应式尺寸
-- WebP/AVIF 格式转换
-- 懒加载与优先级提示
-- 布局稳定性（防止 CLS）
-
-```tsx
-<Image
-  src="/hero.jpg"
-  alt="Hero"
-  width={1200}
-  height={600}
-  priority
-  placeholder="blur"
-/>
+# 或使用 next-bundle-analyzer
+npm install @next/bundle-analyzer
 ```
 
-## 字体加载
+几条经验法则：
 
-字体闪烁（FOUT）会破坏视觉稳定性。使用 `next/font` 自动内联关键字体：
+- 某个依赖 gzip 后超过 50KB，就需要理由才能留下
+- 用 `npm ls <pkg>` 检查重复依赖
+- 装 `import cost` VS Code 插件，获得即时反馈
 
-```tsx
-import { Inter } from 'next/font/google';
+## 度量策略
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  variable: '--font-inter',
-});
+不要盲目优化。搭好真实用户监控：
+
+```typescript
+// 把 Web Vitals 上报到你的分析系统
+export function reportWebVitals(metric: NextWebVitalsMetric) {
+  const body = {
+    name: metric.name,
+    value: metric.value,
+    rating: metric.rating,
+    delta: metric.delta,
+    id: metric.id,
+  };
+
+  // 用 sendBeacon 保证可靠性
+  navigator.sendBeacon('/api/vitals', JSON.stringify(body));
+}
 ```
 
-## 实战清单
+## 几点心得
 
-1. **测量先于优化** — 用 Lighthouse、WebPageTest 和 RUM 数据建立基线。
-2. **优先优化 LCP** — 通常是首屏图片或关键字体。
-3. **代码分割要激进** — 路由级分割是最低标准，组件级分割才是常态。
-4. **CDN 不是万能药** — 静态资源走 CDN，动态 API 还得看服务端架构。
-5. **监控生产环境** — 实验室数据和真实用户数据差距很大。
+1. **先测量** —— 优化前先做剖析，避免白费功夫。
+2. **LCP 通常就是一张图** —— 优化好首屏图片的处理链路。
+3. **打包体积是一项特性** —— 像对待内存占用那样对待它。
+4. **渐进增强** —— 最快的代码是根本不发出去的代码。

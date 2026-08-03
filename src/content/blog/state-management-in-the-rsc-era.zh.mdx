@@ -1,0 +1,151 @@
+---
+title: "RSC 时代的状态管理"
+date: "2026-07-29"
+description: "对比现代状态管理方案：Server Components、React Context、Zustand，以及各自的适用场景。"
+tags: ["React", "架构", "状态管理"]
+---
+
+## 格局已经变了
+
+React Server Components 从根本上改变了状态的归属。「一切都是客户端状态」的旧心智模型不再适用。
+
+核心洞察：**大部分状态已经不属于客户端了。**
+
+## 决策框架
+
+在引入任何库之前，先给状态分类：
+
+```
+是服务端数据？         → RSC + fetch（零打包体积）
+在 URL 里？           → useSearchParams（可分享）
+是表单？              → useFormState（渐进式）
+是局部 UI？           → useState（够简单）
+跨 3+ 组件共享？      → Zustand（够轻量）
+复杂且全局？          → 考虑 Zustand slices
+```
+
+## Server Components：默认选择
+
+在 Next.js App Router 里，组件默认就是服务端的：
+
+```tsx
+// 这个组件不会给客户端发送任何 JavaScript
+async function UserProfile({ id }: { id: string }) {
+  const user = await db.user.findUnique({ where: { id } });
+
+  return (
+    <div>
+      <h1>{user.name}</h1>
+      <p>{user.bio}</p>
+    </div>
+  );
+}
+```
+
+没有 `useEffect`，没有加载状态，没有过期缓存。数据永远是新鲜的，因为它在请求时在服务端运行。
+
+## URL 状态：被低估的模式
+
+```tsx
+'use client';
+
+import { useSearchParams, useRouter } from 'next/navigation';
+
+function Filters() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const setFilter = (key: string, value: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    params.set(key, value);
+    router.push(`?${params.toString()}`);
+  };
+
+  return (
+    <select
+      value={searchParams.get('sort') || 'newest'}
+      onChange={(e) => setFilter('sort', e.target.value)}
+    >
+      <option value="newest">最新</option>
+      <option value="popular">热门</option>
+    </select>
+  );
+}
+```
+
+好处：URL 可分享、浏览器前进后退可用、兼容 SSR、刷新后状态仍在。
+
+## 什么时候不需要状态库
+
+大部分应用根本不需要 Redux、Jotai 或 Recoil。先问自己三个问题：
+
+1. 这个状态需要在 3 个以上互相隔得很远的组件之间共享吗？
+2. 它需要在导航之后继续存在吗？
+3. 它需要中间件（日志、持久化、devtools）吗？
+
+三个都是「不」→ 答案就是 `useState`。真的。
+
+## Zustand：刚好够用的那个库
+
+当你**确实**需要共享的客户端状态时：
+
+```typescript
+import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
+
+interface AppStore {
+  theme: 'light' | 'dark';
+  sidebarOpen: boolean;
+  toggleTheme: () => void;
+  toggleSidebar: () => void;
+}
+
+export const useAppStore = create<AppStore>()(
+  persist(
+    (set) => ({
+      theme: 'dark',
+      sidebarOpen: true,
+      toggleTheme: () => set((s) => ({
+        theme: s.theme === 'dark' ? 'light' : 'dark'
+      })),
+      toggleSidebar: () => set((s) => ({
+        sidebarOpen: !s.sidebarOpen
+      })),
+    }),
+    { name: 'app-store' }
+  )
+);
+```
+
+Zustand 胜出的理由：
+
+- 不需要 Provider 包裹
+- 没有 context 重渲染问题
+- TypeScript 优先
+- 体积极小（1KB）
+- 内置持久化、devtools、immer 中间件
+
+## 反模式：过度工程
+
+```typescript
+// ❌ 一个开关不要这么写
+const ThemeContext = createContext();
+const ThemeProvider = ({ children }) => { ... };
+const useTheme = () => useContext(ThemeContext);
+// 多出 3 个文件、1 个 provider，还会重渲染整棵树
+
+// ✅ 改成这样
+const useTheme = create((set) => ({
+  theme: 'dark',
+  toggle: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }))
+}));
+// 1 个文件，无 provider，精准重渲染
+```
+
+## 几点心得
+
+1. **Server Components 消灭了大部分客户端状态** —— 让平台去干活。
+2. **URL 状态是免费的** —— 过滤器、分页、弹窗都可以放进去。
+3. **useState 被严重低估** —— 大部分 UI 状态本来就是局部的。
+4. **剩下的交给 Zustand** —— API 极简，手感最好。
+5. **最好的状态管理是没有状态管理** —— 能推导就不要存储。
