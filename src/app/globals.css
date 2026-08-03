@@ -19,7 +19,10 @@
 
   --accent: #d97757;          /* Clay */
   --accent-hover: #c6613f;    /* Clay deep */
-  --accent-soft: rgba(217, 119, 87, 0.1);
+  --accent-soft: rgba(217, 119, 87, 0.16);
+  /* 正文面色块专用（Callout info 底 / 代码高亮行）：钉住 10.7 前强度，
+     不跟随 ambient 提亮，避免阅读面加重 */
+  --accent-soft-block: rgba(217, 119, 87, 0.1);
 
   --border: #dedcd1;          /* Hairline soft */
   --border-hover: #d1cfc5;    /* Hairline */
@@ -53,7 +56,8 @@
 
   --accent: #6a9bcc;          /* Tech blue */
   --accent-hover: #8ab4dd;
-  --accent-soft: rgba(106, 155, 204, 0.12);
+  --accent-soft: rgba(106, 155, 204, 0.18);
+  --accent-soft-block: rgba(106, 155, 204, 0.12);
 
   --border: #222222;
   --border-hover: #333333;
@@ -147,7 +151,7 @@ html.custom-cursor-on body {
   left: 30%;
   background: radial-gradient(
     circle,
-    color-mix(in srgb, var(--text-muted) 5%, transparent) 0%,
+    color-mix(in srgb, var(--text-muted) 8%, transparent) 0%,
     transparent 60%
   );
   animation: ambient-drift-3 40s ease-in-out infinite alternate;
@@ -728,7 +732,7 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before { width: 2.75rem; }
 }
 
 [data-rehype-pretty-code-figure] [data-highlighted-line] {
-  background: var(--accent-soft);
+  background: var(--accent-soft-block);
   border-left-color: var(--accent);
 }
 

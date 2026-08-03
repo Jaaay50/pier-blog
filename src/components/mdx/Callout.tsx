@@ -61,7 +61,7 @@ const VARIANTS: Record<CalloutType, {
     icon: <IconInfo />,
     defaultTitle: 'Note',
     borderColor: 'var(--accent)',
-    bg: 'var(--accent-soft)',
+    bg: 'var(--accent-soft-block)',
     iconColor: 'var(--accent)',
     titleColor: 'var(--accent)',
   },
