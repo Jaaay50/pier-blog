@@ -57,7 +57,7 @@ export default async function BlogPage({
           <div className="mb-4">
             <DecryptedText
               text={t("label")}
-              className="text-sm font-medium text-[var(--accent)]"
+              className="text-sm font-medium text-[var(--text-muted)]"
             />
           </div>
           <h1 className="mb-4 text-4xl font-bold tracking-tight">{t("title")}</h1>

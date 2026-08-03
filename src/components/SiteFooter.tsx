@@ -58,7 +58,7 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
                 <li key={href}>
                   <TransitionLink
                     href={href}
-                    className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                    className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
                   >
                     {label}
                   </TransitionLink>
@@ -75,7 +75,7 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
             <div className="space-y-2">
               <a
                 href="/feed.xml"
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -84,7 +84,7 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
               </a>
               <a
                 href="/feed-zh.xml"
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
                 target="_blank"
                 rel="noopener noreferrer"
               >
@@ -95,7 +95,7 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
                 href="https://github.com/Jia-Ethan"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--accent)]"
+                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
               >
                 <GithubIcon />
                 GitHub

@@ -25,7 +25,7 @@ export function BlogCard({ post }: BlogCardProps) {
     <AnimatedCard className="h-full">
       <TransitionLink
         href={`/blog/${post.slug}`}
-        className="group flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--accent)] hover:shadow-lg"
+        className="group flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-6 transition-all duration-300 hover:-translate-y-0.5 hover:border-[var(--border-hover)] hover:shadow-lg"
       >
         {/* Tags — 頂部分類標識 */}
         {post.tags.length > 0 && (
@@ -33,7 +33,7 @@ export function BlogCard({ post }: BlogCardProps) {
             {post.tags.slice(0, 3).map((tag) => (
               <span
                 key={tag}
-                className="rounded-full border border-[var(--border)] bg-[var(--bg-primary)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-muted)] transition-colors duration-200 group-hover:border-[var(--accent)] group-hover:text-[var(--accent)]"
+                className="rounded-full border border-[var(--border)] bg-[var(--bg-primary)] px-2.5 py-0.5 text-[11px] font-medium text-[var(--text-muted)] transition-colors duration-200 group-hover:border-[var(--border-hover)] group-hover:text-[var(--text-secondary)]"
               >
                 {tag}
               </span>
@@ -42,7 +42,7 @@ export function BlogCard({ post }: BlogCardProps) {
         )}
 
         {/* Title */}
-        <h3 className="mb-2.5 text-base font-semibold leading-snug tracking-tight transition-colors duration-200 group-hover:text-[var(--accent)]">
+        <h3 className="mb-2.5 text-base font-semibold leading-snug tracking-tight">
           {post.title}
         </h3>
 

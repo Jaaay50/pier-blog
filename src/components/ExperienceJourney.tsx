@@ -171,7 +171,7 @@ function JourneyCard({ exp, active }: { exp: Experience; active: boolean }) {
     >
       {/* 背景大字年份装饰 */}
       <div
-        className="font-display pointer-events-none absolute -top-14 left-2 select-none text-7xl font-semibold tracking-tight text-[var(--accent)] opacity-[0.08]"
+        className="font-display pointer-events-none absolute -top-14 left-2 select-none text-7xl font-semibold tracking-tight text-[var(--text-muted)] opacity-[0.08]"
         aria-hidden
       >
         {exp.period}
@@ -182,7 +182,7 @@ function JourneyCard({ exp, active }: { exp: Experience; active: boolean }) {
         <h3 className="mb-1 text-2xl font-semibold tracking-tight">
           {exp.title}
         </h3>
-        <div className="mb-4 text-sm font-medium text-[var(--accent)]">
+        <div className="mb-4 text-sm font-medium text-[var(--text-secondary)]">
           {exp.company}
         </div>
         <p className="max-w-xl leading-relaxed text-[var(--text-secondary)]">
@@ -208,13 +208,13 @@ function VerticalTimeline({ title, experiences }: ExperienceJourneyProps) {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-10%" }}
               transition={{ duration: 0.6, delay: i * 0.1 }}
-              className="group border-l-2 border-[var(--border)] pl-6 transition-colors hover:border-[var(--accent)]"
+              className="group border-l-2 border-[var(--border)] pl-6 transition-colors hover:border-[var(--border-hover)]"
             >
               <div className="mb-1 text-sm text-[var(--text-muted)]">
                 {exp.period}
               </div>
               <h3 className="mb-1 text-lg font-semibold">{exp.title}</h3>
-              <div className="mb-2 text-sm text-[var(--accent)]">
+              <div className="mb-2 text-sm text-[var(--text-secondary)]">
                 {exp.company}
               </div>
               <p className="leading-relaxed text-[var(--text-secondary)]">

@@ -83,7 +83,7 @@ function ShapeSVG({
   variant: Shape["variant"];
   size: number;
 }) {
-  const stroke = "var(--accent)";
+  const stroke = "var(--text-muted)";
   switch (variant) {
     case "ring":
       return (

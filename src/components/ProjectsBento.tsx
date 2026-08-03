@@ -152,7 +152,7 @@ function ProjectCard({
     >
       {/* 项目名 */}
       <div className="mb-4">
-        <h3 className="mb-2 text-xl font-semibold text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
+        <h3 className="mb-2 text-xl font-semibold text-[var(--text-primary)]">
           {project.name}
         </h3>
         <p className="text-sm leading-relaxed text-[var(--text-secondary)]">

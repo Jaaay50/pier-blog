@@ -61,7 +61,7 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
           animate={inView ? { opacity: 1, x: 0 } : {}}
           transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--accent)]">
+          <p className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
             Lab
           </p>
           <p className="mb-8 text-sm leading-relaxed text-[var(--text-secondary)]">

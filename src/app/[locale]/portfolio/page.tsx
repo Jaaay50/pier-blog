@@ -102,7 +102,7 @@ export default async function PortfolioPage({
           <div className="mb-5">
             <DecryptedText
               text={t("label")}
-              className="text-sm font-medium tracking-[0.3em] text-[var(--accent)]"
+              className="text-sm font-medium tracking-[0.3em] text-[var(--text-muted)]"
               speed={30}
             />
           </div>
@@ -143,7 +143,7 @@ export default async function PortfolioPage({
                   </div>
 
                   {/* 名称 + 简介 */}
-                  <h3 className="mb-2 text-xl font-bold transition-colors group-hover:text-[var(--accent)]">
+                  <h3 className="mb-2 text-xl font-bold transition-colors">
                     {project.name}
                   </h3>
                   <p className="mb-6 flex-1 text-sm leading-relaxed text-[var(--text-secondary)]">
@@ -208,7 +208,7 @@ export default async function PortfolioPage({
                 >
                   <div className="min-w-0">
                     <div className="mb-1 flex items-center gap-3">
-                      <code className="text-sm font-semibold text-[var(--accent)]">
+                      <code className="text-sm font-semibold text-[var(--text-primary)]">
                         {project.name}
                       </code>
                       <span className="text-[10px] tracking-[0.2em] text-[var(--text-muted)]">

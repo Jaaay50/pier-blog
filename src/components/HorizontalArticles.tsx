@@ -119,7 +119,7 @@ function ArticleCard({ post, index, readMore }: ArticleCardProps) {
         {/* 背景装饰（视差慢） */}
         <motion.div
           style={{ y: bgY }}
-          className="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-gradient-to-br from-[var(--accent)]/10 to-transparent blur-3xl"
+          className="pointer-events-none absolute right-0 top-0 h-64 w-64 rounded-full bg-gradient-to-br from-[var(--text-muted)]/5 to-transparent blur-3xl"
         />
 
         {/* 前景内容（视差快） */}
@@ -144,7 +144,7 @@ function ArticleCard({ post, index, readMore }: ArticleCardProps) {
           </div>
 
           {/* 标题 + 描述 */}
-          <h3 className="mb-3 text-2xl font-semibold leading-tight tracking-tight text-[var(--text-primary)] transition-colors group-hover:text-[var(--accent)]">
+          <h3 className="mb-3 text-2xl font-semibold leading-tight tracking-tight text-[var(--text-primary)]">
             {post.title}
           </h3>
           <p className="mb-6 line-clamp-3 text-sm leading-relaxed text-[var(--text-secondary)]">

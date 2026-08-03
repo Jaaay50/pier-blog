@@ -70,7 +70,7 @@ export default async function AboutPage({
           <div className="mb-4">
             <DecryptedText
               text={t("label")}
-              className="text-sm font-medium text-[var(--accent)]"
+              className="text-sm font-medium text-[var(--text-muted)]"
             />
           </div>
           <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl">
@@ -95,7 +95,7 @@ export default async function AboutPage({
                 className="border-[var(--border)] bg-[var(--bg-card)] p-6"
                 spotlightColor="rgba(59, 130, 246, 0.15)"
               >
-                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--accent)]">
+                <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
                   {skill.category}
                 </h3>
                 <div className="flex flex-wrap gap-2">

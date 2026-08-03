@@ -57,7 +57,7 @@ const mdxComponents = {
   blockquote: (props: React.HTMLAttributes<HTMLQuoteElement>) => (
     <blockquote
       {...props}
-      className="not-prose my-6 border-l-[3px] border-[var(--accent)] bg-[var(--accent-soft)] px-5 py-4 text-sm italic leading-relaxed text-[var(--text-secondary)] [&>p]:m-0"
+      className="not-prose my-6 border-l-[3px] border-[var(--border-hover)] bg-[var(--bg-card)] px-5 py-4 text-sm italic leading-relaxed text-[var(--text-secondary)] [&>p]:m-0"
     />
   ),
 };

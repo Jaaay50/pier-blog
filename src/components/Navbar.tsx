@@ -27,7 +27,7 @@ export function Navbar() {
           <MagneticWrapper strength={0.2}>
             <TransitionLink
               href="/"
-              className="text-lg font-semibold tracking-tight transition-colors hover:text-[var(--accent)]"
+              className="text-lg font-semibold tracking-tight transition-opacity hover:opacity-75"
             >
               Pier
             </TransitionLink>

@@ -297,7 +297,7 @@ export function SearchModal() {
                             key={tag}
                             onClick={() => setQuery(tag)}
                             data-no-ripple
-                            className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
+                            className="rounded-full border border-[var(--border)] px-3 py-1 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
                           >
                             {tag}
                           </button>
