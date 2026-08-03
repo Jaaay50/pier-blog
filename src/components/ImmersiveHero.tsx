@@ -58,7 +58,9 @@ export function ImmersiveHero({
   // Phase 9.1 粒子标题门控
   const canUseParticles = mounted && quality && quality.enabled;
   const anchorRef = useRef<HTMLSpanElement>(null);
-  const [particleTakeover, setParticleTakeover] = useState(false);
+  // 粒子路径失败（采样/context 创建失败）时回退 DOM 标题
+  const [particleFailed, setParticleFailed] = useState(false);
+  const particleMode = !!canUseParticles && !particleFailed;
 
   return (
     <section className="relative h-screen w-full overflow-hidden">
@@ -113,12 +115,13 @@ export function ImmersiveHero({
             <span aria-hidden="true">{title}</span>
           ) : (
             <>
-              {/* DOM 标题层：SSR 可见，粒子可用时静态显示等待接管，降级时执行动画 */}
+              {/* DOM 标题层：粒子模式下立即隐藏（仅作采样锚点），降级/失败时执行逐字动画 */}
               <span
+                key={particleMode ? "particle" : "fallback"}
                 ref={anchorRef}
                 aria-hidden="true"
-                className={`flex flex-wrap justify-center transition-opacity duration-[280ms] ${
-                  canUseParticles && particleTakeover ? "opacity-0" : "opacity-100"
+                className={`flex flex-wrap justify-center ${
+                  particleMode ? "opacity-0" : "opacity-100"
                 }`}
               >
                 {(() => {
@@ -128,26 +131,20 @@ export function ImmersiveHero({
                       {Array.from(word).map((char) => {
                         i += 1;
                         const idx = i;
-                        return (
+                        return particleMode ? (
+                          <span key={idx} data-ptchar className="inline-block">
+                            {char}
+                          </span>
+                        ) : (
                           <motion.span
                             key={idx}
                             data-ptchar
                             className="inline-block"
-                            initial={
-                              canUseParticles
-                                ? { opacity: 1 }
-                                : { opacity: 0, y: 44, filter: "blur(12px)" }
-                            }
-                            animate={
-                              canUseParticles
-                                ? { opacity: 1 }
-                                : { opacity: 1, y: 0, filter: "blur(0px)" }
-                            }
+                            initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
                             transition={{
-                              duration: canUseParticles ? 0 : 0.7,
-                              delay: canUseParticles
-                                ? 0
-                                : 0.25 + idx * (isZh ? 0.08 : 0.055),
+                              duration: 0.7,
+                              delay: 0.25 + idx * (isZh ? 0.08 : 0.055),
                               ease: [0.22, 1, 0.36, 1],
                             }}
                           >
@@ -162,14 +159,14 @@ export function ImmersiveHero({
                   ));
                 })()}
               </span>
-              {/* 粒子层：覆盖在 DOM 标题之上 */}
-              {canUseParticles && (
+              {/* 粒子层：直接从碎裂态聚合成字；失败时回退 DOM 标题 */}
+              {canUseParticles && !particleFailed && (
                 <ParticleTitle
                   title={title}
                   anchorRef={anchorRef}
                   isDark={isDark}
                   quality={quality}
-                  onTakeover={() => setParticleTakeover(true)}
+                  onFail={() => setParticleFailed(true)}
                 />
               )}
             </>

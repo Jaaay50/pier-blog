@@ -7,9 +7,10 @@ import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
 /**
  * Phase 9.1 — Hero 粒子重组标题
  *
- * 管线：DOM 标题（SSR 可见）→ 字体就绪后逐字采样 →
- * canvas 淡入接管（DOM 标题淡出）→ 溶解成星尘 → 重聚成字 →
- * 待机呼吸 + 鼠标斥力 + 滚动吹散。
+ * 管线：DOM 标题仅作 SSR 可见层与采样锚点（粒子模式下客户端立即隐藏）→
+ * 字体就绪后逐字采样 → 粒子直接从混沌四散（碎裂态）聚合成字，
+ * 无完整字形停留 → 待机呼吸 + 鼠标斥力 + 滚动吹散。
+ * 采样/context 失败时调用 onFail，由父组件回退 DOM 标题。
  *
  * - 单 gl.POINTS mesh，morph 全在 vertex shader（CPU 只喂 uniform）
  * - 采样直接读 DOM 逐字 span 的实际 rect，换行/字距/居中天然与 DOM 一致
@@ -180,10 +181,8 @@ function sampleText(
   return { targets: new Float32Array(targets), count, minX, maxX };
 }
 
-type Phase = "boot" | "swap" | "shatter" | "converge" | "idle";
+type Phase = "boot" | "converge" | "idle";
 
-const SWAP_MS = 280;
-const SHATTER_MS = 520;
 const CONVERGE_MS = 1650;
 
 interface ParticleTitleProps {
@@ -193,8 +192,8 @@ interface ParticleTitleProps {
   anchorRef: RefObject<HTMLSpanElement | null>;
   isDark: boolean;
   quality: WebGLQuality;
-  /** canvas 接管瞬间回调（父组件淡出 DOM 标题） */
-  onTakeover: () => void;
+  /** 粒子路径失败回调（采样/context 创建失败，父组件回退 DOM 标题） */
+  onFail: () => void;
 }
 
 export default function ParticleTitle({
@@ -202,22 +201,21 @@ export default function ParticleTitle({
   anchorRef,
   isDark,
   quality,
-  onTakeover,
+  onFail,
 }: ParticleTitleProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [rebuildTick, setRebuildTick] = useState(0);
   const isDarkRef = useRef(isDark);
-  const introDoneRef = useRef(false);
   const glStateRef = useRef<{
     gl: WebGL2RenderingContext | WebGLRenderingContext;
     program: Program;
   } | null>(null);
-  const onTakeoverRef = useRef(onTakeover);
+  const onFailRef = useRef(onFail);
 
   // 同步最新值到 ref（不触发重建）
   useEffect(() => { isDarkRef.current = isDark; }, [isDark]);
-  useEffect(() => { onTakeoverRef.current = onTakeover; }, [onTakeover]);
+  useEffect(() => { onFailRef.current = onFail; }, [onFail]);
 
   // 主题切换：只更新颜色 uniform 与混合模式，不重建
   useEffect(() => {
@@ -271,7 +269,10 @@ export default function ParticleTitle({
       if (disposed) return;
 
       const sample = sampleText(anchor, host, targetCount);
-      if (!sample) return; // 采样失败：DOM 标题保持可见，静默放弃
+      if (!sample) {
+        onFailRef.current(); // 采样失败：回退 DOM 标题
+        return;
+      }
 
       const { targets, count, minX, maxX } = sample;
       const hostRect = host.getBoundingClientRect();
@@ -299,7 +300,8 @@ export default function ParticleTitle({
           premultipliedAlpha: false,
         });
       } catch {
-        return; // context 创建失败：保持 DOM 标题
+        onFailRef.current(); // context 创建失败：回退 DOM 标题
+        return;
       }
       if (disposed) return;
       renderer = localRenderer;
@@ -323,7 +325,7 @@ export default function ParticleTitle({
         depthTest: false,
         uniforms: {
           uResolution: { value: [w, h] },
-          uProgress: { value: introDoneRef.current ? 1 : 0 },
+          uProgress: { value: 0 },
           uScatter: { value: 0 },
           uTime: { value: 0 },
           uMouse: { value: [smoothMouse.x, smoothMouse.y] },
@@ -349,42 +351,16 @@ export default function ParticleTitle({
         if (lastTime !== null) elapsed += t - lastTime;
         lastTime = t;
 
-        // 阶段机
+        // 阶段机：开场即碎裂态，直接聚合成字（resize/切语言重建同样重播聚合）
         if (phase === "boot") {
-          if (introDoneRef.current) {
-            // 重建（resize / 切语言）：直接重播聚合，不重播碎裂
-            phase = "converge";
-            phaseT0 = elapsed;
-            program.uniforms.uProgress.value = 0;
-            setVisible(true);
-            onTakeoverRef.current();
-          } else {
-            phase = "swap";
-            phaseT0 = elapsed;
-            setVisible(true);
-          }
-        } else if (phase === "swap") {
-          program.uniforms.uProgress.value = 1;
-          if (elapsed - phaseT0 >= SWAP_MS) {
-            phase = "shatter";
-            phaseT0 = elapsed;
-            // swap 结束时 takeover，确保 DOM 文字可见到粒子开始碎裂
-            onTakeoverRef.current();
-          }
-        } else if (phase === "shatter") {
-          const k = Math.min(1, (elapsed - phaseT0) / SHATTER_MS);
-          program.uniforms.uProgress.value = 1 - k * k;
-          if (k >= 1) {
-            phase = "converge";
-            phaseT0 = elapsed;
-          }
+          phase = "converge";
+          phaseT0 = elapsed;
+          program.uniforms.uProgress.value = 0;
+          setVisible(true);
         } else if (phase === "converge") {
           const k = Math.min(1, (elapsed - phaseT0) / CONVERGE_MS);
           program.uniforms.uProgress.value = easeOutQuad(k);
-          if (k >= 1) {
-            phase = "idle";
-            introDoneRef.current = true;
-          }
+          if (k >= 1) phase = "idle";
         } else {
           program.uniforms.uProgress.value = 1;
         }
