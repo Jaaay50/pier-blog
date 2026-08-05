@@ -7,7 +7,6 @@ import { CurrentsCard } from "./CurrentsCard";
 interface CurrentsTimelineProps {
   items: CurrentsListItem[];
   sources: Map<string, CurrentsSource>;
-  onOpen: (id: string) => void;
 }
 
 interface DayGroup {
@@ -50,8 +49,8 @@ function sourceNameFor(
   return locale === "zh" ? (s.nameZh ?? s.name) : s.name;
 }
 
-/** 时间线：按日期分组（日期 + 星期 + 条数），左轨 + accent 节点 */
-export function CurrentsTimeline({ items, sources, onOpen }: CurrentsTimelineProps) {
+/** 时间线：按日期分组（日期 + 星期 + 条数），左轨 + accent 节点，分组头吸顶可折叠 */
+export function CurrentsTimeline({ items, sources }: CurrentsTimelineProps) {
   const locale = useLocale();
   const t = useTranslations("currents");
   const groups = groupByDay(items, locale);
@@ -74,8 +73,8 @@ export function CurrentsTimeline({ items, sources, onOpen }: CurrentsTimelinePro
 
         return (
           <section key={group.key} aria-label={dateLabel}>
-            {/* 日期分组头 */}
-            <header className="mb-4 flex items-baseline gap-2">
+            {/* 日期分组头（吸顶 + 可折叠） */}
+            <header className="sticky top-[65px] z-10 mb-4 flex items-baseline gap-2 bg-[var(--bg-primary)]/80 py-1.5 backdrop-blur-sm">
               <h2 className="font-display text-lg font-semibold tracking-tight">
                 {dateLabel}
               </h2>
@@ -87,20 +86,19 @@ export function CurrentsTimeline({ items, sources, onOpen }: CurrentsTimelinePro
               </span>
             </header>
 
-            {/* 时间轴：var(--border) 轨道 + var(--accent) 节点 */}
-            <div className="relative space-y-4 border-l border-[var(--border)] pl-5 sm:pl-6">
+            {/* 时间轴：var(--border) 轨道 + var(--accent) 节点，紧凑间距 */}
+            <div className="relative space-y-2.5 border-l border-[var(--border)] pl-4 sm:pl-5">
               {group.items.map((item) => (
                 <div key={item.id} className="relative">
                   {/* 节点 */}
                   <span
                     aria-hidden
-                    className="absolute -left-5 top-6 h-2 w-2 -translate-x-1/2 rounded-full bg-[var(--accent)] sm:-left-6"
+                    className="absolute -left-4 top-5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[var(--accent)] sm:-left-5"
                     style={{ transform: "translateX(calc(-50% - 0.5px))" }}
                   />
                   <CurrentsCard
                     item={item}
                     sourceName={sourceNameFor(item, sources, locale)}
-                    onOpen={onOpen}
                   />
                 </div>
               ))}
