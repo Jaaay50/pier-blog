@@ -13,6 +13,7 @@ Personal blog & portfolio — exploring the intersection of AI, interaction desi
 - **数据可视化** — 零依赖 SVG 雷达图 / tag 条形图过滤 / 活动热力图
 - **全文搜索** — FlexSearch 客户端索引（⌘K），关键词高亮 + 键盘导航 + 相关文章推荐
 - **双语内容** — next-intl（en/zh）+ MDX 双语文章 + 双语 RSS
+- **潮汐 · Currents** — `/currents` AI 前沿资讯聚合：独立后端（[`currents-backend`](https://github.com/Jaaay50/currents-backend)，私有）每日 3 次采集 arXiv / HuggingFace / HN / 官方博客，经 LLM 双语摘要、评分与深度解读后入库；前端 SSG 静态壳 + 客户端数据岛（时间线 / 分类过滤 / 全文搜索 / 本地收藏 / 深度阅读层），API 经 Cloudflare Tunnel 提供（`currents-api.ethanpier.com`）
 - **可访问性** — prefers-reduced-motion 全链路降级（静态背景 / 原生滚动 / 无动画直切）
 
 ## Tech Stack
@@ -44,5 +45,7 @@ npm run lint       # ESLint
 ## Project Log
 
 八阶段进化计划全程记录在 [PROGRESS.md](./PROGRESS.md)，各阶段规划见 `PHASE*-PLAN.md`。
+
+Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。2026-08-05 上线。
 
 Deployed on Vercel via GitHub Actions (`.github/workflows/deploy.yml`).
