@@ -64,6 +64,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
       alternates: langAlternates("/lab"),
     },
+    {
+      url: `${baseUrl}/${locale}/currents`,
+      lastModified: newestPostDate,
+      changeFrequency: "daily" as const,
+      priority: 0.8,
+      alternates: langAlternates("/currents"),
+    },
   ]);
 
   const postPages = locales.flatMap((locale) =>

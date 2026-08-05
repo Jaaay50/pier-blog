@@ -82,6 +82,8 @@
 html {
   scroll-behavior: auto; /* Lenis 接管平滑滚动 */
   overscroll-behavior: none;
+  /* 装饰性元素（ambient glow、Footer glyph 水印）允许越界但不产生横向滚动条 */
+  overflow-x: clip;
 }
 
 body {
@@ -1020,4 +1022,45 @@ html[data-particles-ready] .hero-title-ssr {
   to {
     opacity: 1;
   }
+}
+
+/* ============================================
+   潮汐 · Currents（Phase 4）
+   ============================================ */
+
+/* 评分高档（80–100）微光：subtle glow，非交通灯 */
+.score-badge-high {
+  box-shadow: 0 0 12px var(--glow-color);
+}
+
+/* skeleton 占位块：reduced-motion 下静止 */
+.skeleton-block {
+  background: var(--border);
+  opacity: 0.5;
+  animation: currents-skeleton-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes currents-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 0.2;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-block {
+    animation: none;
+  }
+}
+
+/* 分类 tabs 横向滚动隐藏滚动条（内容仍可滚动，防 390px 溢出） */
+.scrollbar-none {
+  scrollbar-width: none;
+}
+
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
