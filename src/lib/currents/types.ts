@@ -65,7 +65,55 @@ export interface CurrentsItemDetail extends CurrentsListItem {
   originalLanguage: string | null;
   scoreBreakdown: CurrentsScoreBreakdown | null;
   alsoReportedBy: CurrentsAlsoReportedBy[] | null;
+  related?: Array<{ id: string; title: string | null; publishedAt: string | null }> | null;
   qualityFlags?: string[] | null;
+}
+
+export interface CurrentsHighlightCard extends CurrentsListItem {
+  sourceCount?: number;
+}
+
+export interface CurrentsHighlightsResponse {
+  lead: CurrentsHighlightCard | null;
+  items: CurrentsHighlightCard[];
+  generatedAt: string;
+}
+
+export interface CurrentsDailySectionItem {
+  id: string;
+  title: string;
+  summary: string;
+  score: number;
+  canonicalUrl: string;
+  sourceName: string;
+}
+
+export interface CurrentsDailySection {
+  key: string;
+  label: string;
+  items: CurrentsDailySectionItem[];
+}
+
+export interface CurrentsDailyReport {
+  date: string;
+  generatedAt: string;
+  finalized: boolean;
+  itemCount: number;
+  lead: { id: string; title: string | null; paragraph: string | null } | null;
+  sections: CurrentsDailySection[];
+}
+
+export interface CurrentsDailyArchiveResponse {
+  dailies: Array<{ date: string; leadTitle: string | null; itemCount: number; finalized: boolean }>;
+  generatedAt: string;
+}
+
+export interface CurrentsStats {
+  publishedItems: number;
+  byStatus: Record<string, number>;
+  publishedByCategory: Record<string, number>;
+  lastSuccessfulRunAt: string | null;
+  generatedAt: string;
 }
 
 export interface CurrentsCategoryMeta {
@@ -80,4 +128,5 @@ export interface CurrentsSource {
   nameZh: string | null;
   type: string;
   homepageUrl: string | null;
+  enabled?: boolean;
 }
