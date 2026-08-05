@@ -11,15 +11,14 @@ import type {
   CurrentsSource,
 } from "@/lib/currents/types";
 import { useFavorites } from "@/lib/currents/useFavorites";
-import { CurrentsFilters, type CategoryKey } from "./CurrentsFilters";
+import { CurrentsFilters, type CategoryKey, type ViewKey } from "./CurrentsFilters";
 import { CurrentsTimeline } from "./CurrentsTimeline";
-import { CurrentsReader } from "./CurrentsReader";
+import { CurrentsHighlights } from "./CurrentsHighlights";
 import { CurrentsSkeleton, CurrentsLoadMoreSkeleton } from "./CurrentsSkeleton";
 import { CurrentsError } from "./CurrentsError";
 
 const PAGE_SIZE = 20;
 
-// ---- 列表状态机（reducer：渲染期 reset，effect 内只做异步 dispatch）----
 interface ListState {
   status: "loading" | "ok" | "error";
   items: CurrentsListItem[];
@@ -49,9 +48,7 @@ type ListAction =
 function listReducer(state: ListState, action: ListAction): ListState {
   switch (action.type) {
     case "reset":
-      return state.status === "loading" && state.items.length === 0
-        ? state
-        : initialListState;
+      return state.status === "loading" && state.items.length === 0 ? state : initialListState;
     case "firstOk":
       return {
         status: "ok",
@@ -85,19 +82,29 @@ function CurrentsClientInner() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  // ---- URL 状态（category / q / item）----
+  // ---- URL 状态 ----
+  const view = (searchParams.get("view") ?? "selected") as ViewKey;
   const category = (searchParams.get("category") ?? "all") as CategoryKey;
   const query = searchParams.get("q") ?? "";
-  const openItemId = searchParams.get("item");
+  const source = searchParams.get("source") ?? "";
+  const minScore = searchParams.get("minScore") ?? "";
+  const legacyItemId = searchParams.get("item"); // 旧链接 ?item= 兼容
 
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const favorites = useFavorites();
-  const [sources, setSources] = useState<Map<string, CurrentsSource>>(new Map());
+  const [sources, setSources] = useState<CurrentsSource[]>([]);
+  const [sourceMap, setSourceMap] = useState<Map<string, CurrentsSource>>(new Map());
   const [list, dispatch] = useReducer(listReducer, initialListState);
   const [retryCount, setRetryCount] = useState(0);
 
-  // 筛选/locale/retry 变化时在渲染期同步重置列表（避免 effect 内 setState 瀑布渲染）
-  const filterKey = `${locale}|${category}|${query}|${retryCount}`;
+  // 旧链接兼容：/currents?item=<id> → /currents/<id>（客户端兜底，首帧执行）
+  useEffect(() => {
+    if (legacyItemId) {
+      router.replace(`/currents/${legacyItemId}`);
+    }
+  }, [legacyItemId, router]);
+
+  const filterKey = `${locale}|${view}|${category}|${query}|${source}|${minScore}|${retryCount}`;
   const [prevFilterKey, setPrevFilterKey] = useState(filterKey);
   if (prevFilterKey !== filterKey) {
     setPrevFilterKey(filterKey);
@@ -106,10 +113,8 @@ function CurrentsClientInner() {
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const requestSeqRef = useRef(0);
-  /** 无限加载在失败一次后暂停自动触发，避免滚动抖动反复打 API */
   const autoLoadPausedRef = useRef(false);
 
-  // ---- URL 同步 ----
   const syncUrl = useCallback(
     (updates: Record<string, string | null>, mode: "push" | "replace" = "replace") => {
       const params = new URLSearchParams(searchParams.toString());
@@ -118,27 +123,25 @@ function CurrentsClientInner() {
         else params.set(key, value);
       }
       const qs = params.toString();
-      const href = (qs ? `${pathname}?${qs}` : pathname) as Parameters<
-        typeof router.replace
-      >[0];
+      const href = (qs ? `${pathname}?${qs}` : pathname) as Parameters<typeof router.replace>[0];
       if (mode === "push") router.push(href, { scroll: false });
       else router.replace(href, { scroll: false });
     },
     [pathname, router, searchParams],
   );
 
-  // ---- 信源元数据（失败不影响列表）----
+  // ---- 信源元数据 ----
   useEffect(() => {
     const controller = new AbortController();
     fetchSources(controller.signal)
       .then(({ sources: list }) => {
         if (!controller.signal.aborted) {
-          setSources(new Map(list.map((s) => [s.id, s])));
+          const enabled = list.filter((s) => s.enabled !== false);
+          setSources(enabled);
+          setSourceMap(new Map(enabled.map((s) => [s.id, s])));
         }
       })
-      .catch(() => {
-        /* 信源名缺失时卡片回退显示 sourceId */
-      });
+      .catch(() => {});
     return () => controller.abort();
   }, []);
 
@@ -151,8 +154,11 @@ function CurrentsClientInner() {
     fetchItems(
       {
         locale,
-        category: category === "all" ? undefined : category,
+        view,
+        category: view === "papers" || category === "all" ? undefined : category,
         q: query,
+        source: source || undefined,
+        minScore: minScore ? Number(minScore) : undefined,
         limit: PAGE_SIZE,
       },
       controller.signal,
@@ -168,25 +174,21 @@ function CurrentsClientInner() {
       });
 
     return () => controller.abort();
-  }, [locale, category, query, retryCount]);
+  }, [locale, view, category, query, source, minScore, retryCount]);
 
   // ---- 加载更多 ----
   const loadMore = useCallback(() => {
-    if (
-      list.status !== "ok" ||
-      list.loadingMore ||
-      !list.hasMore ||
-      !list.nextCursor
-    ) {
-      return;
-    }
+    if (list.status !== "ok" || list.loadingMore || !list.hasMore || !list.nextCursor) return;
     const cursor = list.nextCursor;
     const seq = ++requestSeqRef.current;
     dispatch({ type: "moreStart" });
     fetchItems({
       locale,
-      category: category === "all" ? undefined : category,
+      view,
+      category: view === "papers" || category === "all" ? undefined : category,
       q: query,
+      source: source || undefined,
+      minScore: minScore ? Number(minScore) : undefined,
       cursor,
       limit: PAGE_SIZE,
     })
@@ -199,18 +201,14 @@ function CurrentsClientInner() {
         autoLoadPausedRef.current = true;
         dispatch({ type: "moreError" });
       });
-  }, [list, locale, category, query]);
+  }, [list, locale, view, category, query, source, minScore]);
 
-  // ---- IntersectionObserver 无限加载（纯订阅，不直接 setState）----
-  // loadMore 变化时 observer 重建，闭包始终是最新的，无需 ref 桥接
   useEffect(() => {
     const sentinel = sentinelRef.current;
     if (!sentinel) return;
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting) && !autoLoadPausedRef.current) {
-          loadMore();
-        }
+        if (entries.some((e) => e.isIntersecting) && !autoLoadPausedRef.current) loadMore();
       },
       { rootMargin: "400px 0px" },
     );
@@ -218,51 +216,42 @@ function CurrentsClientInner() {
     return () => observer.disconnect();
   }, [loadMore]);
 
-  // ---- 展示数据（收藏过滤是客户端视图，不走 API）----
   const visibleItems = favoritesOnly
     ? list.items.filter((item) => favorites.includes(item.id))
     : list.items;
 
-  const openItem = useCallback(
-    (id: string) => syncUrl({ item: id }, "push"),
-    [syncUrl],
-  );
-  const closeItem = useCallback(() => {
-    // 优先回退历史（保留 category/q），无历史则直接清 query
-    if (typeof window !== "undefined" && window.history.length > 1) {
-      router.back();
-    } else {
-      syncUrl({ item: null }, "replace");
-    }
-  }, [router, syncUrl]);
-
-  const retryList = useCallback(() => {
-    setRetryCount((c) => c + 1);
-  }, []);
+  const retryList = useCallback(() => setRetryCount((c) => c + 1), []);
 
   return (
     <div className="mx-auto max-w-6xl">
+      {/* 今日要闻（仅精选视图顶部） */}
+      {view === "selected" && !query && (
+        <CurrentsHighlights locale={locale} sourceMap={sourceMap} />
+      )}
+
       <CurrentsFilters
+        view={view}
+        onViewChange={(v) => syncUrl({ view: v === "selected" ? null : v, category: null })}
         category={category}
         onCategoryChange={(c) => syncUrl({ category: c === "all" ? null : c })}
         query={query}
         onQueryChange={(q) => syncUrl({ q: q || null })}
         favoritesOnly={favoritesOnly}
         onFavoritesOnlyChange={setFavoritesOnly}
+        sources={sources}
+        source={source}
+        onSourceChange={(s) => syncUrl({ source: s || null })}
+        minScore={minScore}
+        onMinScoreChange={(v) => syncUrl({ minScore: v || null })}
       />
 
-      <div className="px-6 py-10">
-        {/* 初次加载 skeleton */}
+      <div className="px-6 py-8">
         {list.status === "loading" && (
           <>
-            <p className="sr-only" role="status">
-              {t("loading")}
-            </p>
+            <p className="sr-only" role="status">{t("loading")}</p>
             <CurrentsSkeleton />
           </>
         )}
-
-        {/* 首次加载失败：仅时间线区域报错，页面壳不拖垮 */}
         {list.status === "error" && <CurrentsError onRetry={retryList} />}
 
         {list.status === "ok" && (
@@ -270,22 +259,13 @@ function CurrentsClientInner() {
             {visibleItems.length === 0 ? (
               <div className="flex flex-col items-center gap-3 py-20 text-center">
                 <p className="text-sm text-[var(--text-muted)]">
-                  {query
-                    ? t("emptySearch")
-                    : favoritesOnly
-                      ? t("emptyFavorites")
-                      : t("empty")}
+                  {query ? t("emptySearch") : favoritesOnly ? t("emptyFavorites") : t("empty")}
                 </p>
               </div>
             ) : (
-              <CurrentsTimeline
-                items={visibleItems}
-                sources={sources}
-                onOpen={openItem}
-              />
+              <CurrentsTimeline items={visibleItems} sources={sourceMap} />
             )}
 
-            {/* 无限加载 sentinel + load more 兜底（收藏视图下本地分页无意义，隐藏） */}
             {!favoritesOnly && list.hasMore && (
               <div className="mt-10">
                 {list.loadingMore && <CurrentsLoadMoreSkeleton />}
@@ -315,9 +295,6 @@ function CurrentsClientInner() {
           </>
         )}
       </div>
-
-      {/* 阅读层（URL ?item= 驱动，刷新/分享可恢复） */}
-      {openItemId && <CurrentsReader itemId={openItemId} onClose={closeItem} />}
     </div>
   );
 }
