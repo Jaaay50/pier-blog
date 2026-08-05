@@ -1,8 +1,11 @@
 import { MetadataRoute } from "next";
 import { getAllSlugs, getPostsForLocale } from "@/lib/posts";
 import { locales } from "@/i18n/config";
+import { CURRENTS_API_BASE } from "@/lib/currents/api";
 
 const baseUrl = "https://ethanpier.com";
+
+export const revalidate = 3600;
 
 /** 双 locale 页面的 hreflang alternates（含 x-default → en） */
 function langAlternates(path: string) {
@@ -15,7 +18,7 @@ function langAlternates(path: string) {
   };
 }
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const slugs = getAllSlugs();
 
   // 文章日期索引：slug -> date（en 版为准，双语同日）
@@ -71,7 +74,48 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.8,
       alternates: langAlternates("/currents"),
     },
+    {
+      url: `${baseUrl}/${locale}/currents/daily`,
+      lastModified: newestPostDate,
+      changeFrequency: "daily" as const,
+      priority: 0.7,
+      alternates: langAlternates("/currents/daily"),
+    },
   ]);
+
+  // Currents 详情页条目：服务端拉取最近 N 条（失败降级为静态页，不拖垮构建）
+  let currentsPages: MetadataRoute.Sitemap = [];
+  try {
+    const ids: Array<{ id: string; publishedAt: string | null }> = [];
+    let cursor: string | null = null;
+    for (let page = 0; page < 10 && ids.length < 500; page++) {
+      const params = new URLSearchParams({ view: "all", limit: "50" });
+      if (cursor) params.set("cursor", cursor);
+      const res = await fetch(`${CURRENTS_API_BASE}/v1/items?${params}`, {
+        next: { revalidate: 3600 },
+      });
+      if (!res.ok) break;
+      const data = (await res.json()) as {
+        items: Array<{ id: string; publishedAt: string | null }>;
+        nextCursor: string | null;
+        hasMore: boolean;
+      };
+      ids.push(...data.items.map((i) => ({ id: i.id, publishedAt: i.publishedAt })));
+      cursor = data.nextCursor;
+      if (!data.hasMore || !cursor) break;
+    }
+    currentsPages = locales.flatMap((locale) =>
+      ids.map((item) => ({
+        url: `${baseUrl}/${locale}/currents/${item.id}`,
+        lastModified: item.publishedAt ? new Date(item.publishedAt) : newestPostDate,
+        changeFrequency: "weekly" as const,
+        priority: 0.5,
+        alternates: langAlternates(`/currents/${item.id}`),
+      }))
+    );
+  } catch {
+    currentsPages = []; // 降级：只输出静态页
+  }
 
   const postPages = locales.flatMap((locale) =>
     slugs.map((slug) => ({
@@ -83,5 +127,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     }))
   );
 
-  return [...staticPages, ...postPages];
+  return [...staticPages, ...postPages, ...currentsPages];
 }
