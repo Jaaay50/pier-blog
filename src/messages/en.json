@@ -188,7 +188,8 @@
     "navTitle": "Navigation",
     "subscribeTitle": "Subscribe",
     "rssEn": "RSS — English",
-    "rssZh": "RSS — 中文"
+    "rssZh": "RSS — 中文",
+    "changelog": "Changelog"
   },
   "theme": {
     "toDark": "Switch to dark mode",
@@ -249,5 +250,15 @@
     "title": "Page not found",
     "description": "This lamp doesn't reach here — the page may have moved or been removed.",
     "backHome": "Back to home"
+  },
+  "changelog": {
+    "title": "Changelog",
+    "subtitle": "Every update to Currents — new features, improvements, and fixes, recorded in both Chinese and English.",
+    "backToCurrents": "Back to Currents",
+    "typeNew": "New",
+    "typeImproved": "Improved",
+    "typeFixed": "Fixed",
+    "typeAnnounced": "Announcement",
+    "typeRemoved": "Removed"
   }
 }

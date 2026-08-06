@@ -1,0 +1,238 @@
+/**
+ * 潮汐 · Currents 更新日志数据源。
+ *
+ * 维护约定：
+ * - 新条目添加到数组最前面（倒序展示，最新在上）。
+ * - 只记录用户能感知的变化；重大数据/架构调整可附一段 note，不写 commit 列表。
+ * - 中英文逐条对等，英文自然表达，不做机械直译。
+ * - 不写入服务器地址、内部路径、凭据、模型中转、备份位置等运维细节。
+ * - phase 字段为内部可追溯标识，对用户展示的是 date 与 phaseLabel。
+ * - date 语义为 Asia/Hong_Kong 日历日；页面按 HKT 格式化，UTC 构建环境不换日。
+ */
+
+export type ChangelogItemType = "new" | "improved" | "fixed" | "announced" | "removed";
+
+export interface ChangelogItem {
+  type: ChangelogItemType;
+  titleZh: string;
+  titleEn: string;
+  descZh?: string;
+  descEn?: string;
+}
+
+export interface ChangelogEntry {
+  /** 内部阶段标识，用于可追溯 */
+  phase: string;
+  date: string; // ISO 日期，用户可见
+  phaseLabelZh: string;
+  phaseLabelEn: string;
+  noteZh?: string;
+  noteEn?: string;
+  items: ChangelogItem[];
+}
+
+export const CHANGELOG_LAST_UPDATED = "2026-08-06";
+
+export const changelogEntries: ChangelogEntry[] = [
+  {
+    phase: "batch2",
+    date: "2026-08-06",
+    phaseLabelZh: "批次 2 · 含 Phase 7",
+    phaseLabelEn: "Batch 2 · incl. Phase 7",
+    noteZh: "本批次让 Currents 从“按时间浏览”走向“按事件与主题浏览”，并补齐深度阅读的最后一环：原文翻译；同期完成了 Phase 7 排版优化（三档密度与时间线分层）。",
+    noteEn: "This batch moves Currents beyond a plain timeline — you can now browse by events and topics, and deep reading is completed with full-text translation. It also includes the Phase 7 layout refinement (three densities and a re-layered timeline).",
+    items: [
+      {
+        type: "new",
+        titleZh: "热点榜上线",
+        titleEn: "Hot Board",
+        descZh: "新增「热点榜」页面，聚合 48 小时内被多家报道的事件，展示事件状态、热度值与去重信源数量；暂时没有热点时自动放宽到近 7 天，不会出现空页面。",
+        descEn: "A new Hot Board groups events reported by multiple outlets within 48 hours, showing each event's status, heat score, and distinct source count. When nothing qualifies, it automatically falls back to the last 7 days instead of showing an empty page.",
+      },
+      {
+        type: "new",
+        titleZh: "主题地图上线",
+        titleEn: "Topic Map",
+        descZh: "新增「主题地图」页面，38 个主题按「公司与模型 / 技术方向 / 内容形态」分组，覆盖 OpenAI、Anthropic、Agent、推理、机器人等方向，可快速进入任一主题的完整动态。",
+        descEn: "A new Topic Map organizes 38 topics — OpenAI, Anthropic, agents, reasoning, robotics, and more — into company & model, technical direction, and content-type groups, each linking to a full topic feed.",
+      },
+      {
+        type: "new",
+        titleZh: "主题详情页上线",
+        titleEn: "Topic Detail Pages",
+        descZh: "每个主题拥有独立页面，包含主题说明、完整时间线与分页，并具备双语 SEO 信息与站点地图收录。",
+        descEn: "Every topic now has its own page with a description, a full paginated timeline, bilingual SEO metadata, and sitemap coverage.",
+      },
+      {
+        type: "new",
+        titleZh: "原文翻译上线",
+        titleEn: "Original Text Translation",
+        descZh: "详情页新增「原文翻译」标签，与 AI 导读、深度解读并列；历史精选内容已补齐翻译，新内容入库后自动翻译。",
+        descEn: "Detail pages gain an Original Translation tab alongside the AI summary and deep read. Featured archive entries have been backfilled, and new entries are translated automatically as they arrive.",
+      },
+      {
+        type: "new",
+        titleZh: "三档阅读密度",
+        titleEn: "Three Reading Densities",
+        descZh: "时间线支持紧凑 / 标准 / 宽松三档密度，默认标准；选择在浏览器中记住并在多个标签页间同步。",
+        descEn: "The timeline now offers compact, standard, and comfortable densities (standard by default). Your choice is remembered in the browser and synced across tabs.",
+      },
+      {
+        type: "improved",
+        titleZh: "正文素材更完整",
+        titleEn: "Fuller Source Material",
+        descZh: "新内容与历史内容都尽量补全正文；论文类内容改用干净的摘要作为素材，不再混入带导航噪音的页面文本。",
+        descEn: "Both new and archived entries now carry fuller source text. Papers use clean abstracts instead of noisy scraped page content.",
+      },
+      {
+        type: "improved",
+        titleZh: "卡片信息分层与时间线排布",
+        titleEn: "Clearer Card Hierarchy and Timeline Layout",
+        descZh: "推荐理由、标签与多信源信息重新分层；桌面端时间轴更舒展，高分内容更易一眼识别。",
+        descEn: "Recommendation reasons, tags, and multi-source info are re-layered; the desktop timeline breathes more and high-score items stand out at a glance.",
+      },
+      {
+        type: "fixed",
+        titleZh: "已读卡片误隐藏标题",
+        titleEn: "Read Cards Hiding Their Titles",
+        descZh: "修复标准 / 宽松密度下已读卡片连标题一起收起的问题；现在只收起摘要，标题始终可见。",
+        descEn: "Fixed read cards collapsing their titles in standard and comfortable densities — now only the summary folds away, and the title always stays visible.",
+      },
+      {
+        type: "fixed",
+        titleZh: "详情页分类与来源显示",
+        titleEn: "Category and Source Display on Detail Pages",
+        descZh: "修复详情页分类名称不随语言切换、来源名称与作者显示不正确的问题。",
+        descEn: "Fixed detail pages showing untranslated category names and incorrect source or author labels.",
+      },
+    ],
+  },
+  {
+    phase: "phase6",
+    date: "2026-08-05",
+    phaseLabelZh: "Phase 6",
+    phaseLabelEn: "Phase 6",
+    noteZh: "上线首日规模最大的升级：Currents 从「可用初版」升级为完整的 AI 资讯产品。",
+    noteEn: "The largest single-day upgrade since launch: Currents grew from a working MVP into a full AI news product.",
+    items: [
+      {
+        type: "new",
+        titleZh: "详情页改为独立页面",
+        titleEn: "Standalone Detail Pages",
+        descZh: "每条内容拥有独立链接与完整 SEO 信息（标题、描述、结构化数据），可直接分享与收藏；旧的弹窗链接自动跳转到新页面。",
+        descEn: "Every item now has its own shareable, bookmarkable URL with full SEO metadata and structured data. Legacy overlay links redirect automatically.",
+      },
+      {
+        type: "new",
+        titleZh: "精选 / 全部动态 / 论文三视图",
+        titleEn: "Three Views: Selected, All, Papers",
+        descZh: "顶层新增三个视图，并可叠加分类、来源与最低评分筛选，按自己的节奏浏览。",
+        descEn: "Three top-level views — Selected, All Updates, and Papers — plus category, source, and minimum-score filters introduced in this phase, so you can browse at your own depth.",
+      },
+      {
+        type: "new",
+        titleZh: "潮汐日报上线",
+        titleEn: "Currents Daily",
+        descZh: "每天自动整理一份日报：一条头条加「模型 / 产品 / 行业 / 研究 / 技巧观点」五个板块，可翻历史归档。",
+        descEn: "A daily digest is generated automatically: one headline plus five sections — models, products, industry, research, and tips & opinions — with browsable archives.",
+      },
+      {
+        type: "new",
+        titleZh: "今日要闻",
+        titleEn: "Today's Highlights",
+        descZh: "时间线顶部展示 1 条主故事加 4 条次要故事；数据不足时自动隐藏，不显示空板块。",
+        descEn: "The timeline opens with one lead story and four supporting stories; the section hides itself automatically when there isn't enough material.",
+      },
+      {
+        type: "new",
+        titleZh: "已读弱化",
+        titleEn: "Read-State Dimming",
+        descZh: "读过的内容自动弱化显示（记录保存在本地浏览器），帮你专注还没看的部分。",
+        descEn: "Items you've read are dimmed automatically (tracked locally in your browser) so you can focus on what's new.",
+      },
+      {
+        type: "improved",
+        titleZh: "信源大幅扩充",
+        titleEn: "Major Source Expansion",
+        descZh: "新增 13 个经实测验证的信源，包括 Google、微软、NVIDIA、GitHub、Cloudflare 官方博客及多家国际与中文科技媒体；综合媒体源增加 AI 相关性过滤，减少噪音。",
+        descEn: "Thirteen field-verified sources were added — official blogs from Google, Microsoft, NVIDIA, GitHub, and Cloudflare, plus international and Chinese tech media — with AI-relevance filtering on general outlets to keep noise down.",
+      },
+      {
+        type: "improved",
+        titleZh: "内容覆盖回填至 7 月初",
+        titleEn: "Archive Backfilled to Early July",
+        descZh: "历史内容逐日回填至 2026 年 7 月 1 日，累计两千余条入库，时间线不再有断档。",
+        descEn: "The archive was backfilled day by day to July 1, 2026 — over two thousand entries — so the timeline has no gaps.",
+      },
+      {
+        type: "improved",
+        titleZh: "卡片可整卡点击",
+        titleEn: "Fully Clickable Cards",
+        descZh: "卡片改为真正的链接，支持新标签页打开、中键点击等浏览器原生行为。",
+        descEn: "Cards are now real links, so open-in-new-tab, middle-click, and other native browser behaviors work as expected.",
+      },
+      {
+        type: "fixed",
+        titleZh: "「全部动态」看不到全部内容",
+        titleEn: "All Updates Wasn't Showing Everything",
+        descZh: "修复「全部」视图默认隐藏部分低分内容的问题，现在名副其实。",
+        descEn: "Fixed the All Updates view silently hiding lower-scored items — it now genuinely shows everything.",
+      },
+    ],
+  },
+  {
+    phase: "launch",
+    date: "2026-08-05",
+    phaseLabelZh: "首发上线 · Phase 1–5",
+    phaseLabelEn: "Launch · Phases 1–5",
+    noteZh: "潮汐 · Currents 正式上线：从立项到上线一天完成。",
+    noteEn: "Currents officially launched — from kickoff to production in a single day.",
+    items: [
+      {
+        type: "announced",
+        titleZh: "潮汐 · Currents 正式上线",
+        titleEn: "Currents Is Live",
+        descZh: "全新的 AI 资讯板块：每天自动采集 arXiv、Hugging Face、Hacker News 与多家官方博客，由 AI 生成中英双语标题、摘要、0–100 推荐评分、一句话推荐理由与深度解读；同一事件多信源自动合并去重。",
+        descEn: "A brand-new AI news section: content is collected daily from arXiv, Hugging Face, Hacker News, and official research blogs, then enriched by AI into bilingual titles, summaries, a 0–100 recommendation score, a one-line reason to read, and an in-depth analysis. Multi-source coverage of the same story is merged and deduplicated automatically.",
+      },
+      {
+        type: "new",
+        titleZh: "双语全文搜索",
+        titleEn: "Bilingual Full-Text Search",
+        descZh: "支持中英文全文检索，并可按分类过滤。",
+        descEn: "Full-text search in both Chinese and English, with category filters.",
+      },
+      {
+        type: "new",
+        titleZh: "本地收藏",
+        titleEn: "Local Favorites",
+        descZh: "无需登录即可收藏内容，记录仅保存在自己的浏览器中。",
+        descEn: "Bookmark items without an account — favorites are stored only in your own browser.",
+      },
+      {
+        type: "new",
+        titleZh: "双语 RSS 订阅",
+        titleEn: "Bilingual RSS Feeds",
+        descZh: "提供中文与英文 RSS 订阅，可按分类单独订阅。",
+        descEn: "Chinese and English RSS feeds, with per-category subscriptions available.",
+      },
+    ],
+  },
+  {
+    phase: "phase0",
+    date: "2026-08-05",
+    phaseLabelZh: "Phase 0",
+    phaseLabelEn: "Phase 0",
+    noteZh: "正式动工前的可行性验证，为当天上线铺路。",
+    noteEn: "Feasibility checks before the build began, paving the way for same-day launch.",
+    items: [
+      {
+        type: "announced",
+        titleZh: "立项与环境验证",
+        titleEn: "Project Kickoff and Environment Checks",
+        descZh: "确认在现有基础设施上安全承载 AI 采集与处理管线，不新增成本、不影响任何已在运行的服务；验证完成后当天即开始构建。",
+        descEn: "Verified that the AI collection and processing pipeline could run safely on existing infrastructure — at zero added cost and with no impact on services already in production. The build began the same day.",
+      },
+    ],
+  },
+];

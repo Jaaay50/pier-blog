@@ -47,6 +47,7 @@ export default async function CurrentsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("currents");
+  const tChangelog = await getTranslations("changelog");
 
   return (
     <main className="relative min-h-screen">
@@ -71,6 +72,12 @@ export default async function CurrentsPage({
             className="rounded-full border border-[var(--border)] px-3.5 py-1 text-[13px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--accent)]"
           >
             {t("topicsTitle")}
+          </Link>
+          <Link
+            href="/currents/changelog"
+            className="rounded-full border border-[var(--border)] px-3.5 py-1 text-[13px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--accent)]"
+          >
+            {tChangelog("title")}
           </Link>
         </nav>
       </header>

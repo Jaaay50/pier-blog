@@ -2,6 +2,7 @@ import { MetadataRoute } from "next";
 import { getAllSlugs, getPostsForLocale } from "@/lib/posts";
 import { locales } from "@/i18n/config";
 import { CURRENTS_API_BASE } from "@/lib/currents/api";
+import { CHANGELOG_LAST_UPDATED } from "@/lib/currents/changelog";
 
 const baseUrl = "https://ethanpier.com";
 
@@ -94,6 +95,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "daily" as const,
       priority: 0.7,
       alternates: langAlternates("/currents/topics"),
+    },
+    {
+      url: `${baseUrl}/${locale}/currents/changelog`,
+      lastModified: new Date(CHANGELOG_LAST_UPDATED),
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
+      alternates: langAlternates("/currents/changelog"),
     },
   ]);
 
