@@ -177,3 +177,12 @@ export interface CurrentsSource {
   homepageUrl: string | null;
   enabled?: boolean;
 }
+
+/** GET /v1/topics/:id/items 主题详情时间线 */
+export interface CurrentsTopicItemsResponse {
+  topic: { id: string; group: string; name: string };
+  items: CurrentsListItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  meta: { totalApprox: number; generatedAt: string };
+}

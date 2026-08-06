@@ -87,7 +87,9 @@
     "translationTab": "Translation",
     "aiSummaryTab": "AI Summary",
     "deepReadTab": "Deep Read",
-    "translationPending": "Translation is being generated. Check back soon."
+    "translationPending": "Translation is being generated. Check back soon.",
+    "backToTopics": "Back to topic map",
+    "topicDetailSubtitle": "Latest items under \"{name}\"."
   },
   "home": {
     "role": "Frontend Engineer",

@@ -97,6 +97,25 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]);
 
+  // Currents 主题详情页：主题 id 清单与后端 src/topics.ts 保持一致
+  const CURRENTS_TOPIC_IDS = [
+    "openai", "anthropic", "google", "meta", "mistral", "qwen", "xai", "deepseek",
+    "nvidia", "microsoft", "apple", "bytedance",
+    "llm", "agent", "multimodal", "video", "image", "audio", "robotics", "reasoning",
+    "rl", "rag", "embeddings", "finetuning", "inference", "hardware", "safety",
+    "memory", "planning", "code", "mcp", "benchmark", "transformer",
+    "opensource", "papers", "product-launch", "policy", "funding",
+  ];
+  const topicPages = locales.flatMap((locale) =>
+    CURRENTS_TOPIC_IDS.map((id) => ({
+      url: `${baseUrl}/${locale}/currents/topics/${id}`,
+      lastModified: newestPostDate,
+      changeFrequency: "daily" as const,
+      priority: 0.6,
+      alternates: langAlternates(`/currents/topics/${id}`),
+    }))
+  );
+
   // Currents 详情页条目：服务端拉取最近 N 条（失败降级为静态页，不拖垮构建）
   let currentsPages: MetadataRoute.Sitemap = [];
   try {
@@ -141,5 +160,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   );
 
-  return [...staticPages, ...postPages, ...currentsPages];
+  return [...staticPages, ...topicPages, ...postPages, ...currentsPages];
 }

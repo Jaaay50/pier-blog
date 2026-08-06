@@ -13,6 +13,7 @@ import type {
   CurrentsItemsResponse,
   CurrentsSource,
   CurrentsStats,
+  CurrentsTopicItemsResponse,
   CurrentsTopicsResponse,
 } from "./types";
 
@@ -180,4 +181,19 @@ export function fetchHot(
 
 export function fetchTopics(locale: string, signal?: AbortSignal): Promise<CurrentsTopicsResponse> {
   return fetchJson<CurrentsTopicsResponse>(`/v1/topics?locale=${encodeURIComponent(locale)}`, signal);
+}
+
+export function fetchTopicItems(
+  topicId: string,
+  locale: string,
+  cursor?: string | null,
+  limit = 20,
+  signal?: AbortSignal,
+): Promise<CurrentsTopicItemsResponse> {
+  const params = new URLSearchParams({ locale, limit: String(limit) });
+  if (cursor) params.set("cursor", cursor);
+  return fetchJson<CurrentsTopicItemsResponse>(
+    `/v1/topics/${encodeURIComponent(topicId)}/items?${params.toString()}`,
+    signal,
+  );
 }

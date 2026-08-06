@@ -52,9 +52,16 @@ export function CurrentsTopicsClient() {
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {topics.map((topic) => (
-                    <div key={topic.id} className="card-glass rounded-xl p-4">
+                    <div key={topic.id} className="card-glass card-glass-hover rounded-xl p-4">
                       <div className="mb-2 flex items-baseline justify-between gap-2">
-                        <h3 className="font-medium tracking-tight">{topic.name}</h3>
+                        <h3 className="font-medium tracking-tight">
+                          <Link
+                            href={`/currents/topics/${topic.id}`}
+                            className="transition-colors hover:text-[var(--accent)]"
+                          >
+                            {topic.name}
+                          </Link>
+                        </h3>
                         <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-muted)]">
                           {t("topicsCount", { count: topic.count })}
                         </span>

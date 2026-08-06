@@ -87,7 +87,9 @@
     "translationTab": "原文翻译",
     "aiSummaryTab": "AI 导读",
     "deepReadTab": "深度解读",
-    "translationPending": "翻译生成中，请稍后刷新。"
+    "translationPending": "翻译生成中，请稍后刷新。",
+    "backToTopics": "返回主题地图",
+    "topicDetailSubtitle": "主题「{name}」下的最新收录。"
   },
   "home": {
     "role": "前端工程师",
