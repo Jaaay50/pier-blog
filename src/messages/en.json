@@ -7,9 +7,7 @@
     "currents": "Currents",
     "github": "GitHub",
     "menuOpen": "Open menu",
-    "menuClose": "Close menu",
-    "currentsHot": "Hot",
-    "currentsTopics": "Topics"
+    "menuClose": "Close menu"
   },
   "currents": {
     "title": "Currents",
@@ -86,8 +84,6 @@
     "topicsFeaturedCount": "{count} featured",
     "topicsCount": "{count} items",
     "topicsEmpty": "No items under this topic in the last 30 days.",
-    "topicDetailSubtitle": "Latest items under \"{name}\".",
-    "backToTopics": "Back to topic map",
     "translationTab": "Translation",
     "aiSummaryTab": "AI Summary",
     "deepReadTab": "Deep Read",

@@ -149,11 +149,18 @@ export function CurrentsHotClient() {
         (events.length === 0 ? (
           <p className="py-20 text-center text-sm text-[var(--text-muted)]">{t("hotEmpty")}</p>
         ) : (
-          <div className="currents-tl-items">
-            {events.map((e) => (
-              <HotCard key={e.eventId} event={e} />
+          <ol className="currents-tl-items">
+            {events.map((e, idx) => (
+              <li key={e.eventId} className="flex items-start gap-3">
+                <span className="w-6 shrink-0 pt-4 text-right text-sm font-semibold tabular-nums text-[var(--text-muted)]">
+                  {idx + 1}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <HotCard event={e} />
+                </div>
+              </li>
             ))}
-          </div>
+          </ol>
         ))}
     </div>
   );

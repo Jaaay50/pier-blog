@@ -3,6 +3,7 @@ import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { CurrentsClient } from "@/components/currents/CurrentsClient";
+import { Link } from "@/i18n/navigation";
 import { locales } from "@/i18n/config";
 
 const SITE_URL = "https://ethanpier.com";
@@ -57,6 +58,21 @@ export default async function CurrentsPage({
           {t("title")}
         </h1>
         <p className="max-w-2xl text-[var(--text-secondary)]">{t("subtitle")}</p>
+        {/* 批次 2：热点榜 / 主题地图入口（页头，不挤移动端工具栏） */}
+        <nav aria-label="currents-sub" className="mt-4 flex gap-2">
+          <Link
+            href="/currents/hot"
+            className="rounded-full border border-[var(--border)] px-3.5 py-1 text-[13px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--accent)]"
+          >
+            {t("hotTitle")}
+          </Link>
+          <Link
+            href="/currents/topics"
+            className="rounded-full border border-[var(--border)] px-3.5 py-1 text-[13px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--accent)]"
+          >
+            {t("topicsTitle")}
+          </Link>
+        </nav>
       </header>
 
       {/* 数据岛：sticky toolbar + 时间线 + 阅读层 */}

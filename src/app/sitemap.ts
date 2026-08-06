@@ -81,6 +81,20 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
       alternates: langAlternates("/currents/daily"),
     },
+    {
+      url: `${baseUrl}/${locale}/currents/hot`,
+      lastModified: newestPostDate,
+      changeFrequency: "hourly" as const,
+      priority: 0.7,
+      alternates: langAlternates("/currents/hot"),
+    },
+    {
+      url: `${baseUrl}/${locale}/currents/topics`,
+      lastModified: newestPostDate,
+      changeFrequency: "daily" as const,
+      priority: 0.7,
+      alternates: langAlternates("/currents/topics"),
+    },
   ]);
 
   // Currents 详情页条目：服务端拉取最近 N 条（失败降级为静态页，不拖垮构建）
