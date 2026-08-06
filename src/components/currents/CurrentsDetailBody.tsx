@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useRouter } from "@/i18n/navigation";
 import type { CurrentsItemDetail } from "@/lib/currents/types";
 import { ScoreBadge } from "./ScoreBadge";
@@ -20,11 +20,16 @@ interface Labels {
   otherSources: string;
   originalTitleLabel: string;
   categoryLabels: Record<string, string>;
+  translationTab: string;
+  aiSummaryTab: string;
+  deepReadTab: string;
+  translationPending: string;
 }
 
 interface Props {
   item: CurrentsItemDetail;
   deepReadHtml: string | null;
+  translationHtml: string | null;
   locale: string;
   labels: Labels;
   sourceName: string | null;
@@ -40,8 +45,10 @@ const BREAKDOWN_LABEL: Record<(typeof BREAKDOWN_KEYS)[number], { zh: string; en:
 };
 
 /** 详情页正文（客户端小岛：负责 markRead + 返回导航 + 收藏） */
-export function CurrentsDetailBody({ item, deepReadHtml, locale, labels, sourceName }: Props) {
+export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale, labels, sourceName }: Props) {
   const router = useRouter();
+  type TabKey = "translation" | "summary" | "deepRead";
+  const [tab, setTab] = useState<TabKey>(translationHtml ? "translation" : "summary");
 
   useEffect(() => {
     markRead(item.id);
@@ -120,41 +127,91 @@ export function CurrentsDetailBody({ item, deepReadHtml, locale, labels, sourceN
             </p>
           )}
 
-          {/* AI 导读 */}
-          {item.summary && (
-            <section className="card-glass mb-8 rounded-xl p-5">
-              <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{labels.aiSummary}</h2>
+          {/* 批次 2：三档 tab —— 原文翻译 / AI 导读 / 深度解读 */}
+          <div role="tablist" aria-label="content" className="mb-6 flex gap-1 border-b border-[var(--border)]">
+            {(
+              [
+                { key: "translation", label: labels.translationTab, disabled: !translationHtml },
+                { key: "summary", label: labels.aiSummaryTab, disabled: !item.summary },
+                { key: "deepRead", label: labels.deepReadTab, disabled: false },
+              ] as Array<{ key: TabKey; label: string; disabled: boolean }>
+            ).map(({ key, label, disabled }) => {
+              const active = tab === key;
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  aria-disabled={disabled}
+                  title={disabled && key === "translation" ? labels.translationPending : undefined}
+                  onClick={() => !disabled && setTab(key)}
+                  className={`-mb-px border-b-2 px-4 py-2 text-sm transition-colors ${
+                    active
+                      ? "border-[var(--accent)] font-medium text-[var(--accent)]"
+                      : disabled
+                        ? "cursor-not-allowed border-transparent text-[var(--text-muted)] opacity-50"
+                        : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                  }`}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* tab：原文翻译 */}
+          {tab === "translation" && (
+            <section className="mb-10">
+              {translationHtml ? (
+                <div
+                  className="prose currents-reader-prose max-w-none"
+                  // 翻译由受信任后台 LLM 管线产出并经 rehype 序列化
+                  dangerouslySetInnerHTML={{ __html: translationHtml }}
+                />
+              ) : (
+                <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
+                  {labels.translationPending}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* tab：AI 导读 */}
+          {tab === "summary" && item.summary && (
+            <section className="card-glass mb-10 rounded-xl p-5">
               <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{item.summary}</p>
             </section>
           )}
 
-          {/* 为什么值得读 */}
+          {/* tab：深度解读 */}
+          {tab === "deepRead" && (
+            <section className="mb-10">
+              {item.deepRead ? (
+                deepReadHtml ? (
+                  <div
+                    className="prose currents-reader-prose max-w-none"
+                    // deepRead 由受信任后台 LLM 管线产出并经 rehype 序列化
+                    dangerouslySetInnerHTML={{ __html: deepReadHtml }}
+                  />
+                ) : (
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed">{item.deepRead}</p>
+                )
+              ) : (
+                <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
+                  {labels.deepReadPending}
+                </p>
+              )}
+            </section>
+          )}
+
+          {/* 为什么值得读（保留独立小节，不入 tab） */}
           {item.reason && (
             <section className="mb-8">
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{labels.whyWorth}</h2>
               <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{item.reason}</p>
             </section>
           )}
-
-          {/* 深度解读 */}
-          <section className="mb-10">
-            <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{labels.deepRead}</h2>
-            {item.deepRead ? (
-              deepReadHtml ? (
-                <div
-                  className="prose currents-reader-prose max-w-none"
-                  // deepRead 由受信任后台 LLM 管线产出并经 rehype 序列化
-                  dangerouslySetInnerHTML={{ __html: deepReadHtml }}
-                />
-              ) : (
-                <p className="whitespace-pre-wrap text-sm leading-relaxed">{item.deepRead}</p>
-              )
-            ) : (
-              <p className="rounded-xl border border-dashed border-[var(--border)] p-4 text-sm text-[var(--text-muted)]">
-                {labels.deepReadPending}
-              </p>
-            )}
-          </section>
 
           {/* 相关报道 */}
           {related.length > 0 && (

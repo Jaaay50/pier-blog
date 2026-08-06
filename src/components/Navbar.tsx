@@ -23,6 +23,8 @@ export function Navbar() {
   const navLinks = [
     { href: "/blog", label: t("blog") },
     { href: "/currents", label: t("currents") },
+    { href: "/currents/hot", label: t("currentsHot") },
+    { href: "/currents/topics", label: t("currentsTopics") },
     { href: "/portfolio", label: t("portfolio") },
     { href: "/lab", label: t("lab") },
     { href: "/about", label: t("about") },

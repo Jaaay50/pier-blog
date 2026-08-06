@@ -67,6 +67,8 @@ export interface CurrentsItemDetail extends CurrentsListItem {
   alsoReportedBy: CurrentsAlsoReportedBy[] | null;
   related?: Array<{ id: string; title: string | null; publishedAt: string | null }> | null;
   qualityFlags?: string[] | null;
+  contentTranslationZh?: string | null;
+  contentTranslationEn?: string | null;
 }
 
 export interface CurrentsHighlightCard extends CurrentsListItem {
@@ -106,6 +108,51 @@ export interface CurrentsDailyReport {
 export interface CurrentsDailyArchiveResponse {
   dailies: Array<{ date: string; leadTitle: string | null; itemCount: number; finalized: boolean }>;
   generatedAt: string;
+}
+
+/** GET /v1/hot 热点榜事件 */
+export type CurrentsHotStatus = "new" | "brewing" | "hot";
+
+export interface CurrentsHotEvent {
+  eventId: string;
+  itemId: string | null;
+  title: string | null;
+  heat: number;
+  status: CurrentsHotStatus;
+  sourceCount: number;
+  itemCount: number;
+  sources: Array<{ id: string; name: string }>;
+  publishedAt: string | null;
+}
+
+export interface CurrentsHotResponse {
+  schemaVersion: number;
+  items: CurrentsHotEvent[];
+  meta: { windowHours: number; generatedAt: string };
+}
+
+/** GET /v1/topics 主题地图 */
+export interface CurrentsTopicPreview {
+  id: string;
+  title: string | null;
+  score: number | null;
+  publishedAt: string;
+}
+
+export interface CurrentsTopic {
+  id: string;
+  group: "companies" | "directions" | "formats";
+  name: string;
+  count: number;
+  featuredCount: number;
+  preview: CurrentsTopicPreview[];
+}
+
+export interface CurrentsTopicsResponse {
+  schemaVersion: number;
+  groups: Array<{ id: string; name: string }>;
+  topics: CurrentsTopic[];
+  meta: { generatedAt: string };
 }
 
 export interface CurrentsStats {

@@ -76,6 +76,13 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
 
   const deepReadHtml = item.deepRead ? await renderMarkdown(item.deepRead) : null;
 
+  // 批次 2：原文全文翻译（按 locale 与原文语言取目标语种列）
+  const translationSource =
+    locale === "zh"
+      ? (item.contentTranslationZh ?? null)
+      : (item.contentTranslationEn ?? null);
+  const translationHtml = translationSource ? await renderMarkdown(translationSource) : null;
+
   // 来源 id → 名称映射（与列表页一致），失败时回退原始 sourceId
   const sourcesRes = await serverFetchSources();
   const sourceMeta = item.sourceId
@@ -114,6 +121,7 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
       <CurrentsDetailBody
         item={item}
         deepReadHtml={deepReadHtml}
+        translationHtml={translationHtml}
         locale={locale}
         labels={{
           back: t("backToCurrents"),
@@ -128,6 +136,10 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
           otherSources: t("otherSources"),
           originalTitleLabel: t("originalTitleLabel"),
           categoryLabels,
+          translationTab: t("translationTab"),
+          aiSummaryTab: t("aiSummaryTab"),
+          deepReadTab: t("deepReadTab"),
+          translationPending: t("translationPending"),
         }}
         sourceName={sourceName}
       />

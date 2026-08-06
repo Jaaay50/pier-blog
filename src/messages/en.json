@@ -7,7 +7,9 @@
     "currents": "Currents",
     "github": "GitHub",
     "menuOpen": "Open menu",
-    "menuClose": "Close menu"
+    "menuClose": "Close menu",
+    "currentsHot": "Hot",
+    "currentsTopics": "Topics"
   },
   "currents": {
     "title": "Currents",
@@ -69,7 +71,27 @@
     "densityLabel": "List density",
     "densityCompact": "Compact",
     "densityStandard": "Standard",
-    "densityComfortable": "Comfortable"
+    "densityComfortable": "Comfortable",
+    "hotTitle": "Hot Board",
+    "hotSubtitle": "AI events covered by multiple sources in the last 48 hours.",
+    "hotStatusNew": "New",
+    "hotStatusBrewing": "Brewing",
+    "hotStatusHot": "Hot",
+    "hotHeat": "Heat",
+    "hotSources": "{count} sources",
+    "hotSourcesTitle": "Sources",
+    "hotEmpty": "No multi-source events in the last 48 hours.",
+    "topicsTitle": "Topic Map",
+    "topicsSubtitle": "Browse the currents by company, technical direction, and content type.",
+    "topicsFeaturedCount": "{count} featured",
+    "topicsCount": "{count} items",
+    "topicsEmpty": "No items under this topic in the last 30 days.",
+    "topicDetailSubtitle": "Latest items under \"{name}\".",
+    "backToTopics": "Back to topic map",
+    "translationTab": "Translation",
+    "aiSummaryTab": "AI Summary",
+    "deepReadTab": "Deep Read",
+    "translationPending": "Translation is being generated. Check back soon."
   },
   "home": {
     "role": "Frontend Engineer",

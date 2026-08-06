@@ -8,10 +8,12 @@ import type {
   CurrentsDailyArchiveResponse,
   CurrentsDailyReport,
   CurrentsHighlightsResponse,
+  CurrentsHotResponse,
   CurrentsItemDetail,
   CurrentsItemsResponse,
   CurrentsSource,
   CurrentsStats,
+  CurrentsTopicsResponse,
 } from "./types";
 
 export const CURRENTS_API_BASE = "https://currents-api.ethanpier.com";
@@ -164,3 +166,18 @@ export const serverFetchDailyByDate = (date: string, locale: string) =>
 
 export const serverFetchDailyArchive = (locale: string, limit = 30) =>
   serverFetch<CurrentsDailyArchiveResponse>(`/v1/dailies?locale=${encodeURIComponent(locale)}&limit=${limit}`, 300);
+
+export function fetchHot(
+  locale: string,
+  limit = 20,
+  signal?: AbortSignal,
+): Promise<CurrentsHotResponse> {
+  return fetchJson<CurrentsHotResponse>(
+    `/v1/hot?locale=${encodeURIComponent(locale)}&limit=${limit}`,
+    signal,
+  );
+}
+
+export function fetchTopics(locale: string, signal?: AbortSignal): Promise<CurrentsTopicsResponse> {
+  return fetchJson<CurrentsTopicsResponse>(`/v1/topics?locale=${encodeURIComponent(locale)}`, signal);
+}

@@ -7,7 +7,9 @@
     "currents": "潮汐",
     "github": "GitHub",
     "menuOpen": "打开菜单",
-    "menuClose": "关闭菜单"
+    "menuClose": "关闭菜单",
+    "currentsHot": "热点",
+    "currentsTopics": "主题"
   },
   "currents": {
     "title": "潮汐",
@@ -69,7 +71,27 @@
     "densityLabel": "列表密度",
     "densityCompact": "紧凑",
     "densityStandard": "标准",
-    "densityComfortable": "宽松"
+    "densityComfortable": "宽松",
+    "hotTitle": "热点榜",
+    "hotSubtitle": "48 小时内多信源共同报道的 AI 热点事件。",
+    "hotStatusNew": "新",
+    "hotStatusBrewing": "发酵中",
+    "hotStatusHot": "爆",
+    "hotHeat": "热度",
+    "hotSources": "{count} 个信源",
+    "hotSourcesTitle": "信源名单",
+    "hotEmpty": "48 小时内暂无多信源共同报道的事件。",
+    "topicsTitle": "主题地图",
+    "topicsSubtitle": "按公司、技术方向与内容形态浏览潮汐收录。",
+    "topicsFeaturedCount": "{count} 条精选",
+    "topicsCount": "{count} 条",
+    "topicsEmpty": "近 30 天暂无该主题的收录。",
+    "topicDetailSubtitle": "主题「{name}」下的最新收录。",
+    "backToTopics": "返回主题地图",
+    "translationTab": "原文翻译",
+    "aiSummaryTab": "AI 导读",
+    "deepReadTab": "深度解读",
+    "translationPending": "翻译生成中，请稍后刷新。"
   },
   "home": {
     "role": "前端工程师",
