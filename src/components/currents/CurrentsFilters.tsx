@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import type { CurrentsSource } from "@/lib/currents/types";
+import { setDensity, type Density } from "@/lib/currents/density";
 
 // 惰性初始化需要给 useState 传函数引用而非内联调用（react-hooks 规则）
 const getIsClient = () => typeof window !== "undefined";
@@ -35,6 +36,7 @@ interface CurrentsFiltersProps {
   onSourceChange: (s: string) => void;
   minScore: string;
   onMinScoreChange: (v: string) => void;
+  density: Density;
 }
 
 function SearchIcon() {
@@ -53,6 +55,22 @@ function StarIcon({ filled }: { filled: boolean }) {
     </svg>
   );
 }
+
+function DensityIcon() {
+  return (
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+      <path d="M4 7h16M4 12h16M4 17h16" />
+    </svg>
+  );
+}
+
+const DENSITY_KEYS: Density[] = ["compact", "standard", "comfortable"];
+
+const DENSITY_LABEL_KEY: Record<Density, string> = {
+  compact: "densityCompact",
+  standard: "densityStandard",
+  comfortable: "densityComfortable",
+};
 
 const VIEW_LABEL_KEY: Record<ViewKey, string> = {
   selected: "viewSelected",
@@ -74,6 +92,7 @@ export function CurrentsFilters({
   onSourceChange,
   minScore,
   onMinScoreChange,
+  density,
 }: CurrentsFiltersProps) {
   const t = useTranslations("currents");
   const [inputValue, setInputValue] = useState(() => (getIsClient() ? query : ""));
@@ -195,6 +214,36 @@ export function CurrentsFilters({
               <option value="50">50+</option>
               <option value="0">0+</option>
             </select>
+
+            {/* 密度切换：紧凑 / 标准 / 宽松（localStorage 持久化） */}
+            <div
+              role="group"
+              aria-label={t("densityLabel")}
+              className="flex shrink-0 items-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] p-0.5"
+            >
+              <span className="pl-2 pr-1 text-[var(--text-muted)]" aria-hidden>
+                <DensityIcon />
+              </span>
+              {DENSITY_KEYS.map((key) => {
+                const active = density === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    aria-pressed={active}
+                    title={t(DENSITY_LABEL_KEY[key])}
+                    onClick={() => setDensity(key)}
+                    className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
+                      active
+                        ? "bg-[var(--accent-soft)] font-medium text-[var(--accent)]"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
+                    }`}
+                  >
+                    {t(DENSITY_LABEL_KEY[key])}
+                  </button>
+                );
+              })}
+            </div>
 
             {/* 收藏开关 */}
             <button

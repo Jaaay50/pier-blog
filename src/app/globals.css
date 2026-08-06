@@ -1064,3 +1064,167 @@ html[data-particles-ready] .hero-title-ssr {
 .scrollbar-none::-webkit-scrollbar {
   display: none;
 }
+
+/* ============================================
+   Currents 密度分档（紧凑 / 标准 / 宽松）
+   标准档为 :root 默认值，不加 data-density 即是；
+   compact / comfortable 通过 <html data-density> 覆盖。
+   ============================================ */
+:root {
+  --currents-card-pad-x: 1.25rem;
+  --currents-card-pad-y: 1.125rem;
+  --currents-card-gap: 1rem;
+  --currents-title-size: 0.9375rem;
+  --currents-summary-lines: 3;
+  --currents-day-gap: 3rem;
+  --currents-time-w: 3.5rem;
+  --currents-time-gap: 1rem;
+  --currents-node: 0.625rem;
+}
+
+html[data-density="compact"] {
+  --currents-card-pad-x: 1rem;
+  --currents-card-pad-y: 0.625rem;
+  --currents-card-gap: 0.5rem;
+  --currents-title-size: 0.875rem;
+  --currents-summary-lines: 2;
+  --currents-day-gap: 2rem;
+  --currents-time-w: 3rem;
+  --currents-time-gap: 0.75rem;
+  --currents-node: 0.5rem;
+}
+
+html[data-density="comfortable"] {
+  --currents-card-pad-x: 1.5rem;
+  --currents-card-pad-y: 1.5rem;
+  --currents-card-gap: 1.5rem;
+  --currents-title-size: 1.0625rem;
+  --currents-summary-lines: 4;
+  --currents-day-gap: 4rem;
+  --currents-time-w: 4rem;
+  --currents-time-gap: 1.25rem;
+  --currents-node: 0.75rem;
+}
+
+/* 卡片内元素消费密度变量 */
+.currents-card {
+  padding: var(--currents-card-pad-y) var(--currents-card-pad-x);
+}
+
+.currents-card-title {
+  font-size: var(--currents-title-size);
+}
+
+.currents-card-summary {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: var(--currents-summary-lines);
+  line-clamp: var(--currents-summary-lines);
+  overflow: hidden;
+}
+
+.currents-card-meta {
+  margin-bottom: calc(var(--currents-card-pad-y) * 0.6);
+}
+
+.currents-card-summary-block {
+  margin-bottom: calc(var(--currents-card-pad-y) * 0.75);
+}
+
+.currents-card-footer {
+  margin-top: calc(var(--currents-card-pad-y) * 0.8);
+}
+
+/* 推荐理由：accent 左引导条（轻量：2px / 55% 透明度 / 0.75rem 内边距） */
+.currents-card-reason {
+  border-left: 2px solid color-mix(in srgb, var(--accent) 55%, transparent);
+  padding-left: 0.75rem;
+}
+
+/* 时间轴行 / 分组间距 */
+.currents-tl-groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--currents-day-gap);
+}
+
+.currents-tl-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--currents-card-gap);
+}
+
+/* 桌面端时间列（时间轴左侧独立成列，参考 aihot） */
+.currents-tl-time {
+  display: none;
+}
+
+@media (min-width: 640px) {
+  .currents-tl-row {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--currents-time-gap);
+  }
+
+  .currents-tl-time {
+    display: block;
+    width: var(--currents-time-w);
+    flex-shrink: 0;
+    padding-top: calc(var(--currents-card-pad-y) + var(--currents-title-size) * 0.4);
+    text-align: right;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    color: var(--text-muted);
+  }
+}
+
+/* 时间轴节点：加大 + 柔光 */
+.currents-tl-node {
+  width: var(--currents-node);
+  height: var(--currents-node);
+  border-radius: 9999px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--glow-color);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .currents-tl-node {
+    box-shadow: none;
+  }
+}
+
+/* 已读弱化（标准 / 宽松档；紧凑档保持原样） */
+.currents-card-read {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+.currents-card-read:hover,
+.currents-card-read:focus-visible {
+  opacity: 0.9;
+}
+
+html[data-density="compact"] .currents-card-read {
+  opacity: 1;
+}
+
+html[data-density="compact"] .currents-card-read .currents-card-summary {
+  display: -webkit-box;
+}
+
+/* 已读只收起摘要 <p>，标题保留可见 */
+.currents-card-read .currents-card-summary {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .currents-card-read {
+    transition: none;
+  }
+}
+
+/* 高分评分徽章强调 */
+.score-badge-high {
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  font-weight: 700;
+}

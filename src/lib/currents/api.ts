@@ -153,6 +153,9 @@ async function serverFetch<T>(path: string, revalidate = 300): Promise<T | null>
 export const serverFetchItemDetail = (id: string, locale: string) =>
   serverFetch<CurrentsItemDetail>(`/v1/items/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`, 300);
 
+export const serverFetchSources = () =>
+  serverFetch<{ sources: CurrentsSource[] }>("/v1/sources", 3600);
+
 export const serverFetchDailyLatest = (locale: string) =>
   serverFetch<CurrentsDailyReport>(`/v1/dailies/latest?locale=${encodeURIComponent(locale)}`, 300);
 

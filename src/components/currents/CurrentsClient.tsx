@@ -11,6 +11,7 @@ import type {
   CurrentsSource,
 } from "@/lib/currents/types";
 import { useFavorites } from "@/lib/currents/useFavorites";
+import { useDensity } from "@/lib/currents/useDensity";
 import { CurrentsFilters, type CategoryKey, type ViewKey } from "./CurrentsFilters";
 import { CurrentsTimeline } from "./CurrentsTimeline";
 import { CurrentsHighlights } from "./CurrentsHighlights";
@@ -92,6 +93,7 @@ function CurrentsClientInner() {
 
   const [favoritesOnly, setFavoritesOnly] = useState(false);
   const favorites = useFavorites();
+  const density = useDensity();
   const [sources, setSources] = useState<CurrentsSource[]>([]);
   const [sourceMap, setSourceMap] = useState<Map<string, CurrentsSource>>(new Map());
   const [list, dispatch] = useReducer(listReducer, initialListState);
@@ -243,6 +245,7 @@ function CurrentsClientInner() {
         onSourceChange={(s) => syncUrl({ source: s || null })}
         minScore={minScore}
         onMinScoreChange={(v) => syncUrl({ minScore: v || null })}
+        density={density}
       />
 
       <div className="px-6 py-8">

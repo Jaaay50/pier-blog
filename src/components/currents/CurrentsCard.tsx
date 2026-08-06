@@ -13,8 +13,9 @@ interface CurrentsCardProps {
 }
 
 /**
- * 标准资讯行（Phase 6 紧凑态）：整卡为真实 <Link>，原生新标签/中键可用。
- * 信息层级：来源+时间 → 精选 → 评分+收藏 → 标题 → 摘要2行 → 多信源 → 推荐理由 → 标签≤2
+ * 资讯卡片：整卡为真实 <Link>，原生新标签/中键可用。
+ * 密度变量（--currents-*）驱动留白/字号/摘要行数；桌面端时间在时间轴左侧独立成列，
+ * 卡内时间仅移动端显示（sm:hidden）。标准/宽松档已读整卡弱化并收起摘要。
  */
 export function CurrentsCard({ item, sourceName }: CurrentsCardProps) {
   const t = useTranslations("currents");
@@ -39,17 +40,21 @@ export function CurrentsCard({ item, sourceName }: CurrentsCardProps) {
     <Link
       href={`/currents/${item.id}`}
       aria-label={item.title}
-      className="card-glass card-glass-hover group block rounded-xl px-4 py-3.5"
+      className={`currents-card card-glass card-glass-hover group block rounded-xl ${
+        isRead ? "currents-card-read" : ""
+      }`}
     >
-      {/* 顶行：来源 + 精选 badge / 评分 + 收藏 */}
-      <div className="mb-1.5 flex items-center justify-between gap-3">
+      {/* 顶行：来源 + badge / 评分 + 收藏 */}
+      <div className="currents-card-meta flex items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 text-[11px] text-[var(--text-muted)]">
-          {timeLabel && <span className="tabular-nums">{timeLabel}</span>}
           {sourceName && (
-            <>
-              <span className="opacity-40">·</span>
-              <span className="truncate font-medium text-[var(--text-secondary)]">{sourceName}</span>
-            </>
+            <span className="truncate font-medium text-[var(--text-secondary)]">{sourceName}</span>
+          )}
+          {timeLabel && (
+            <span className="tabular-nums sm:hidden">
+              {sourceName && <span className="opacity-40">· </span>}
+              {timeLabel}
+            </span>
           )}
           {isRead && (
             <span className="rounded-full border border-[var(--border)] px-1.5 text-[10px] opacity-70">
@@ -76,38 +81,44 @@ export function CurrentsCard({ item, sourceName }: CurrentsCardProps) {
         </div>
       </div>
 
-      {/* 标题（已读弱化；高分加字重） */}
-      <h3
-        className={`mb-1 text-[15px] leading-snug tracking-tight ${
-          highScore ? "font-semibold" : "font-medium"
-        } ${isRead ? "text-[var(--text-muted)]" : ""}`}
-      >
-        {item.title}
-      </h3>
+      {/* 标题与摘要成组，间距与下方推荐理由拉开（高分标题加字重） */}
+      <div className="currents-card-summary-block">
+        <h3
+          className={`currents-card-title mb-1.5 leading-snug tracking-tight ${
+            highScore ? "font-semibold" : "font-medium"
+          } ${isRead ? "text-[var(--text-muted)]" : ""}`}
+        >
+          {item.title}
+        </h3>
+        {item.summary && (
+          <p className="currents-card-summary text-[13px] leading-relaxed text-[var(--text-secondary)]">
+            {item.summary}
+          </p>
+        )}
+      </div>
 
-      {/* 摘要（2 行） */}
-      {item.summary && (
-        <p className="line-clamp-2 text-[13px] leading-relaxed text-[var(--text-secondary)]">
-          {item.summary}
+      {/* 推荐理由：单独成行 + accent 左引导条 */}
+      {item.reason && (
+        <p className="currents-card-reason line-clamp-2 text-[12px] leading-relaxed text-[var(--text-muted)]">
+          {item.reason}
         </p>
       )}
 
-      {/* 推荐理由（默认 1 行）+ 标签≤2 */}
-      <div className="mt-1.5 flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
-        {item.reason && <p className="line-clamp-1 min-w-0 flex-1">{item.reason}</p>}
-        {item.tags && item.tags.length > 0 && (
-          <div className="flex shrink-0 gap-1">
-            {item.tags.slice(0, 2).map((tag) => (
+      {/* 底行：标签左 / 多信源计数右，各自归位 */}
+      {((item.tags && item.tags.length > 0) || (multiSourceCount != null && multiSourceCount > 1)) && (
+        <div className="currents-card-footer flex items-center justify-between gap-2 text-[11px] text-[var(--text-muted)]">
+          <div className="flex min-w-0 flex-wrap gap-1">
+            {item.tags?.slice(0, 2).map((tag) => (
               <span key={tag} className="rounded-full border border-[var(--border)] bg-[var(--bg-primary)] px-1.5 text-[10px]">
                 {tag}
               </span>
             ))}
           </div>
-        )}
-        {multiSourceCount != null && multiSourceCount > 1 && (
-          <span className="shrink-0">{t("sourcesCount", { count: multiSourceCount })}</span>
-        )}
-      </div>
+          {multiSourceCount != null && multiSourceCount > 1 && (
+            <span className="shrink-0 tabular-nums">{t("sourcesCount", { count: multiSourceCount })}</span>
+          )}
+        </div>
+      )}
     </Link>
   );
 }

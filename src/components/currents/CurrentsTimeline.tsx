@@ -49,14 +49,24 @@ function sourceNameFor(
   return locale === "zh" ? (s.nameZh ?? s.name) : s.name;
 }
 
-/** 时间线：按日期分组（日期 + 星期 + 条数），左轨 + accent 节点，分组头吸顶可折叠 */
+function timeLabelFor(item: CurrentsListItem, locale: string): string | null {
+  if (!item.publishedAt) return null;
+  const d = new Date(item.publishedAt);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString(locale === "zh" ? "zh-CN" : "en-US", {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+/** 时间线：日期分组头吸顶并带视觉分隔；桌面端时间在轨道左侧独立成列，节点加大 */
 export function CurrentsTimeline({ items, sources }: CurrentsTimelineProps) {
   const locale = useLocale();
   const t = useTranslations("currents");
   const groups = groupByDay(items, locale);
 
   return (
-    <div className="space-y-10">
+    <div className="currents-tl-groups">
       {groups.map((group) => {
         const isUnknown = group.key === "unknown";
         const dateLabel = isUnknown
@@ -73,8 +83,8 @@ export function CurrentsTimeline({ items, sources }: CurrentsTimelineProps) {
 
         return (
           <section key={group.key} aria-label={dateLabel}>
-            {/* 日期分组头（吸顶 + 可折叠） */}
-            <header className="sticky top-[65px] z-10 mb-4 flex items-baseline gap-2 bg-[var(--bg-primary)]/80 py-1.5 backdrop-blur-sm">
+            {/* 日期分组头（吸顶 + 视觉分隔） */}
+            <header className="sticky top-[65px] z-10 mb-4 flex items-baseline gap-2 border-b border-[var(--border)] bg-[var(--bg-primary)] py-2">
               <h2 className="font-display text-lg font-semibold tracking-tight">
                 {dateLabel}
               </h2>
@@ -86,22 +96,34 @@ export function CurrentsTimeline({ items, sources }: CurrentsTimelineProps) {
               </span>
             </header>
 
-            {/* 时间轴：var(--border) 轨道 + var(--accent) 节点，紧凑间距 */}
-            <div className="relative space-y-2.5 border-l border-[var(--border)] pl-4 sm:pl-5">
-              {group.items.map((item) => (
-                <div key={item.id} className="relative">
-                  {/* 节点 */}
-                  <span
-                    aria-hidden
-                    className="absolute -left-4 top-5 h-1.5 w-1.5 -translate-x-1/2 rounded-full bg-[var(--accent)] sm:-left-5"
-                    style={{ transform: "translateX(calc(-50% - 0.5px))" }}
-                  />
-                  <CurrentsCard
-                    item={item}
-                    sourceName={sourceNameFor(item, sources, locale)}
-                  />
-                </div>
-              ))}
+            {/* 时间轴：var(--border) 轨道 + 加大 accent 节点，桌面端时间在左侧独立成列 */}
+            <div className="currents-tl-items relative border-l border-[var(--border)] pl-4 sm:pl-5">
+              {group.items.map((item) => {
+                const timeLabel = timeLabelFor(item, locale);
+                return (
+                  <div key={item.id} className="relative">
+                    {/* 节点 */}
+                    <span
+                      aria-hidden
+                      className="currents-tl-node absolute -left-4 top-6 -translate-x-1/2 sm:-left-5"
+                      style={{ transform: "translateX(calc(-50% - 0.5px))" }}
+                    />
+                    <div className="currents-tl-row">
+                      {timeLabel && (
+                        <time dateTime={item.publishedAt!} className="currents-tl-time tabular-nums">
+                          {timeLabel}
+                        </time>
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <CurrentsCard
+                          item={item}
+                          sourceName={sourceNameFor(item, sources, locale)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </section>
         );

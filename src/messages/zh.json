@@ -65,7 +65,11 @@
     "dateTo": "结束日期",
     "read": "已读",
     "viewDaily": "查看潮汐日报",
-    "emptyHighlights": "今日要闻数据不足"
+    "emptyHighlights": "今日要闻数据不足",
+    "densityLabel": "列表密度",
+    "densityCompact": "紧凑",
+    "densityStandard": "标准",
+    "densityComfortable": "宽松"
   },
   "home": {
     "role": "前端工程师",

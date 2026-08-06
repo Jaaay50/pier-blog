@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { serverFetchItemDetail } from "@/lib/currents/api";
+import { serverFetchItemDetail, serverFetchSources } from "@/lib/currents/api";
 import { renderMarkdown } from "@/lib/currents/markdown";
 import { CurrentsDetailBody } from "@/components/currents/CurrentsDetailBody";
 
@@ -76,6 +76,18 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
 
   const deepReadHtml = item.deepRead ? await renderMarkdown(item.deepRead) : null;
 
+  // 来源 id → 名称映射（与列表页一致），失败时回退原始 sourceId
+  const sourcesRes = await serverFetchSources();
+  const sourceMeta = item.sourceId
+    ? sourcesRes?.sources.find((s) => s.id === item.sourceId)
+    : undefined;
+  const sourceName = sourceMeta ? (locale === "zh" ? (sourceMeta.nameZh ?? sourceMeta.name) : sourceMeta.name) : null;
+
+  const categoryLabels: Record<string, string> = {};
+  for (const key of ["models", "products", "industry", "papers", "tutorials", "opinions", "opensource"] as const) {
+    categoryLabels[key] = t(key);
+  }
+
   return (
     <main className="relative min-h-screen">
       {/* NewsArticle JSON-LD */}
@@ -115,7 +127,9 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
           tagsLabel: t("tagsLabel"),
           otherSources: t("otherSources"),
           originalTitleLabel: t("originalTitleLabel"),
+          categoryLabels,
         }}
+        sourceName={sourceName}
       />
       <SiteFooter maxWidth="max-w-6xl" />
     </main>

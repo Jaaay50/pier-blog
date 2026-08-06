@@ -19,6 +19,7 @@ interface Labels {
   tagsLabel: string;
   otherSources: string;
   originalTitleLabel: string;
+  categoryLabels: Record<string, string>;
 }
 
 interface Props {
@@ -26,6 +27,7 @@ interface Props {
   deepReadHtml: string | null;
   locale: string;
   labels: Labels;
+  sourceName: string | null;
 }
 
 const BREAKDOWN_KEYS = ["novelty", "impact", "practicality", "credibility", "timeliness"] as const;
@@ -38,7 +40,7 @@ const BREAKDOWN_LABEL: Record<(typeof BREAKDOWN_KEYS)[number], { zh: string; en:
 };
 
 /** 详情页正文（客户端小岛：负责 markRead + 返回导航 + 收藏） */
-export function CurrentsDetailBody({ item, deepReadHtml, locale, labels }: Props) {
+export function CurrentsDetailBody({ item, deepReadHtml, locale, labels, sourceName }: Props) {
   const router = useRouter();
 
   useEffect(() => {
@@ -87,13 +89,22 @@ export function CurrentsDetailBody({ item, deepReadHtml, locale, labels }: Props
         <article className="min-w-0 max-w-[740px] flex-1">
           {/* Meta 行 */}
           <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
-            {item.sourceId && <span className="font-medium text-[var(--text-secondary)]">{item.sourceId}</span>}
+            {(sourceName ?? item.sourceId) && (
+              <span className="font-medium text-[var(--text-secondary)]">{sourceName ?? item.sourceId}</span>
+            )}
+            {item.author && (
+              <span className="text-[var(--text-secondary)]">{item.author}</span>
+            )}
             {published && (
               <time dateTime={item.publishedAt!}>
                 {published.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", { dateStyle: "medium", timeStyle: "short" })}
               </time>
             )}
-            {item.category && <span className="rounded-full border border-[var(--border)] px-2 py-0.5">{item.category}</span>}
+            {item.category && (
+              <span className="rounded-full border border-[var(--border)] px-2 py-0.5">
+                {labels.categoryLabels[item.category] ?? item.category}
+              </span>
+            )}
             <ScoreBadge score={item.score} />
             <FavoriteButton itemId={item.id} />
           </div>

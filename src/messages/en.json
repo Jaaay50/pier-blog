@@ -65,7 +65,11 @@
     "dateTo": "To",
     "read": "Read",
     "viewDaily": "View Currents Daily",
-    "emptyHighlights": "Not enough highlights today"
+    "emptyHighlights": "Not enough highlights today",
+    "densityLabel": "List density",
+    "densityCompact": "Compact",
+    "densityStandard": "Standard",
+    "densityComfortable": "Comfortable"
   },
   "home": {
     "role": "Frontend Engineer",
