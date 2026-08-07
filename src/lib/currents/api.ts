@@ -17,7 +17,16 @@ import type {
   CurrentsTopicsResponse,
 } from "./types";
 
-export const CURRENTS_API_BASE = "https://currents-api.ethanpier.com";
+export const CURRENTS_API_BASE = process.env.NEXT_PUBLIC_CURRENTS_API_BASE ?? "https://currents-api.ethanpier.com";
+
+/** 客户端运行时读取：生产走构建内联常量；本地 QA 可用 window.__CURRENTS_API_BASE 覆盖。 */
+function clientApiBase(): string {
+  if (typeof window !== "undefined") {
+    const override = (window as unknown as Record<string, unknown>).__CURRENTS_API_BASE;
+    if (typeof override === "string" && override) return override;
+  }
+  return CURRENTS_API_BASE;
+}
 
 export class CurrentsApiError extends Error {
   status: number | null;
@@ -31,7 +40,7 @@ export class CurrentsApiError extends Error {
 async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${CURRENTS_API_BASE}${path}`, {
+    res = await fetch(`${clientApiBase()}${path}`, {
       signal,
       headers: { Accept: "application/json" },
     });
@@ -172,9 +181,10 @@ export function fetchHot(
   locale: string,
   limit = 20,
   signal?: AbortSignal,
+  type: string = "all",
 ): Promise<CurrentsHotResponse> {
   return fetchJson<CurrentsHotResponse>(
-    `/v1/hot?locale=${encodeURIComponent(locale)}&limit=${limit}`,
+    `/v1/hot?locale=${encodeURIComponent(locale)}&limit=${limit}&type=${encodeURIComponent(type)}`,
     signal,
   );
 }

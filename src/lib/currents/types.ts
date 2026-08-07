@@ -110,25 +110,38 @@ export interface CurrentsDailyArchiveResponse {
   generatedAt: string;
 }
 
-/** GET /v1/hot 热点榜事件 */
-export type CurrentsHotStatus = "new" | "brewing" | "hot";
+/** GET /v1/hot 热点榜事件（Phase 2：schemaVersion 2，持久事件层） */
+export type CurrentsHotStatus = "new" | "rising" | "peak" | "cooling" | "ended" | "active";
+export type CurrentsHotType = "all" | "news" | "product" | "research";
 
 export interface CurrentsHotEvent {
   eventId: string;
   itemId: string | null;
+  eventType: "news" | "product" | "research";
   title: string | null;
+  progress: string | null;
+  summary: string | null;
   heat: number;
   status: CurrentsHotStatus;
+  lifecycle: CurrentsHotStatus;
+  /** 独立报道数（不含聚合入口与社区） */
   sourceCount: number;
+  independentReportCount: number;
+  officialReportCount: number;
+  communityScoreMax: number;
+  communityCommentsMax: number;
   itemCount: number;
   sources: Array<{ id: string; name: string }>;
   publishedAt: string | null;
+  latestActivityAt: string | null;
 }
 
 export interface CurrentsHotResponse {
   schemaVersion: number;
+  type: CurrentsHotType;
   items: CurrentsHotEvent[];
-  meta: { windowHours: number; generatedAt: string };
+  watching: CurrentsHotEvent[];
+  meta: { windowHours: number; mainCount: number; watchingCount: number; generatedAt: string };
 }
 
 /** GET /v1/topics 主题地图 */
