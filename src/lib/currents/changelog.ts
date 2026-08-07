@@ -31,9 +31,61 @@ export interface ChangelogEntry {
   items: ChangelogItem[];
 }
 
-export const CHANGELOG_LAST_UPDATED = "2026-08-06";
+export const CHANGELOG_LAST_UPDATED = "2026-08-07";
 
 export const changelogEntries: ChangelogEntry[] = [
+  {
+    phase: "phase2",
+    date: "2026-08-07",
+    phaseLabelZh: "Phase 2 · 事件基础与质量门槛",
+    phaseLabelEn: "Phase 2 · Event Foundation & Quality Gate",
+    noteZh: "热点榜从实时聚合升级为持久化事件层：每个事件有稳定身份、生命周期与双语综述，主榜有了明确的质量门槛，低置信聚合不再打扰主榜，而是列入「观察中」。",
+    noteEn: "The Hot Board moves from real-time aggregation to a persistent event layer: every event now has a stable identity, a lifecycle, and a bilingual summary. The main board gains an explicit quality bar, and low-confidence clusters move to a separate Watching section.",
+    items: [
+      {
+        type: "new",
+        titleZh: "事件层上线",
+        titleEn: "Event Layer",
+        descZh: "同一事件的多家报道被归并为一个有稳定身份的事件，持续跟踪其最新进展；事件合并可追溯，报道更新会刷新事件的真实活动时间。",
+        descEn: "Reports of the same story are merged into one event with a stable identity that keeps tracking new developments. Merges are traceable, and report updates refresh the event's real activity time.",
+      },
+      {
+        type: "new",
+        titleZh: "热点榜四类切换",
+        titleEn: "Hot Board Type Tabs",
+        descZh: "热点榜支持综合 / 新闻 / 产品发布 / 研究四类切换，快速聚焦你关心的事件类型。",
+        descEn: "The Hot Board now switches between All, News, Products, and Research, so you can focus on the kind of events you care about.",
+      },
+      {
+        type: "new",
+        titleZh: "「观察中」分组",
+        titleEn: "Watching Section",
+        descZh: "尚不足以进入主榜的聚合（单信源、仅收录入口或社区讨论不足）单独列入「观察中」，主榜更干净。",
+        descEn: "Clusters that don't yet qualify — single-source, aggregator-only, or lacking community traction — are listed under Watching, keeping the main board clean.",
+      },
+      {
+        type: "improved",
+        titleZh: "主榜质量门槛",
+        titleEn: "Main Board Quality Bar",
+        descZh: "进入主榜需至少两家独立报道，或一家官方来源加显著社区讨论；论文收录入口（arXiv / HF Daily Papers）不再单独构成热点。",
+        descEn: "The main board now requires at least two independent reports, or one official source with significant community discussion. Paper listing entries (arXiv / HF Daily Papers) no longer qualify on their own.",
+      },
+      {
+        type: "improved",
+        titleZh: "事件综述与热度",
+        titleEn: "Event Summaries & Heat",
+        descZh: "高置信事件自动生成中英双语综述与进展摘要；热度值由独立报道数与社区讨论强度共同决定，并按 3 小时粒度采样跟踪。",
+        descEn: "High-confidence events get auto-generated bilingual summaries and progress notes. Heat combines independent report count with community traction, sampled every 3 hours.",
+      },
+      {
+        type: "fixed",
+        titleZh: "重复信源与共享链接",
+        titleEn: "Duplicate Sources & Shared URLs",
+        descZh: "修复同一来源重复采集被误计为多家报道的问题；不同来源引用同一链接时现在可以正确分别署名。",
+        descEn: "Fixed repeated fetches from one source being counted as multiple reports. Different outlets referencing the same URL are now credited independently.",
+      },
+    ],
+  },
   {
     phase: "batch2",
     date: "2026-08-06",
