@@ -43,6 +43,13 @@ export const changelogEntries: ChangelogEntry[] = [
     noteEn: "The Hot Board moves from real-time aggregation to a persistent event layer: every event now has a stable identity, a lifecycle, and a bilingual summary. The main board gains an explicit quality bar, and low-confidence clusters move to a separate Watching section.",
     items: [
       {
+        type: "fixed",
+        titleZh: "报道撤回与事件拆分",
+        titleEn: "Report Withdrawal & Event Split",
+        descZh: "已撤回或失效的报道现在会正确离开事件并重算热度与资格，不再残留旧内容；被错误合并的事件在语义纠正后可以可靠拆分，旧事件身份始终可追溯。",
+        descEn: "Withdrawn or invalidated reports now correctly leave their events and trigger a recalculation of heat and qualification, instead of lingering as stale content. Mistakenly merged events can now be split reliably once their semantics are corrected, with the original event identity always traceable.",
+      },
+      {
         type: "new",
         titleZh: "事件层上线",
         titleEn: "Event Layer",
