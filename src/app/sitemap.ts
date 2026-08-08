@@ -158,6 +158,35 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     currentsPages = []; // 降级：只输出静态页
   }
 
+  // Currents 事件页：拉取当前主榜/观察中事件 id（失败降级，不拖垮构建）
+  let eventPages: MetadataRoute.Sitemap = [];
+  try {
+    const res = await fetch(`${CURRENTS_API_BASE}/v1/hot?locale=en&limit=50&type=all`, {
+      next: { revalidate: 3600 },
+    });
+    if (res.ok) {
+      const data = (await res.json()) as {
+        schemaVersion: number;
+        items?: Array<{ eventId: string; latestActivityAt: string | null }>;
+        watching?: Array<{ eventId: string; latestActivityAt: string | null }>;
+      };
+      if (data.schemaVersion === 2) {
+        const events = [...(data.items ?? []), ...(data.watching ?? [])];
+        eventPages = locales.flatMap((locale) =>
+          events.map((e) => ({
+            url: `${baseUrl}/${locale}/currents/events/${e.eventId}`,
+            lastModified: e.latestActivityAt ? new Date(e.latestActivityAt) : newestPostDate,
+            changeFrequency: "hourly" as const,
+            priority: 0.6,
+            alternates: langAlternates(`/currents/events/${e.eventId}`),
+          }))
+        );
+      }
+    }
+  } catch {
+    eventPages = []; // 降级：只输出静态页
+  }
+
   const postPages = locales.flatMap((locale) =>
     slugs.map((slug) => ({
       url: `${baseUrl}/${locale}/blog/${slug}`,
@@ -168,5 +197,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     }))
   );
 
-  return [...staticPages, ...topicPages, ...postPages, ...currentsPages];
+  return [...staticPages, ...topicPages, ...eventPages, ...postPages, ...currentsPages];
 }

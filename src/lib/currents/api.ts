@@ -7,6 +7,7 @@
 import type {
   CurrentsDailyArchiveResponse,
   CurrentsDailyReport,
+  CurrentsEventDetail,
   CurrentsHighlightsResponse,
   CurrentsHotResponse,
   CurrentsItemDetail,
@@ -176,6 +177,9 @@ export const serverFetchDailyByDate = (date: string, locale: string) =>
 
 export const serverFetchDailyArchive = (locale: string, limit = 30) =>
   serverFetch<CurrentsDailyArchiveResponse>(`/v1/dailies?locale=${encodeURIComponent(locale)}&limit=${limit}`, 300);
+
+export const serverFetchEventDetail = (id: string, locale: string) =>
+  serverFetch<CurrentsEventDetail>(`/v1/events/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`, 300);
 
 export function fetchHot(
   locale: string,

@@ -80,18 +80,12 @@ function HotCard({ event, watching }: { event: CurrentsHotEvent; watching?: bool
         </span>
       </div>
 
-      {event.itemId ? (
-        <Link
-          href={`/currents/${event.itemId}`}
-          className="currents-card-title mb-1.5 block font-semibold leading-snug tracking-tight transition-colors hover:text-[var(--accent)]"
-        >
-          {event.title ?? t("hotUntitled")}
-        </Link>
-      ) : (
-        <h3 className="currents-card-title mb-1.5 font-semibold leading-snug tracking-tight">
-          {event.title ?? t("hotUntitled")}
-        </h3>
-      )}
+      <Link
+        href={`/currents/events/${event.eventId}`}
+        className="currents-card-title mb-1.5 block font-semibold leading-snug tracking-tight transition-colors hover:text-[var(--accent)]"
+      >
+        {event.title ?? t("hotUntitled")}
+      </Link>
 
       {event.progress && (
         <p className="mb-1 text-[13px] leading-relaxed text-[var(--text-secondary)]">{event.progress}</p>

@@ -144,6 +144,57 @@ export interface CurrentsHotResponse {
   meta: { windowHours: number; mainCount: number; watchingCount: number; generatedAt: string };
 }
 
+/** GET /v1/events/:id — 独立事件页契约 */
+export type CurrentsEventReportRole = "official" | "media" | "community" | "aggregator";
+
+export interface CurrentsEventTimelineEntry {
+  itemId: string;
+  sourceId: string;
+  sourceName: string;
+  sourceRole: CurrentsEventReportRole;
+  sourceOrg: string | null;
+  title: string | null;
+  url: string | null;
+  isPrimary: boolean;
+  communityScore: number | null;
+  communityComments: number | null;
+  /** 是否计入独立报道数：同机构 official/media 只计首家；聚合/社区永不计入 */
+  countsAsIndependent: boolean;
+  publishedAt: string;
+}
+
+export interface CurrentsEventDetail {
+  eventId: string;
+  requestedId: string;
+  /** 请求的是 merge 旧 ID 时 true：前端应 308 收敛到规范 eventId */
+  resolvedFromAlias: boolean;
+  itemId: string | null;
+  eventType: "news" | "product" | "research";
+  confidence: "high" | "low";
+  lifecycle: CurrentsHotStatus;
+  status: CurrentsHotStatus;
+  title: string | null;
+  titleZh: string | null;
+  titleEn: string | null;
+  progress: string | null;
+  summary: string | null;
+  heat: number;
+  independentReportCount: number;
+  officialReportCount: number;
+  communityScoreMax: number;
+  communityCommentsMax: number;
+  communityBoost: number;
+  reportCount: number;
+  itemCount: number;
+  firstSeenAt: string;
+  latestActivityAt: string;
+  /** split 谱系：父/子事件均经 merge alias 解析后的现存活 ID */
+  splitParent: string | null;
+  splitChildren: string[];
+  timeline: CurrentsEventTimelineEntry[];
+  meta: { generatedAt: string };
+}
+
 /** GET /v1/topics 主题地图 */
 export interface CurrentsTopicPreview {
   id: string;
