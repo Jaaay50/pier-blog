@@ -1,6 +1,7 @@
 "use client";
 
 import { Link, useRouter } from "@/i18n/navigation";
+import { fmtDateTime, fmtTime } from "@/lib/currents/format-time";
 import type {
   CurrentsEventDetail,
   CurrentsEventReportRole,
@@ -51,29 +52,6 @@ const ROLE_CLASS: Record<CurrentsEventReportRole, string> = {
   aggregator: "border-[var(--border)] text-[var(--text-muted)] opacity-80",
 };
 
-function fmtDateTime(iso: string, locale: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
-    year: "numeric",
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
-function fmtTime(iso: string, locale: string): string {
-  const d = new Date(iso);
-  if (Number.isNaN(d.getTime())) return iso;
-  return d.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", {
-    month: "numeric",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
-}
-
 function TimelineEntry({
   entry,
   locale,
@@ -113,7 +91,7 @@ function TimelineEntry({
                 .replace("{comments}", String(entry.communityComments ?? 0))}
             </span>
           )}
-          {entry.isPrimary && (
+          {entry.isRepresentative && (
             <span className="rounded-full border border-[var(--accent)]/40 px-2 py-0.5 text-[10px] text-[var(--accent)]/80">
               {labels.representative}
             </span>

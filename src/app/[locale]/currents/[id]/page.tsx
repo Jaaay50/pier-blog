@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { serverFetchItemDetail, serverFetchSources } from "@/lib/currents/api";
+import { safeJsonLd } from "@/lib/json-ld";
 import { renderMarkdown } from "@/lib/currents/markdown";
 import { CurrentsDetailBody } from "@/components/currents/CurrentsDetailBody";
 
@@ -29,6 +30,7 @@ function buildOgImageUrl(title: string, description: string, tags: string[]): st
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, id } = await params;
+  // 只有 404 返回空 metadata 走 not-found；5xx/网络/非法 JSON 上抛 → error.tsx，不缓存为 404。
   const item = await serverFetchItemDetail(id, locale);
   if (!item) return {};
 
@@ -97,11 +99,11 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
 
   return (
     <main className="relative min-h-screen">
-      {/* NewsArticle JSON-LD */}
+      {/* NewsArticle JSON-LD（外部数据经 safeJsonLd 防 </script> 逃逸） */}
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: safeJsonLd({
             "@context": "https://schema.org",
             "@type": "NewsArticle",
             headline: item.title ?? item.originalTitle,

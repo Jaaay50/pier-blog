@@ -4,6 +4,7 @@ import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { serverFetchEventDetail } from "@/lib/currents/api";
+import { safeJsonLd } from "@/lib/json-ld";
 import { CurrentsEventBody } from "@/components/currents/CurrentsEventBody";
 import type { CurrentsEventReportRole, CurrentsHotStatus } from "@/lib/currents/types";
 
@@ -33,6 +34,8 @@ function eventPath(locale: string, eventId: string) {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, eventId } = await params;
+  // 只有 404（事件不存在）才返回空 metadata 让页面走 not-found；
+  // 5xx/网络/非法 JSON 会向上抛 CurrentsServerFetchError → error.tsx 可重试错误态，不缓存为 404。
   const event = await serverFetchEventDetail(eventId, locale);
   if (!event) return {};
 
@@ -119,8 +122,8 @@ export default async function CurrentsEventPage({ params }: PageProps) {
 
   return (
     <main className="relative min-h-screen">
-      {/* NewsArticle JSON-LD */}
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+      {/* NewsArticle JSON-LD（外部数据经 safeJsonLd 防 </script> 逃逸） */}
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
       <Navbar />
       <CurrentsEventBody
         event={event}

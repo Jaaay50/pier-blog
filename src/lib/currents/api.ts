@@ -38,6 +38,87 @@ export class CurrentsApiError extends Error {
   }
 }
 
+/** 服务端 ISR 详情页专用：只有「后端明确 404」才视为资源不存在；其余全部是可重试故障。 */
+export class CurrentsServerFetchError extends Error {
+  readonly kind: "http" | "network" | "invalid-json" | "contract";
+  readonly status: number | null;
+  constructor(kind: "http" | "network" | "invalid-json" | "contract", status: number | null, message: string) {
+    super(message);
+    this.name = "CurrentsServerFetchError";
+    this.kind = kind;
+    this.status = status;
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isNullableHttpUrl(value: unknown): value is string | null {
+  if (value === null) return true;
+  if (typeof value !== "string") return false;
+  try {
+    const url = new URL(value);
+    return (url.protocol === "http:" || url.protocol === "https:") && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+
+const EVENT_TYPES = new Set(["news", "product", "research"]);
+const EVENT_LIFECYCLES = new Set(["new", "rising", "peak", "cooling", "ended"]);
+const EVENT_STATUSES = new Set([...EVENT_LIFECYCLES, "active"]);
+const EVENT_ROLES = new Set(["official", "media", "community", "aggregator"]);
+
+/** 事件详情 ISR 的运行时契约；防止旧实例、缓存或异常 JSON 以半成品进入页面。 */
+export function isCurrentsEventDetail(value: unknown): value is CurrentsEventDetail {
+  if (!isRecord(value)) return false;
+
+  const stringFields = ["eventId", "requestedId", "firstSeenAt", "latestActivityAt"];
+  const nullableStringFields = ["itemId", "title", "titleZh", "titleEn", "progress", "summary", "splitParent"];
+  const numberFields = [
+    "heat",
+    "independentReportCount",
+    "officialReportCount",
+    "communityScoreMax",
+    "communityCommentsMax",
+    "communityBoost",
+    "reportCount",
+    "itemCount",
+  ];
+  if (!stringFields.every((key) => typeof value[key] === "string")) return false;
+  if (!nullableStringFields.every((key) => isNullableString(value[key]))) return false;
+  if (!numberFields.every((key) => typeof value[key] === "number" && Number.isFinite(value[key] as number))) return false;
+  if (typeof value.resolvedFromAlias !== "boolean") return false;
+  if (typeof value.eventType !== "string" || !EVENT_TYPES.has(value.eventType)) return false;
+  if (value.confidence !== "high" && value.confidence !== "low") return false;
+  if (typeof value.lifecycle !== "string" || !EVENT_LIFECYCLES.has(value.lifecycle)) return false;
+  if (typeof value.status !== "string" || !EVENT_STATUSES.has(value.status)) return false;
+  if (!Array.isArray(value.splitChildren) || !value.splitChildren.every((id) => typeof id === "string")) return false;
+  if (!Array.isArray(value.timeline) || !value.timeline.every(isCurrentsEventTimelineEntry)) return false;
+  if (!isRecord(value.meta) || typeof value.meta.generatedAt !== "string") return false;
+  return true;
+}
+
+function isCurrentsEventTimelineEntry(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (!["itemId", "sourceId", "sourceName", "publishedAt"].every((key) => typeof value[key] === "string")) return false;
+  if (!["sourceOrg", "title"].every((key) => isNullableString(value[key]))) return false;
+  if (!isNullableHttpUrl(value.url)) return false;
+  if (typeof value.sourceRole !== "string" || !EVENT_ROLES.has(value.sourceRole)) return false;
+  if (!["isPrimary", "isOfficial", "isRepresentative", "countsAsIndependent"].every(
+    (key) => typeof value[key] === "boolean",
+  )) return false;
+  if (!["communityScore", "communityComments"].every(
+    (key) => value[key] === null || (typeof value[key] === "number" && Number.isFinite(value[key] as number)),
+  )) return false;
+  return true;
+}
+
 async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   let res: Response;
   try {
@@ -149,7 +230,41 @@ export function fetchDailyByDate(
 
 /* ──────────────────────── 服务端（ISR 页面用） ──────────────────────── */
 
-/** Server-side fetch with ISR revalidate (used by /currents/[id] and /currents/daily*). */
+/**
+ * 服务端详情页数据获取（ISR）。
+ * 只有 res.status === 404 返回 null（资源不存在 → notFound()）；
+ * 5xx / 429 / 网络失败 / AbortError / 非法 JSON 一律 throw CurrentsServerFetchError，
+ * 让路由 error.tsx 进入可重试错误态，绝不伪装成 404 或被 ISR 缓存为 404。
+ */
+async function serverFetchDetail<T>(
+  path: string,
+  revalidate = 300,
+  validate?: (value: unknown) => value is T,
+): Promise<T | null> {
+  let res: Response;
+  try {
+    res = await fetch(`${CURRENTS_API_BASE}${path}`, {
+      headers: { Accept: "application/json" },
+      next: { revalidate },
+    });
+  } catch (err) {
+    throw new CurrentsServerFetchError("network", null, err instanceof Error ? err.message : "network-error");
+  }
+  if (res.status === 404) return null;
+  if (!res.ok) throw new CurrentsServerFetchError("http", res.status, `http-${res.status}`);
+  let value: unknown;
+  try {
+    value = await res.json();
+  } catch (err) {
+    throw new CurrentsServerFetchError("invalid-json", res.status, err instanceof Error ? err.message : "invalid-json");
+  }
+  if (validate && !validate(value)) {
+    throw new CurrentsServerFetchError("contract", res.status, "invalid-response-contract");
+  }
+  return value as T;
+}
+
+/** 非详情页（sources 等辅助数据）：保持宽松 null 语义，失败不致命。 */
 async function serverFetch<T>(path: string, revalidate = 300): Promise<T | null> {
   try {
     const res = await fetch(`${CURRENTS_API_BASE}${path}`, {
@@ -164,7 +279,7 @@ async function serverFetch<T>(path: string, revalidate = 300): Promise<T | null>
 }
 
 export const serverFetchItemDetail = (id: string, locale: string) =>
-  serverFetch<CurrentsItemDetail>(`/v1/items/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`, 300);
+  serverFetchDetail<CurrentsItemDetail>(`/v1/items/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`, 300);
 
 export const serverFetchSources = () =>
   serverFetch<{ sources: CurrentsSource[] }>("/v1/sources", 3600);
@@ -179,7 +294,11 @@ export const serverFetchDailyArchive = (locale: string, limit = 30) =>
   serverFetch<CurrentsDailyArchiveResponse>(`/v1/dailies?locale=${encodeURIComponent(locale)}&limit=${limit}`, 300);
 
 export const serverFetchEventDetail = (id: string, locale: string) =>
-  serverFetch<CurrentsEventDetail>(`/v1/events/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`, 300);
+  serverFetchDetail<CurrentsEventDetail>(
+    `/v1/events/${encodeURIComponent(id)}?locale=${encodeURIComponent(locale)}`,
+    300,
+    isCurrentsEventDetail,
+  );
 
 export function fetchHot(
   locale: string,

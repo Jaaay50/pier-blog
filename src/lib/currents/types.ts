@@ -86,7 +86,7 @@ export interface CurrentsDailySectionItem {
   title: string;
   summary: string;
   score: number;
-  canonicalUrl: string;
+  canonicalUrl: string | null;
   sourceName: string;
 }
 
@@ -155,7 +155,12 @@ export interface CurrentsEventTimelineEntry {
   sourceOrg: string | null;
   title: string | null;
   url: string | null;
+  /** @deprecated 语义为「官方一手来源报道」，与「代表报道」无关；规范字段请用 isOfficial */
   isPrimary: boolean;
+  /** 官方一手来源报道（sourceRole === 'official'）。 */
+  isOfficial: boolean;
+  /** 是否为事件代表 item 的主来源报道。 */
+  isRepresentative: boolean;
   communityScore: number | null;
   communityComments: number | null;
   /** 是否计入独立报道数：同机构 official/media 只计首家；聚合/社区永不计入 */

@@ -8,6 +8,7 @@ import { getRelatedPosts } from "@/lib/search";
 import { BlogCard } from "@/components/BlogCard";
 import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
+import { safeJsonLd } from "@/lib/json-ld";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { GiscusComments } from "@/components/GiscusComments";
 import { SiteFooter } from "@/components/SiteFooter";
@@ -113,7 +114,7 @@ export default async function BlogPostPage({ params }: PageProps) {
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
-          __html: JSON.stringify({
+          __html: safeJsonLd({
             "@context": "https://schema.org",
             "@type": "BlogPosting",
             headline: post.title,
