@@ -40,6 +40,22 @@ function validEventDetail() {
     latestActivityAt: "2026-08-08T01:00:00.000Z",
     splitParent: null,
     splitChildren: [],
+    heatHistory: {
+      windowHours: 24,
+      bucketHours: 3,
+      windowStart: "2026-08-07T02:00:00.000Z",
+      windowEnd: "2026-08-08T02:00:00.000Z",
+      points: [
+        {
+          bucketStart: "2026-08-08T00:00:00.000Z",
+          heat: 42,
+          reportHeat: 20,
+          communityHeat: 22,
+          independentReportCount: 2,
+          communityScoreMax: 100,
+        },
+      ],
+    },
     timeline: [
       {
         itemId: "item-1",
@@ -83,6 +99,22 @@ describe("serverFetchDetail：只有 404 视为不存在，其余全部上抛可
     ["未知 eventType", { ...validEventDetail(), eventType: "unknown" }],
     ["未知 sourceRole", { ...validEventDetail(), timeline: [{ ...validEventDetail().timeline[0], sourceRole: "social" }] }],
     ["错误数组类型", { ...validEventDetail(), splitChildren: "child-1" }],
+    ["缺 heatHistory", (() => { const v = validEventDetail(); delete (v as Partial<typeof v>).heatHistory; return v; })()],
+    ["错误 heatHistory bucket", { ...validEventDetail(), heatHistory: { ...validEventDetail().heatHistory, bucketHours: 1 } }],
+    ["heatHistory 点越过窗口", {
+      ...validEventDetail(),
+      heatHistory: {
+        ...validEventDetail().heatHistory,
+        points: [{ ...validEventDetail().heatHistory.points[0], bucketStart: "2026-08-08T03:00:00.000Z" }],
+      },
+    }],
+    ["heatHistory 非递增", {
+      ...validEventDetail(),
+      heatHistory: {
+        ...validEventDetail().heatHistory,
+        points: [validEventDetail().heatHistory.points[0], validEventDetail().heatHistory.points[0]],
+      },
+    }],
     ["危险 timeline URL", { ...validEventDetail(), timeline: [{ ...validEventDetail().timeline[0], url: "javascript:alert(1)" }] }],
     ["相对 timeline URL", { ...validEventDetail(), timeline: [{ ...validEventDetail().timeline[0], url: "/relative" }] }],
     ["缺 isRepresentative", (() => {

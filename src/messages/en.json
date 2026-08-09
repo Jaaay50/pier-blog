@@ -119,7 +119,15 @@
     "eventRoleCommunity": "Community",
     "eventRoleAggregator": "Aggregator",
     "eventSplitParent": "Split from event",
-    "eventSplitChildren": "Split into events"
+    "eventSplitChildren": "Split into events",
+    "eventHeatChartTitle": "Event heat · last 24 hours",
+    "eventHeatChartSubtitle": "Based on persisted 3-hour snapshots. This is event coverage and community heat, not the editorial recommendation score. Missing intervals are never fabricated.",
+    "eventHeatChartEmpty": "No heat snapshots are available in the last 24 hours.",
+    "eventHeatChartSingle": "Only one snapshot so far · {time}",
+    "eventHeatChartNow": "Now",
+    "eventHeatChartAgo24h": "24 hours ago",
+    "eventHeatChartPoint": "{time}, event heat {heat}",
+    "eventHeatChartSummary": "There are {count} persisted snapshots in the last 24 hours. Peak heat was {peak} at {peakTime}; latest heat is {latest}."
   },
   "home": {
     "role": "Frontend Engineer",

@@ -2,6 +2,7 @@
 
 import { Link, useRouter } from "@/i18n/navigation";
 import { fmtDateTime, fmtTime } from "@/lib/currents/format-time";
+import { EventHeatChart, type EventHeatChartLabels } from "./EventHeatChart";
 import type {
   CurrentsEventDetail,
   CurrentsEventReportRole,
@@ -18,9 +19,9 @@ interface EventPageLabels {
   firstSeen: string;
   latestActivity: string;
   heat: string;
-  reports: string; // ICU: {count}
-  official: string; // ICU: {count}
-  community: string; // ICU: {score, comments}
+  reports: string;
+  official: string;
+  community: string; // 已由服务端把 ICU 参数转为 __SCORE__ / __COMMENTS__ 模板
   confidenceHigh: string;
   confidenceLow: string;
   sameOrg: string;
@@ -33,6 +34,7 @@ interface EventPageLabels {
   splitParent: string;
   splitChildren: string;
   untitled: string;
+  heatChart: EventHeatChartLabels;
 }
 
 /** 生命周期标签色阶（与热点页 HotCard 保持一致） */
@@ -87,8 +89,8 @@ function TimelineEntry({
           {(entry.communityScore != null || entry.communityComments != null) && (
             <span className="tabular-nums">
               {labels.community
-                .replace("{score}", String(entry.communityScore ?? 0))
-                .replace("{comments}", String(entry.communityComments ?? 0))}
+                .replace("__SCORE__", String(entry.communityScore ?? 0))
+                .replace("__COMMENTS__", String(entry.communityComments ?? 0))}
             </span>
           )}
           {entry.isRepresentative && (
@@ -157,13 +159,9 @@ export function CurrentsEventBody({
         <span className="rounded-full border border-[var(--border)] px-2 py-0.5 text-[10px]">
           {event.confidence === "high" ? labels.confidenceHigh : labels.confidenceLow}
         </span>
-        <span className="tabular-nums">
-          {labels.reports.replace("{count}", String(event.independentReportCount))}
-        </span>
+        <span className="tabular-nums">{labels.reports}</span>
         {event.officialReportCount > 0 && (
-          <span className="tabular-nums">
-            {labels.official.replace("{count}", String(event.officialReportCount))}
-          </span>
+          <span className="tabular-nums">{labels.official}</span>
         )}
         <span
           className="ml-auto shrink-0 rounded-full border border-[var(--accent)]/50 px-2.5 py-0.5 text-[12px] font-bold tabular-nums text-[var(--accent)]"
@@ -194,6 +192,9 @@ export function CurrentsEventBody({
       {event.summary && (
         <p className="mb-8 text-[14px] leading-relaxed text-[var(--text-muted)]">{event.summary}</p>
       )}
+
+      {/* 最近 24h 事件热度：只展示后端真实持久化快照，与资讯推荐分明确分离 */}
+      <EventHeatChart history={event.heatHistory} locale={locale} labels={labels.heatChart} />
 
       {/* split 谱系：子事件可独立访问，不被解析回父事件 */}
       {(event.splitParent || event.splitChildren.length > 0) && (

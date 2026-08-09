@@ -137,9 +137,9 @@ export default async function CurrentsEventPage({ params }: PageProps) {
           firstSeen: t("eventFirstSeen"),
           latestActivity: t("eventLatestActivity"),
           heat: t("hotHeat"),
-          reports: t("hotReports", { count: 0 }),
-          official: t("hotOfficial", { count: 0 }),
-          community: t("hotCommunity", { score: 0, comments: 0 }),
+          reports: t("hotReports", { count: event.independentReportCount }),
+          official: t("hotOfficial", { count: event.officialReportCount }),
+          community: t("hotCommunity", { score: "__SCORE__", comments: "__COMMENTS__" }),
           confidenceHigh: t("eventConfidenceHigh"),
           confidenceLow: t("eventConfidenceLow"),
           sameOrg: t("eventSameOrg"),
@@ -152,6 +152,21 @@ export default async function CurrentsEventPage({ params }: PageProps) {
           splitParent: t("eventSplitParent"),
           splitChildren: t("eventSplitChildren"),
           untitled: t("hotUntitled"),
+          heatChart: {
+            title: t("eventHeatChartTitle"),
+            subtitle: t("eventHeatChartSubtitle"),
+            empty: t("eventHeatChartEmpty"),
+            single: t("eventHeatChartSingle", { time: "__TIME__" }),
+            now: t("eventHeatChartNow"),
+            ago24h: t("eventHeatChartAgo24h"),
+            point: t("eventHeatChartPoint", { time: "__TIME__", heat: "__HEAT__" }),
+            accessibleSummary: t("eventHeatChartSummary", {
+              count: "__COUNT__",
+              peak: "__PEAK__",
+              peakTime: "__PEAK_TIME__",
+              latest: "__LATEST__",
+            }),
+          },
         }}
       />
       <SiteFooter maxWidth="max-w-6xl" />

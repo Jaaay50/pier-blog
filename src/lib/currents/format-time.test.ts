@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { fmtDateTime, fmtTime } from "./format-time";
+import { fmtDateTime, fmtHeatChartTime, fmtTime } from "./format-time";
 
 /**
  * SSR 与 hydration 一致性回归：Vercel 构建/渲染环境是 UTC，
@@ -42,8 +42,22 @@ describe("事件页时间格式固定 Asia/Hong_Kong（SSR/hydration 一致）",
     expect(fmtDateTime("2026-08-08T13:03:15.043Z", "zh")).toBe("2026/8/8 21:03");
   });
 
+  it("曲线标签固定 HKT，并正确跨日", () => {
+    const iso = "2026-01-01T16:00:00.000Z";
+    const reference = new Date(iso).toLocaleString("zh-CN", {
+      timeZone: "Asia/Hong_Kong",
+      month: "numeric",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    expect(fmtHeatChartTime(iso, "zh")).toBe(reference);
+  });
+
   it("非法 ISO 原样返回，不抛错", () => {
     expect(fmtDateTime("not-a-date", "zh")).toBe("not-a-date");
+    expect(fmtHeatChartTime("not-a-date", "zh")).toBe("not-a-date");
     expect(fmtTime("", "en")).toBe("");
   });
 });

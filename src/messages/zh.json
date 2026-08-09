@@ -119,7 +119,15 @@
     "eventRoleCommunity": "社区",
     "eventRoleAggregator": "聚合入口",
     "eventSplitParent": "拆分自事件",
-    "eventSplitChildren": "拆分出事件"
+    "eventSplitChildren": "拆分出事件",
+    "eventHeatChartTitle": "最近 24 小时事件热度",
+    "eventHeatChartSubtitle": "基于已持久化的 3 小时快照；这是事件报道与社区讨论热度，不是资讯推荐分。缺失时段不会补造数据。",
+    "eventHeatChartEmpty": "最近 24 小时暂无可用热度快照。",
+    "eventHeatChartSingle": "目前只有一个快照 · {time}",
+    "eventHeatChartNow": "现在",
+    "eventHeatChartAgo24h": "24 小时前",
+    "eventHeatChartPoint": "{time}，事件热度 {heat}",
+    "eventHeatChartSummary": "最近 24 小时共有 {count} 个真实快照；峰值 {peak}，出现于 {peakTime}；最新热度 {latest}。"
   },
   "home": {
     "role": "前端工程师",

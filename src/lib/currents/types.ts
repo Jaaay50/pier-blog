@@ -168,6 +168,26 @@ export interface CurrentsEventTimelineEntry {
   publishedAt: string;
 }
 
+export interface CurrentsEventHeatPoint {
+  /** 持久化 3 小时桶起点（绝对 ISO 时刻） */
+  bucketStart: string;
+  /** 事件热度；与资讯推荐 score 完全分离 */
+  heat: number;
+  reportHeat: number;
+  communityHeat: number;
+  independentReportCount: number;
+  communityScoreMax: number;
+}
+
+export interface CurrentsEventHeatHistory {
+  /** 滚动窗口 (windowStart, windowEnd]；不补点、不前向填充 */
+  windowHours: 24;
+  bucketHours: 3;
+  windowStart: string;
+  windowEnd: string;
+  points: CurrentsEventHeatPoint[];
+}
+
 export interface CurrentsEventDetail {
   eventId: string;
   requestedId: string;
@@ -196,6 +216,8 @@ export interface CurrentsEventDetail {
   /** split 谱系：父/子事件均经 merge alias 解析后的现存活 ID */
   splitParent: string | null;
   splitChildren: string[];
+  /** 最近 24 小时真实持久化热度快照；空/单点/稀疏数据原样返回 */
+  heatHistory: CurrentsEventHeatHistory;
   timeline: CurrentsEventTimelineEntry[];
   meta: { generatedAt: string };
 }

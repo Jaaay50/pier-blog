@@ -99,8 +99,39 @@ export function isCurrentsEventDetail(value: unknown): value is CurrentsEventDet
   if (typeof value.lifecycle !== "string" || !EVENT_LIFECYCLES.has(value.lifecycle)) return false;
   if (typeof value.status !== "string" || !EVENT_STATUSES.has(value.status)) return false;
   if (!Array.isArray(value.splitChildren) || !value.splitChildren.every((id) => typeof id === "string")) return false;
+  if (!isCurrentsEventHeatHistory(value.heatHistory)) return false;
   if (!Array.isArray(value.timeline) || !value.timeline.every(isCurrentsEventTimelineEntry)) return false;
   if (!isRecord(value.meta) || typeof value.meta.generatedAt !== "string") return false;
+  return true;
+}
+
+function isCurrentsEventHeatHistory(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value.windowHours !== 24 || value.bucketHours !== 3) return false;
+  if (typeof value.windowStart !== "string" || typeof value.windowEnd !== "string") return false;
+  const start = Date.parse(value.windowStart);
+  const end = Date.parse(value.windowEnd);
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end - start !== 24 * 3600 * 1000) return false;
+  if (!Array.isArray(value.points)) return false;
+
+  let previous = Number.NEGATIVE_INFINITY;
+  for (const point of value.points) {
+    if (!isRecord(point) || typeof point.bucketStart !== "string") return false;
+    const time = Date.parse(point.bucketStart);
+    if (!Number.isFinite(time) || time <= start || time > end || time <= previous) return false;
+    previous = time;
+    for (const key of [
+      "heat",
+      "reportHeat",
+      "communityHeat",
+      "independentReportCount",
+      "communityScoreMax",
+    ]) {
+      if (typeof point[key] !== "number" || !Number.isFinite(point[key] as number) || (point[key] as number) < 0) {
+        return false;
+      }
+    }
+  }
   return true;
 }
 
