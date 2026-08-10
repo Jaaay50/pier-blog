@@ -7,6 +7,11 @@ import {
   CurrentsApiError,
   type CurrentsFeedbackCategory,
 } from "@/lib/currents/api";
+import {
+  feedbackSubmittedKey,
+  markFeedbackSubmittedKey,
+  readFeedbackSubmittedKeys,
+} from "@/lib/currents/feedback-state";
 
 export interface FeedbackLabels {
   trigger: string;
@@ -32,37 +37,6 @@ interface FeedbackFormProps {
   labels: FeedbackLabels;
 }
 
-/**
- * 反馈提交记录（localStorage）：同一目标+类别提交过即在 UI 上标记，
- * 防误触重复提交；换类别仍可再报。与后端 10 分钟幂等窗口互补，非安全边界。
- */
-const STORAGE_KEY = "pier-currents-feedback-v1";
-const STORAGE_LIMIT = 200;
-
-function readSubmittedKeys(): Set<string> {
-  if (typeof window === "undefined") return new Set();
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-    if (!raw) return new Set();
-    const parsed: unknown = JSON.parse(raw);
-    if (!Array.isArray(parsed)) return new Set();
-    return new Set(parsed.filter((v): v is string => typeof v === "string"));
-  } catch {
-    return new Set();
-  }
-}
-
-function markSubmittedKey(key: string): void {
-  if (typeof window === "undefined") return;
-  try {
-    const all = Array.from(readSubmittedKeys());
-    if (!all.includes(key)) all.push(key);
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(all.slice(-STORAGE_LIMIT)));
-  } catch {
-    /* 配额满等异常静默 */
-  }
-}
-
 type SubmitState = "idle" | "submitting" | "success" | "error-rate-limit" | "error-network" | "error-generic";
 
 /**
@@ -80,11 +54,13 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
   const honeypotRef = useRef<HTMLInputElement>(null);
 
   const normalizedLocale: "zh" | "en" = locale === "zh" ? "zh" : "en";
-  const storageKey = (cat: string) => `${targetType}:${targetId}:${cat}`;
-  const alreadyReported = submittedKeys.has(storageKey(category));
+  const storageKey = feedbackSubmittedKey(targetType, targetId, category);
+  const panelId = `feedback-panel-${targetType}-${targetId}`;
+  const statusId = `feedback-status-${targetType}-${targetId}`;
+  const alreadyReported = submittedKeys.has(storageKey);
 
   const handleOpen = () => {
-    setSubmittedKeys(readSubmittedKeys());
+    setSubmittedKeys(readFeedbackSubmittedKeys(window.localStorage));
     setState("idle");
     setOpen(true);
   };
@@ -111,8 +87,8 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
         locale: normalizedLocale,
         ...(honeypot !== "" ? { website: honeypot } : {}),
       });
-      markSubmittedKey(storageKey(category));
-      setSubmittedKeys(readSubmittedKeys());
+      markFeedbackSubmittedKey(window.localStorage, storageKey);
+      setSubmittedKeys(readFeedbackSubmittedKeys(window.localStorage));
       setMessage("");
       setState("success");
     } catch (err: unknown) {
@@ -128,7 +104,9 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
         <button
           type="button"
           onClick={handleOpen}
-          className="inline-flex items-center gap-1.5 text-[13px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+          aria-expanded="false"
+          aria-controls={panelId}
+          className="inline-flex items-center gap-1.5 rounded-sm text-[13px] text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
         >
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
             <path
@@ -140,20 +118,20 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
           {labels.trigger}
         </button>
       ) : (
-        <div className="max-w-lg">
+        <div id={panelId} className="max-w-lg">
           <div className="mb-4 flex items-center justify-between gap-4">
             <h2 className="text-sm font-semibold text-[var(--text-primary)]">{labels.title}</h2>
             <button
               type="button"
               onClick={handleClose}
-              className="text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+              className="rounded-sm text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
             >
               {labels.close}
             </button>
           </div>
 
           {state === "success" ? (
-            <p className="text-sm text-[var(--text-secondary)]" role="status">
+            <p id={statusId} className="text-sm text-[var(--text-secondary)]" role="status">
               {labels.success}
             </p>
           ) : (
@@ -166,7 +144,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                   {FEEDBACK_CATEGORIES.map((cat) => (
                     <label
                       key={cat}
-                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-[13px] transition-colors ${
+                      className={`cursor-pointer rounded-full border px-3 py-1.5 text-[13px] transition-colors focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-[var(--accent)] ${
                         category === cat
                           ? "border-[var(--accent)] text-[var(--accent)]"
                           : "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-hover)]"
@@ -200,7 +178,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                   placeholder={labels.messagePlaceholder}
                   maxLength={1000}
                   rows={3}
-                  className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus:border-[var(--accent)] focus:outline-none"
+                  className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus-visible:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                 />
                 <p className="mt-1 text-right text-[11px] tabular-nums text-[var(--text-muted)]">{message.length}/1000</p>
               </div>
@@ -221,21 +199,22 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                 <button
                   type="submit"
                   disabled={state === "submitting" || alreadyReported}
-                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-describedby={alreadyReported || state.startsWith("error-") ? statusId : undefined}
+                  className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-contrast)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {state === "submitting" ? labels.submitting : labels.submit}
                 </button>
                 {alreadyReported && (
-                  <span className="text-[13px] text-[var(--text-muted)]">{labels.alreadyReported}</span>
+                  <span id={statusId} className="text-[13px] text-[var(--text-muted)]" role="status">{labels.alreadyReported}</span>
                 )}
                 {state === "error-rate-limit" && (
-                  <span className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorRateLimit}</span>
+                  <span id={statusId} className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorRateLimit}</span>
                 )}
                 {state === "error-network" && (
-                  <span className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorNetwork}</span>
+                  <span id={statusId} className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorNetwork}</span>
                 )}
                 {state === "error-generic" && (
-                  <span className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorGeneric}</span>
+                  <span id={statusId} className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorGeneric}</span>
                 )}
               </div>
             </form>

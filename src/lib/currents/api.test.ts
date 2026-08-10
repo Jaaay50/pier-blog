@@ -1,5 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { serverFetchEventDetail, serverFetchItemDetail, CurrentsServerFetchError } from "./api";
+import {
+  serverFetchEventDetail,
+  serverFetchItemDetail,
+  CurrentsApiError,
+  CurrentsServerFetchError,
+  submitFeedback,
+} from "./api";
 
 /** 模拟全局 fetch 的各种后端响应。 */
 function mockFetch(impl: () => Promise<Response> | Response | never) {
@@ -80,6 +86,74 @@ function validEventDetail() {
 
 beforeEach(() => vi.unstubAllGlobals());
 afterEach(() => vi.unstubAllGlobals());
+
+describe("submitFeedback：公开写入端点客户端契约", () => {
+  it("POST 正确 payload，去除 message 前后空白并传 honeypot", async () => {
+    const fetchMock = vi.fn(() => jsonResponse(200, { ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      submitFeedback({
+        targetType: "event",
+        targetId: "event-1",
+        category: "translation_issue",
+        message: "  details  ",
+        locale: "en",
+        website: "bot-value",
+      }),
+    ).resolves.toEqual({ ok: true });
+
+    expect(fetchMock).toHaveBeenCalledOnce();
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(url).toBe("https://currents-api.ethanpier.com/v1/feedback");
+    expect(init.method).toBe("POST");
+    expect(init.headers).toEqual({ "Content-Type": "application/json", Accept: "application/json" });
+    expect(JSON.parse(String(init.body))).toEqual({
+      targetType: "event",
+      targetId: "event-1",
+      category: "translation_issue",
+      message: "details",
+      locale: "en",
+      website: "bot-value",
+    });
+  });
+
+  it("duplicate:true 原样返回；空 message 不进入 payload", async () => {
+    const fetchMock = vi.fn(() => jsonResponse(200, { ok: true, duplicate: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", message: "  ", locale: "zh" }),
+    ).resolves.toEqual({ ok: true, duplicate: true });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).not.toHaveProperty("message");
+  });
+
+  it.each([400, 404, 429, 500])("HTTP %i → CurrentsApiError 保留 status", async (status) => {
+    mockFetch(() => jsonResponse(status, { error: "failed" }));
+    const err = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" })
+      .catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CurrentsApiError);
+    expect((err as CurrentsApiError).status).toBe(status);
+  });
+
+  it("网络失败 → status=null；200 非 JSON/错误契约 → invalid-json", async () => {
+    mockFetch(() => Promise.reject(new TypeError("fetch failed")));
+    const network = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" })
+      .catch((e: unknown) => e);
+    expect(network).toBeInstanceOf(CurrentsApiError);
+    expect((network as CurrentsApiError).status).toBeNull();
+
+    mockFetch(() => new Response("not json", { status: 200 }));
+    await expect(
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" }),
+    ).rejects.toMatchObject({ name: "CurrentsApiError", message: "invalid-json", status: 200 });
+
+    mockFetch(() => jsonResponse(200, { ok: false }));
+    await expect(
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" }),
+    ).rejects.toMatchObject({ message: "invalid-json", status: 200 });
+  });
+});
 
 describe("serverFetchDetail：只有 404 视为不存在，其余全部上抛可重试错误", () => {
   it("后端明确 404 → 返回 null（事件不存在 → not-found）", async () => {

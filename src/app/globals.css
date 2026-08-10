@@ -19,6 +19,7 @@
 
   --accent: #d97757;          /* Clay */
   --accent-hover: #c6613f;    /* Clay deep */
+  --accent-contrast: #141413;  /* accent 实心底上的 AA 文本色 */
   --accent-soft: rgba(217, 119, 87, 0.16);
   /* 正文面色块专用（Callout info 底 / 代码高亮行）：钉住 10.7 前强度，
      不跟随 ambient 提亮，避免阅读面加重 */
@@ -56,6 +57,7 @@
 
   --accent: #6a9bcc;          /* Tech blue */
   --accent-hover: #8ab4dd;
+  --accent-contrast: #0f0f0f;  /* accent 实心底上的 AA 文本色 */
   --accent-soft: rgba(106, 155, 204, 0.18);
   --accent-soft-block: rgba(106, 155, 204, 0.12);
 
