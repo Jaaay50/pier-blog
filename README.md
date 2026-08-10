@@ -13,7 +13,7 @@ Personal blog & portfolio — exploring the intersection of AI, interaction desi
 - **数据可视化** — 零依赖 SVG 雷达图 / tag 条形图过滤 / 活动热力图
 - **全文搜索** — FlexSearch 客户端索引（⌘K），关键词高亮 + 键盘导航 + 相关文章推荐
 - **双语内容** — next-intl（en/zh）+ MDX 双语文章 + 双语 RSS
-- **潮汐 · Currents** — `/currents` AI 前沿资讯聚合：独立后端（[`currents-backend`](https://github.com/Jaaay50/currents-backend)，私有）每日 3 次采集 arXiv / HuggingFace / HN / 官方博客与科技媒体（19 信源），经 LLM 双语摘要、评分与深度解读后入库；前端 SSG 静态壳 + 客户端数据岛（精选/全部/论文三视图 / 今日要闻 / 紧凑时间线 / 来源与评分过滤 / 全文搜索 / 本地收藏 / 已读弱化 / 三档列表密度），详情页 `/currents/[id]`、潮汐日报 `/currents/daily[/date]` 与事件页 `/currents/events/[eventId]` 为 ISR（真实 canonical/hreflang/OG/NewsArticle JSON-LD），API 经 Cloudflare Tunnel 提供（`currents-api.ethanpier.com`）。批次 2（2026-08-06）新增：热点榜 `/currents/hot`、主题地图 `/currents/topics` + 主题详情 `/currents/topics/[topicId]`（复用时间线与分页）、详情页「原文翻译 / AI 导读 / 深度解读」三档 Tab（全文翻译由后端管线产出）；独立事件页（2026-08-08）：报道时间线按时间正序区分官方/媒体/社区/聚合，同机构标记不计独立证据，merge 旧事件 ID 308 到规范事件页，split 子事件独立可访问。更新日志 `/currents/changelog`（纯 SSG，数据在 `src/lib/currents/changelog.ts`，新条目加到数组最前）
+- **潮汐 · Currents** — `/currents` AI 前沿资讯聚合：独立后端（[`currents-backend`](https://github.com/Jaaay50/currents-backend)，私有）每日 3 次采集 19 个信源，经 LLM 双语摘要、评分与深度解读后入库；提供精选/全部/论文视图、今日要闻、搜索、收藏、日报、热点榜、主题地图、原文翻译与独立事件页。事件页按时间线区分官方/媒体/社区/聚合，支持 merge 308、split 独立身份与真实 24h/3h 热度曲线。阶段 A 已在资讯/事件详情页上线双语反馈入口及后端防滥用写入契约；阶段 B 已交付五工具只读 MCP Server + Agent Skill（热点、搜索、资讯、事件、日报）。API 与 MCP 分别经 `currents-api.ethanpier.com`、`currents-mcp.ethanpier.com/mcp` 提供；更新日志位于 `/currents/changelog`
 - **可访问性** — prefers-reduced-motion 全链路降级（静态背景 / 原生滚动 / 无动画直切）
 
 ## Tech Stack
@@ -44,8 +44,8 @@ npm run lint       # ESLint
 
 ## Project Log
 
-八阶段进化计划全程记录在 [PROGRESS.md](./PROGRESS.md)，各阶段规划见 `PHASE*-PLAN.md`。
+Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署，当前剩余项主要是 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收。完整记录见 [PROGRESS.md](./PROGRESS.md)，各阶段规划见 `PHASE*-PLAN.md`。
 
-Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。2026-08-05 上线。
+Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-10，阶段 A 独立反馈页与阶段 B MCP Server + Agent Skill 均已上线并完成首次生产验收；具体客户端仍需逐一核验接入与重启持久性。
 
 Deployed on Vercel via GitHub Actions (`.github/workflows/deploy.yml`).

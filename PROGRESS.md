@@ -334,3 +334,46 @@ AI 增强（语义搜索、AI 摘要）
 Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验布局 → 6 数据可视化 → 7 搜索/推荐 → 8 性能收官
 
 待真机验收：移动端交互手感、WebGL 分级参数、主题扩散视觉效果
+
+---
+
+# Phase 9: 视觉技术力升级 ✅（实现完成，真机验收未完）
+
+## 已完成
+
+- ✅ Hero 粒子重组标题：WebGL 粒子采样、碎裂聚合、鼠标斥力、滚动散开、主题配色与完整降级链
+- ✅ `/en/lab`、`/zh/lab`：6 个零依赖手写 Demo，双语 SSG 并进入 sitemap
+- ✅ Lab 首页引流带、WebGL context 门控与 reduced-motion 静态降级
+- ✅ 粒子采样、首帧白字闪现、FluidSim 黑屏等实现问题已修复并上线
+- ✅ 原计划的菲涅尔球和 WaveGrid 曾完成，后续按 Phase 10.1 视觉减法决策移除，不再是验收目标
+
+## 仍待真机验收
+
+- 375px 中文/英文换行与 ParticleGate 首帧观感
+- Hero 聚合、Lab 六个 Demo 的交互手感与 WebGL context 上限
+- Safari 流体模拟、reduced-motion 全链路降级
+- Lighthouse 复测与真实设备帧率
+
+详细实现与验收边界见 [PHASE9-PLAN.md](./PHASE9-PLAN.md)。
+
+---
+
+# Phase 10.1–10.9: 视觉减法、签名系统与性能打磨 ✅
+
+- ✅ 视觉减法与中文字体系统
+- ✅ accent 降频、卡片点阵、Pier 品牌字标/符号、代码块与阅读进度条
+- ✅ Lab 玻璃态最终采用 shader 内折射，移除导致软件光栅化的 SVG reference filter
+- ✅ 全站卡片玻璃表面、WebGL DPR/低端 blur 分级与 ambient 呼吸光晕
+- ✅ 生产部署完成；Phase 10.9 的真机观感已通过
+- ⏳ Phase 10.1 的 Hero、字体、背景强度、技能卡 hover 和分隔线仍与 Phase 9 合并做一次真机验收
+
+---
+
+# Currents 集成状态（2026-08-10）
+
+- ✅ Phase 0–7、批次 2、事件基础、独立事件页、详情 hardening、24h 热度曲线与完整事件 sitemap 已上线
+- ✅ 阶段 A：资讯/事件详情页独立反馈入口 + `POST /v1/feedback` 已上线并完成生产验收
+- ✅ 阶段 B：五工具只读 MCP Server + Agent Skill 已实现、部署并完成首次生产验收
+- ✅ SG2 运维事故已恢复；页面 200、API health 200、MCP 未授权 401 为当前复验基线
+- ⏳ 雪、佳、Codex 等具体客户端仍需逐一核验发现、五工具调用、凭据隔离和重启持久性
+- ➖ OpenAPI 与公共 REST API 产品化不在当前范围；反馈管理继续使用服务器 CLI

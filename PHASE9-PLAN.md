@@ -1,8 +1,10 @@
 # Phase 9: 视觉技术力升级 — 高优先级批次
 
+> 实现状态（2026-08-10）：核心代码已完成并部署；菲涅尔球与 WaveGrid 在后续 Phase 10.1 中按视觉减法决策移除。剩余工作仅为真机、Safari、reduced-motion、Lighthouse 与主观观感验收，不代表功能尚未实现。
+
 **核心定位**：让访客打开首页 10 秒内，仅凭外观就判断出「作者技术力很强」。三个工作流：Hero 粒子重组标题（第一印象）、Lab 实验室（技术深度证明）、前景 Shader 元素（精致感）。
 
-**最高指导原则**：所有效果必须是亲手写的底层实现（GLSL / Canvas / 算法自绘），不引任何新依赖——「零依赖」本身就是技术力展示的一部分，README 与每个 demo 的 "view source" 链接都要能证明这一点。
+**最高指导原则**：所有效果必须是亲手写的底层实现（GLSL / Canvas / 算法自绘），不引任何新依赖——「零依赖」本身就是技术力展示的一部分。公开 "view source" 入口已按后续产品决策移除，但实现文件与 README 仍需能证明技术路径。
 
 ## 依赖决策
 
@@ -104,23 +106,23 @@
 
 ## 验收标准
 
-- [ ] Hero：SSR 首帧标题可见（Lighthouse LCP 不劣化于当前基线 Desktop 0.7s / Mobile 3.6s）
-- [ ] Hero：粒子聚合中英文均正确成形（含换行场景 375px 宽），主题切换粒子配色即时更新且不重采样
-- [ ] Hero：鼠标斥力、滚动散开、待机呼吸正常；降级矩阵 5 条路径逐条验证
-- [ ] Lab：6 demo 全部可交互，view source 链接可达，同屏活跃 WebGL context ≤2（DevTools 验证）
-- [ ] Lab：/en/lab 与 /zh/lab 构建为 SSG（`●`/`○`），sitemap 收录
+- [x] Hero：SSR 标题、粒子采样/聚合、鼠标斥力、滚动散开、待机呼吸、主题 uniform 更新与降级代码已实现并完成构建/生产部署
+- [ ] Hero 真机：中英文均正确成形（含 375px 换行）、ParticleGate 无白字闪现，Lighthouse LCP 不劣化于既有基线
+- [ ] Hero 真机：WebGL 不可用、low tier、medium tier、reduced-motion、视口外/后台暂停路径逐条验证
+- [x] Lab：6 个 Demo 已实现；“查看源码”入口按后续产品决策移除，不再作为验收项
+- [x] Lab：`/en/lab` 与 `/zh/lab` 已构建为 SSG 并进入 sitemap
+- [ ] Lab 真机：六个 Demo 交互正常，同屏活跃 WebGL context ≤2，移动端单列可用
 - [ ] 流体模拟在 Safari（WebGL2）实测可用，float 纹理不可用时降级正确
-- [ ] 前景球与波动网格不遮挡内容、不产生滚动抖动
-- [ ] 全站：`npm run build` 零 dynamic 页面回归、ESLint 0/0、FPS monitor 桌面 ≥55fps
-- [ ] reduced-motion 模拟下全部新增内容为静态呈现
-- [ ] 移动端（responsive 模拟）：Hero 粒子在 medium tier 参数下流畅，Lab 单列布局可用
+- [x] 前景球与波动网格曾完成，后续按 Phase 10.1 视觉减法决策删除，不再作为当前验收目标
+- [x] 全站：Phase 9 交付时 `npm run build` 与 ESLint 通过，页面保持静态生成
+- [ ] 全站真机：桌面帧率、移动端 medium tier、reduced-motion 静态呈现与 Phase 10.1 视觉观感联合验收
 
 ## 实现顺序
 
 1. **9.1 Hero 粒子重组**（第一印象，最高优先）
 2. **9.2 Lab**：流体（旗舰）→ 物理沙盒 → 流场 → 3D 形变 → Shader 画布 → 排序 → 首页引流带 → nav/i18n/SEO
 3. **9.3 前景元素**：菲涅尔球 → 波动网格
-4. 收尾：README Highlights 更新、PROGRESS.md 记录、Lighthouse 复测、真机验收清单移交橋
+4. 收尾：README Highlights 与 PROGRESS 已同步；Lighthouse 复测、Safari/reduced-motion 和真机验收仍待完成
 
 ---
 
