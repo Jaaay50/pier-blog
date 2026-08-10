@@ -3,6 +3,7 @@
 import { Link, useRouter } from "@/i18n/navigation";
 import { fmtDateTime, fmtTime } from "@/lib/currents/format-time";
 import { EventHeatChart, type EventHeatChartLabels } from "./EventHeatChart";
+import { FeedbackForm, type FeedbackLabels } from "./FeedbackForm";
 import type {
   CurrentsEventDetail,
   CurrentsEventReportRole,
@@ -35,6 +36,7 @@ interface EventPageLabels {
   splitChildren: string;
   untitled: string;
   heatChart: EventHeatChartLabels;
+  feedback: FeedbackLabels;
 }
 
 /** 生命周期标签色阶（与热点页 HotCard 保持一致） */
@@ -243,6 +245,9 @@ export function CurrentsEventBody({
           ))}
         </ol>
       </section>
+
+      {/* 阶段 A：独立反馈入口（事件页末尾，落库时后端会把 merge 旧 ID 解析为规范事件 ID） */}
+      <FeedbackForm targetType="event" targetId={event.eventId} locale={locale} labels={labels.feedback} />
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import type { CurrentsItemDetail } from "@/lib/currents/types";
 import { ScoreBadge } from "./ScoreBadge";
 import { FavoriteButton } from "./FavoriteButton";
+import { FeedbackForm, type FeedbackLabels } from "./FeedbackForm";
 import { markRead } from "@/lib/currents/readState";
 
 interface Labels {
@@ -24,6 +25,7 @@ interface Labels {
   aiSummaryTab: string;
   deepReadTab: string;
   translationPending: string;
+  feedback: FeedbackLabels;
 }
 
 interface Props {
@@ -273,6 +275,9 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
               )}
             </section>
           )}
+
+          {/* 阶段 A：独立反馈入口（正文末尾低调折叠面板，不打扰阅读） */}
+          <FeedbackForm targetType="item" targetId={item.id} locale={locale} labels={labels.feedback} />
         </article>
 
         {/* 右侧窄栏（桌面） */}

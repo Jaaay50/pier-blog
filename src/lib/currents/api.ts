@@ -347,6 +347,62 @@ export function fetchTopics(locale: string, signal?: AbortSignal): Promise<Curre
   return fetchJson<CurrentsTopicsResponse>(`/v1/topics?locale=${encodeURIComponent(locale)}`, signal);
 }
 
+export const FEEDBACK_CATEGORIES = [
+  "content_error",
+  "translation_issue",
+  "broken_link",
+  "category_or_score",
+  "other",
+] as const;
+export type CurrentsFeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
+
+export interface SubmitFeedbackParams {
+  targetType: "item" | "event";
+  targetId: string;
+  category: CurrentsFeedbackCategory;
+  message?: string;
+  locale: "zh" | "en";
+  /** honeypot：正常用户永远不填；非空时后端静默丢弃 */
+  website?: string;
+}
+
+/**
+ * POST /v1/feedback —— 阶段 A 反馈提交（后端唯一公开写入端点）。
+ * 错误语义：429 限流 / 其他 HTTP 错误 / 网络错误均抛 CurrentsApiError，由 UI 分支展示。
+ */
+export async function submitFeedback(
+  { targetType, targetId, category, message, locale, website }: SubmitFeedbackParams,
+  signal?: AbortSignal,
+): Promise<{ ok: true; duplicate?: boolean }> {
+  let res: Response;
+  try {
+    res = await fetch(`${clientApiBase()}/v1/feedback`, {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        targetType,
+        targetId,
+        category,
+        ...(message && message.trim() !== "" ? { message: message.trim() } : {}),
+        locale,
+        ...(website ? { website } : {}),
+      }),
+    });
+  } catch {
+    throw new CurrentsApiError("network-error", null);
+  }
+  if (!res.ok) throw new CurrentsApiError(`http-${res.status}`, res.status);
+  try {
+    const body = (await res.json()) as { ok?: boolean; duplicate?: boolean };
+    if (body.ok !== true) throw new CurrentsApiError("invalid-json", res.status);
+    return { ok: true, ...(body.duplicate ? { duplicate: true } : {}) };
+  } catch (err) {
+    if (err instanceof CurrentsApiError) throw err;
+    throw new CurrentsApiError("invalid-json", res.status);
+  }
+}
+
 export function fetchTopicItems(
   topicId: string,
   locale: string,

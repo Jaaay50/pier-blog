@@ -167,6 +167,28 @@ export default async function CurrentsEventPage({ params }: PageProps) {
               latest: "__LATEST__",
             }),
           },
+          feedback: {
+            trigger: t("feedbackTrigger"),
+            title: t("feedbackTitle"),
+            categoryLabel: t("feedbackCategoryLabel"),
+            categories: {
+              content_error: t("feedbackCategoryContentError"),
+              translation_issue: t("feedbackCategoryTranslationIssue"),
+              broken_link: t("feedbackCategoryBrokenLink"),
+              category_or_score: t("feedbackCategoryCategoryOrScore"),
+              other: t("feedbackCategoryOther"),
+            },
+            messageLabel: t("feedbackMessageLabel"),
+            messagePlaceholder: t("feedbackMessagePlaceholder"),
+            submit: t("feedbackSubmit"),
+            submitting: t("feedbackSubmitting"),
+            success: t("feedbackSuccess"),
+            alreadyReported: t("feedbackAlreadyReported"),
+            errorRateLimit: t("feedbackErrorRateLimit"),
+            errorNetwork: t("feedbackErrorNetwork"),
+            errorGeneric: t("feedbackErrorGeneric"),
+            close: t("feedbackClose"),
+          },
         }}
       />
       <SiteFooter maxWidth="max-w-6xl" />
