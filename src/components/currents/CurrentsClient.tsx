@@ -91,7 +91,8 @@ function CurrentsClientInner() {
   const minScore = searchParams.get("minScore") ?? "";
   const legacyItemId = searchParams.get("item"); // 旧链接 ?item= 兼容
 
-  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  // 「只看收藏」与 URL 双向同步（?favorites=1），供侧栏「收藏」入口直接落在该视图
+  const favoritesOnly = searchParams.get("favorites") === "1";
   const favorites = useFavorites();
   const density = useDensity();
   const [sources, setSources] = useState<CurrentsSource[]>([]);
@@ -225,7 +226,7 @@ function CurrentsClientInner() {
   const retryList = useCallback(() => setRetryCount((c) => c + 1), []);
 
   return (
-    <div className="mx-auto max-w-6xl">
+    <div>
       {/* 今日要闻（仅精选视图顶部） */}
       {view === "selected" && !query && (
         <CurrentsHighlights locale={locale} sourceMap={sourceMap} />
@@ -239,7 +240,7 @@ function CurrentsClientInner() {
         query={query}
         onQueryChange={(q) => syncUrl({ q: q || null })}
         favoritesOnly={favoritesOnly}
-        onFavoritesOnlyChange={setFavoritesOnly}
+        onFavoritesOnlyChange={(v) => syncUrl({ favorites: v ? "1" : null })}
         sources={sources}
         source={source}
         onSourceChange={(s) => syncUrl({ source: s || null })}
@@ -248,7 +249,7 @@ function CurrentsClientInner() {
         density={density}
       />
 
-      <div className="px-6 py-8">
+      <div className="py-8">
         {list.status === "loading" && (
           <>
             <p className="sr-only" role="status">{t("loading")}</p>

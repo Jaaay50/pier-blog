@@ -62,7 +62,7 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
   const related = item.related ?? [];
 
   return (
-    <div className="mx-auto max-w-6xl px-6 py-14">
+    <div className="py-14">
       {/* 顶部：返回 + 阅读原文 */}
       <div className="mb-8 flex items-center justify-between gap-4">
         <button

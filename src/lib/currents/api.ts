@@ -356,6 +356,16 @@ export const FEEDBACK_CATEGORIES = [
 ] as const;
 export type CurrentsFeedbackCategory = (typeof FEEDBACK_CATEGORIES)[number];
 
+/** 全局产品反馈分类（阶段 C）：targetType 固定为 "site"。 */
+export const SITE_FEEDBACK_CATEGORIES = [
+  "product_bug",
+  "feature_request",
+  "source_suggestion",
+  "agent_access",
+  "other",
+] as const;
+export type SiteFeedbackCategory = (typeof SITE_FEEDBACK_CATEGORIES)[number];
+
 export interface SubmitFeedbackParams {
   targetType: "item" | "event";
   targetId: string;
@@ -364,6 +374,79 @@ export interface SubmitFeedbackParams {
   locale: "zh" | "en";
   /** honeypot：正常用户永远不填；非空时后端静默丢弃 */
   website?: string;
+}
+
+export interface SubmitSiteFeedbackParams {
+  category: SiteFeedbackCategory;
+  /** 全局反馈必填（无内容上下文的空反馈没有可执行性） */
+  message: string;
+  locale: "zh" | "en";
+  /** 反馈入口所在页面路径；已清洗（仅路径，无 query/hash/凭据）。仅作分流上下文。 */
+  pagePath?: string;
+  /** honeypot：正常用户永远不填；非空时后端静默丢弃 */
+  website?: string;
+}
+
+/**
+ * 反馈来源路径清洗：只保留 pathname，剥掉 query、hash 与任何潜在敏感参数。
+ * 非站内绝对路径（含协议/反斜杠/空白）一律丢弃，返回 undefined。
+ */
+export function sanitizeFeedbackPagePath(raw: string | null | undefined): string | undefined {
+  if (!raw) return undefined;
+  const trimmed = raw.trim();
+  if (trimmed === "") return undefined;
+  let path = trimmed;
+  try {
+    if (/^https?:\/\//i.test(trimmed)) {
+      const url = new URL(trimmed);
+      path = url.pathname;
+    }
+  } catch {
+    return undefined;
+  }
+  // 裸路径形式：手动剥掉 query 与 hash
+  const cut = path.search(/[?#]/);
+  if (cut !== -1) path = path.slice(0, cut);
+  if (!path.startsWith("/") || path.includes("\\") || /\s/.test(path)) return undefined;
+  if (path.length > 200) path = path.slice(0, 200);
+  return path;
+}
+
+/**
+ * POST /v1/feedback —— 阶段 C 全局产品反馈（targetType "site"）。
+ * 与内容纠错共用同一端点与防护层（限流/幂等/容量/honeypot），错误语义一致。
+ */
+export async function submitSiteFeedback(
+  { category, message, locale, pagePath, website }: SubmitSiteFeedbackParams,
+  signal?: AbortSignal,
+): Promise<{ ok: true; duplicate?: boolean }> {
+  let res: Response;
+  try {
+    res = await fetch(`${clientApiBase()}/v1/feedback`, {
+      method: "POST",
+      signal,
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        targetType: "site",
+        category,
+        message: message.trim(),
+        locale,
+        ...(pagePath ? { pagePath } : {}),
+        ...(website ? { website } : {}),
+      }),
+    });
+  } catch {
+    throw new CurrentsApiError("network-error", null);
+  }
+  if (!res.ok) throw new CurrentsApiError(`http-${res.status}`, res.status);
+  try {
+    const body = (await res.json()) as { ok?: boolean; duplicate?: boolean };
+    if (body.ok !== true) throw new CurrentsApiError("invalid-json", res.status);
+    return { ok: true, ...(body.duplicate ? { duplicate: true } : {}) };
+  } catch (err) {
+    if (err instanceof CurrentsApiError) throw err;
+    throw new CurrentsApiError("invalid-json", res.status);
+  }
 }
 
 /**

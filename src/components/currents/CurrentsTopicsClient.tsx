@@ -29,7 +29,7 @@ export function CurrentsTopicsClient() {
   }, [locale, retryCount]);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pb-14">
+    <div className="pb-14">
       {status === "loading" && (
         <p className="py-20 text-center text-sm text-[var(--text-muted)]" role="status">
           {t("loading")}

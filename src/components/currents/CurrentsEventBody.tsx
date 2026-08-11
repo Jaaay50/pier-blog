@@ -136,7 +136,7 @@ export function CurrentsEventBody({
         : labels.typeResearch;
 
   return (
-    <div className="mx-auto max-w-3xl px-6 pb-14 pt-24">
+    <div className="mx-auto max-w-3xl pb-14 pt-14">
       <button
         type="button"
         onClick={() => {

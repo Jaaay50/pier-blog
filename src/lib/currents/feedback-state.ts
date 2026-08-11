@@ -29,6 +29,11 @@ export function markFeedbackSubmittedKey(
   }
 }
 
-export function feedbackSubmittedKey(targetType: "item" | "event", targetId: string, category: string): string {
+export function feedbackSubmittedKey(targetType: "item" | "event" | "site", targetId: string, category: string): string {
   return `${targetType}:${targetId}:${category}`;
+}
+
+/** 全局产品反馈（targetType "site"）的本地防重复 key。 */
+export function siteFeedbackSubmittedKey(category: string): string {
+  return feedbackSubmittedKey("site", "site", category);
 }

@@ -1,8 +1,6 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { serverFetchEventDetail } from "@/lib/currents/api";
 import { safeJsonLd } from "@/lib/json-ld";
 import { CurrentsEventBody } from "@/components/currents/CurrentsEventBody";
@@ -121,10 +119,9 @@ export default async function CurrentsEventPage({ params }: PageProps) {
   };
 
   return (
-    <main className="relative min-h-screen">
+    <>
       {/* NewsArticle JSON-LD（外部数据经 safeJsonLd 防 </script> 逃逸） */}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: safeJsonLd(jsonLd) }} />
-      <Navbar />
       <CurrentsEventBody
         event={event}
         locale={locale}
@@ -191,7 +188,6 @@ export default async function CurrentsEventPage({ params }: PageProps) {
           },
         }}
       />
-      <SiteFooter maxWidth="max-w-6xl" />
-    </main>
+    </>
   );
 }
