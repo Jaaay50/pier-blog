@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-11）：**应用、CI/CD、生产部署与仓库治理已完成并复验；凭据收尾仍有 1 枚属于另一 Cloudflare 身份的 Token 保持 active，因此 Phase 11A 暂不标记整体闭环。**
+> 状态（2026-08-11）：**Phase 11A 已完成并上线，应用、CI/CD、生产部署与仓库治理均已复验；另一 Cloudflare 身份下仍有 1 枚 Token 保持 active，已作为既有凭据风险接受，不阻塞本阶段闭环。**
 
 ## 目标与边界
 
@@ -52,7 +52,7 @@
 - 传输安全：API `/health` 为 200，MCP 未授权访问为 401；两者 HTTP 均 301 到 HTTPS；HSTS 为 `max-age=31536000` 且无 `includeSubDomains`；TLS 1.0/1.1 拒绝，TLS 1.2/1.3 成功。
 - GitHub/Vercel：前端仓库级 Secret 为 0，`production` Environment 保留 3 项 Vercel Secret；Actions 限定 GitHub-owned、强制 SHA、默认只读；vulnerability alerts 与 security updates 已启用。
 - 本地凭据清理：4 个 Pi JSONL 中 6 个历史 Token 值已原地原子化脱敏并逐行通过 JSON 校验；前端 Git 的不可达敏感 blob 已通过 reflog expire + GC 清除；任务容器、临时文件、未受 lock 管理的全局 Vercel CLI 与本地临时 Vercel 环境文件已清理。
-- 未闭环项：当前登录的 Cloudflare 身份已显示“无 API 权杖”，但另一 Cloudflare 身份下仍有 1 枚已暴露 Token 经 API 验证为 active；其本地明文已删除，必须登录对应身份后撤销，完成前不得声称凭据轮换闭环。
+- 已接受的残余风险：当前登录的 Cloudflare 身份已显示“无 API 权杖”，但另一 Cloudflare 身份下仍有 1 枚已暴露 Token 经 API 验证为 active；其本地明文已删除，云端 Token 未撤销。该既有凭据风险不计入 Phase 11A 闭环阻塞范围。
 
 ## 回滚
 
