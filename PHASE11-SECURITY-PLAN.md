@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-11）：**Phase 11A 已完成并上线，应用、CI/CD、生产部署与仓库治理均已复验；另一 Cloudflare 身份下仍有 1 枚 Token 保持 active，已作为既有凭据风险接受，不阻塞本阶段闭环。**
+> 状态（2026-08-11）：**Phase 11A 已完成并上线；Phase 11B P1 本地代码收口已完成（本地分支，尚未部署）。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
@@ -52,7 +52,7 @@
 - 传输安全：API `/health` 为 200，MCP 未授权访问为 401；两者 HTTP 均 301 到 HTTPS；HSTS 为 `max-age=31536000` 且无 `includeSubDomains`；TLS 1.0/1.1 拒绝，TLS 1.2/1.3 成功。
 - GitHub/Vercel：前端仓库级 Secret 为 0，`production` Environment 保留 3 项 Vercel Secret；Actions 限定 GitHub-owned、强制 SHA、默认只读；vulnerability alerts 与 security updates 已启用。
 - 本地凭据清理：4 个 Pi JSONL 中 6 个历史 Token 值已原地原子化脱敏并逐行通过 JSON 校验；前端 Git 的不可达敏感 blob 已通过 reflog expire + GC 清除；任务容器、临时文件、未受 lock 管理的全局 Vercel CLI 与本地临时 Vercel 环境文件已清理。
-- 已接受的残余风险：当前登录的 Cloudflare 身份已显示“无 API 权杖”，但另一 Cloudflare 身份下仍有 1 枚已暴露 Token 经 API 验证为 active；其本地明文已删除，云端 Token 未撤销。该既有凭据风险不计入 Phase 11A 闭环阻塞范围。
+- 已接受的残余风险：当前登录的 Cloudflare 身份已显示“无 API 权杖”，但另一 Cloudflare 身份下仍有 1 枚已暴露 Token 经 API 验证为 active；其本地明文已删除，云端 Token 未撤销。该既有凭据风险不计入 Phase 11A 闭环阻塞范围。（后续更新：该 Token 橋已于 Phase 11B 前自行撤销，11B P1 任务未复验。）
 - 闭环记录：文档提交 `5633dd2` 已推送；CI run `31489111025` 成功；docs-only deploy workflow `31489223884` 的 `authorize` 成功、`deploy` 按规则跳过，未产生额外生产部署。
 
 ## 回滚
@@ -67,12 +67,67 @@
 
 浏览器会缓存 HSTS；仅在 Dashboard 关闭开关不会清除客户端已有状态。回滚必须先在受影响的 Cloudflare 代理主机上发送 `Strict-Transport-Security: max-age=0`，确认响应生效并等待客户端接收后，再禁用 HSTS。Always Use HTTPS 与 TLS 1.2 应分别按备份恢复，不与 HSTS 一次性混改。
 
-## 后续阶段（不在 11A 范围）
+## Phase 11B P1：本地代码收口（2026-08-11，本地完成，尚未部署）
 
-- 防爬虫策略：robots、限速、WAF/Bot 规则、挑战、封禁与误伤监控。
+> 状态边界：以下全部修复仅存在于两个仓库的本地分支 `phase11b-p1-local`，未 push、未建 PR、未部署；生产环境仍运行 11A 基线。Cloudflare 残留 Token：橋已撤销，本任务未复验。
+
+### 1. Vercel Secret 作用域收窄（前端）
+
+- `deploy.yml` 删除 deploy job 级 `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` / `VERCEL_TOKEN`；三项 Secret 只在实际调用 Vercel CLI 的 pull / build / deploy 三个步骤的 step 级 env 注入。checkout、setup-node、npm ci（含其 lifecycle scripts）、版本验证等步骤进程环境不再持有凭据。
+- 新增 `src/workflow-secrets.test.ts` 回归检查（零新依赖，复用既有 js-yaml）：workflow/job 级 env 禁止引用 secrets；引用 Secret 的步骤必须是调用 Vercel CLI 的 run 步骤；三个 CLI 步骤必须具备完整三项 Secret。
+
+### 2. Currents 全局读取限流键（后端）
+
+- 新增 `src/utils/client-ip.ts`：`resolveClientIp` 仅当直连地址属于 loopback/私网（Tunnel/宿主唯一到达路径）时信任 `CF-Connecting-IP`，并用 `node:net` `isIP` 严格验证（单值、限长 45）；其余一律回落 `req.ip`。
+- 全局 `@fastify/rate-limit` 接入 `keyGenerator: resolveClientIp`（修复前所有访客共享代理网关同一桶）；反馈路由删除重复的 `clientKey`，改用同一函数。
+- 新增 `tests/events/rate-limit-key.test.ts`（9 项）：同 IP 达上限 429 且带 retry-after；62 个不同有效客户端 IP 不共享桶；非法/多值/超长头回落；非 loopback 直连轮换伪造 Cloudflare 头无法绕过全局与反馈限流。
+
+### 3. /api/csp-report 日志护栏（前端）
+
+- 新增 `report-guard.ts`：零依赖、内存有界的 TTL 指纹去重（同指纹 10 分钟记一次，指纹表上限 2048 条、超限淘汰最旧）+ 每实例滚动窗口日志预算（5 分钟 60 条，耗尽只停日志不改响应）；新窗口输出上一窗口抑制汇总。
+- 指纹只取已清洗字段（documentUrl/directive/blockedUrl/sourceFile），不记录 IP、query、fragment、script sample 或原始 payload；既有 204/400/403/413/415 行为与清洗边界不变，合法报告永远 204。
+- **明确边界：这是每 Serverless 实例的进程内护栏，不是 Vercel 平台级/全局限流**；平台级限速方案见下方「Vercel Firewall 路由限速（待授权，未应用）」。
+- 新增 `report-guard.test.ts`（6 项：去重、TTL 窗口恢复、预算、窗口汇总、容量上限、过期优先淘汰）与 route 层 3 项（重复只记一次、抑制不漏条目、预算耗尽仍全部 204）。
+
+### 4. /og 可信资源标识（前端）
+
+- 停止根据公开 `title`/`description`/`tags`/`readMin` 渲染任意文案；新契约仅接受 `type=site`、`type=blog&locale+slug`、`type=currents-item&locale+id`、`type=currents-event&locale+eventId`，展示内容由 `/og` 从仓库文章或 Currents API 自行解析（`src/lib/og.ts`）。
+- 参数严格校验与限长（locale 白名单、slug 字符集+120、ID 契约同后端 `[a-zA-Z0-9_-]{1,64}`）；未知/多余/重复参数 400；未知资源 404；上游故障 503。成功图片 `s-maxage=86400 + swr`，400/404/503 一律 `no-store`，上游故障不会被缓存成 404。
+- 运行时从 edge 改为 Node.js（博客卡需读仓库 MDX）。调用点同步更新：首页 `type=site`，博客 `type=blog`，Currents 条目/事件页（含 JSON-LD image）分别改用资源标识；事件 OG 指向解析后的规范 eventId。
+- 测试：`src/lib/og.test.ts`（8 项）+ `src/app/og/route.test.ts`（7 项）证明旧式任意文案参数不被反射；本地 production server 实测 site/blog/item/event 四类 200 PNG、旧式参数 400、未知 slug 404。
+
+### 5. 动态参数与上游放大收口（前端）
+
+- `src/lib/currents/api.ts` 新增 `isValidCurrentsResourceId`（后端契约同款白名单）与 `isValidCurrentsDailyDate`（格式 + 真实日历日期，拒绝 2026-02-30）；`currents/[id]`、`events/[eventId]`、`daily/[date]` 的 generateMetadata 与页面体取数前统一拦截，非法输入不触发上游请求直接 404。
+- `topics/[topicId]`：topicId 必须属于 `CURRENTS_TOPIC_IDS` 38 项白名单，未知主题 404，不再把任意文本反射进 metadata title/canonical。
+- `serverFetchDetail` 与 `serverFetch` 增加 `AbortSignal.timeout(10s)`；语义保持：真实 404 才返回 null，网络/超时/5xx/契约错误抛 `CurrentsServerFetchError`（详情路径）或收敛为 null（宽松辅助数据），不伪装成 404。
+- 动态 sitemap 复核：既有 shard 白名单、10s 超时、503+no-store 机制完整，未重构；只补 route 层缺失的测试（`sitemaps/[shard]/route.test.ts`：未知分片 404、故障 503+no-store+Retry-After、成功分片缓存头）。
+
+### Vercel Firewall 路由限速（待授权，未应用）
+
+进程内护栏无法限制平台层请求量；建议在 Vercel Dashboard 配置（需橋授权，本任务未执行）：
+
+1. Firewall → Add Rule：`path equals /api/csp-report` 且 `method equals POST` → Rate Limit，建议 `60 requests / 60s per IP`，超限动作 Deny（429）。
+2. 可选同类规则：`path starts with /og` → `120 requests / 60s per IP`，缓解图片生成的算力放大（正常爆文分享峰值由 CDN 缓存承接，不受此限）。
+3. 回滚：Firewall 规则列表内直接 Disable/Delete 对应规则即时生效，无部署依赖，不影响应用代码；规则只影响新请求，无状态残留。
+
+### 验收（本地，2026-08-11）
+
+- 前端：`npm audit` 0 漏洞；26 文件 179 测试全过（含新增 32 项）；lint 0 error（2 既有 warning）；tsc 无错误；production build 46 页成功；本地 production server 实测 /og 四类成功、反射拒绝、非法动态参数 404（item/event/daily/topic）、metadata 调用点输出新 OG URL。
+- 后端：`npm audit` 与 MCP audit 均 0 漏洞；typecheck、146 测试（含新增 9 项）、build、MCP typecheck/15 测试/build 全过。
+- 两仓库 `git diff --check` 无空白错误；未引入新依赖、未写入凭据。
+
+### 回滚（本地分支）
+
+两仓库均未动 `main`：丢弃即 `git branch -D phase11b-p1-local`；合入后回滚则 `git revert` 对应 commit。部署前生产不受任何影响。
+
+## 后续阶段（不在 11A/11B P1 范围）
+
+- Vercel Firewall 路由限速规则的实际应用（待橋授权，方案见上）。
+- 防爬虫策略：robots、WAF/Bot 规则、挑战、封禁与误伤监控。
 - 原创正文复制限制：保留代码块、Agent 配置、链接、表单和辅助功能例外。
 - 服务器 SSH、防火墙、更新、备份恢复与运行权限审计。
-- CSP nonce/hash 与 Trusted Types 属于后续增强，不影响本次强制基线生效。
+- CSP nonce/hash 与 Trusted Types 属于后续增强，不影响强制基线生效。
 
 ## 验收原则
 

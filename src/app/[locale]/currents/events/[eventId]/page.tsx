@@ -1,7 +1,7 @@
 import { notFound, permanentRedirect } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { serverFetchEventDetail } from "@/lib/currents/api";
+import { isValidCurrentsResourceId, serverFetchEventDetail } from "@/lib/currents/api";
 import { safeJsonLd } from "@/lib/json-ld";
 import { CurrentsEventBody } from "@/components/currents/CurrentsEventBody";
 import type { CurrentsEventReportRole, CurrentsHotStatus } from "@/lib/currents/types";
@@ -18,11 +18,12 @@ interface PageProps {
   params: Promise<{ locale: string; eventId: string }>;
 }
 
-function buildOgImageUrl(title: string, description: string, tags: string[]): string {
+/** /og 只接受可信资源标识（locale+eventId），文案由 /og 自行从 Currents API 解析。 */
+function buildOgImageUrl(locale: string, eventId: string): string {
   const ogUrl = new URL(`${SITE_URL}/og`);
-  ogUrl.searchParams.set("title", title);
-  if (description) ogUrl.searchParams.set("description", description);
-  if (tags.length) ogUrl.searchParams.set("tags", tags.join(","));
+  ogUrl.searchParams.set("type", "currents-event");
+  ogUrl.searchParams.set("locale", locale);
+  ogUrl.searchParams.set("eventId", eventId);
   return ogUrl.toString();
 }
 
@@ -32,16 +33,18 @@ function eventPath(locale: string, eventId: string) {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, eventId } = await params;
+  // 非法 eventId 不触发任何上游请求，直接空 metadata（页面体同步 404）。
+  if (!isValidCurrentsResourceId(eventId)) return {};
   // 只有 404（事件不存在）才返回空 metadata 让页面走 not-found；
   // 5xx/网络/非法 JSON 会向上抛 CurrentsServerFetchError → error.tsx 可重试错误态，不缓存为 404。
   const event = await serverFetchEventDetail(eventId, locale);
   if (!event) return {};
 
-  // merge 旧 ID：canonical/hreflang 一律指向解析后的规范事件 URL
+  // merge 旧 ID：canonical/hreflang/OG 一律指向解析后的规范事件 URL
   const canonicalId = event.eventId;
   const title = event.title ?? "";
   const description = event.summary ?? event.progress ?? "";
-  const ogImage = buildOgImageUrl(title, description, []);
+  const ogImage = buildOgImageUrl(locale, canonicalId);
   const canonicalUrl = `${SITE_URL}${eventPath(locale, canonicalId)}`;
 
   return {
@@ -77,6 +80,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CurrentsEventPage({ params }: PageProps) {
   const { locale, eventId } = await params;
   setRequestLocale(locale);
+  // 非法 eventId（超长/非法字符）直接 404，不消耗上游请求
+  if (!isValidCurrentsResourceId(eventId)) notFound();
   const event = await serverFetchEventDetail(eventId, locale);
   if (!event) notFound();
 
@@ -112,7 +117,7 @@ export default async function CurrentsEventPage({ params }: PageProps) {
     datePublished: event.firstSeenAt,
     dateModified: event.latestActivityAt,
     inLanguage: locale === "zh" ? "zh-CN" : "en-US",
-    image: buildOgImageUrl(event.title ?? "", event.summary ?? "", []),
+    image: buildOgImageUrl(locale, event.eventId),
     author: { "@type": "Organization", name: "Currents" },
     mainEntityOfPage: canonicalUrl,
     url: canonicalUrl,

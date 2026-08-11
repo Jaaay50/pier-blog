@@ -134,10 +134,6 @@ jobs:
       contents: read
     environment:
       name: production
-    env:
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
@@ -171,11 +167,25 @@ jobs:
           test -x ./node_modules/.bin/vercel
           ./node_modules/.bin/vercel --version
 
+      # Vercel Secret 最小作用域：仅实际调用 Vercel CLI 的三个步骤注入，
+      # checkout / setup-node / npm ci / 版本验证等步骤的进程环境不含任何 Secret。
       - name: Pull Vercel Environment Information
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: ./node_modules/.bin/vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
       - name: Build Project Artifacts
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: ./node_modules/.bin/vercel build --prod --token="${VERCEL_TOKEN}"
 
       - name: Deploy Project Artifacts to Vercel
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: ./node_modules/.bin/vercel deploy --prebuilt --prod --archive=tgz --token="${VERCEL_TOKEN}"

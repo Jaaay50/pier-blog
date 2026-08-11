@@ -1,7 +1,34 @@
 import { ImageResponse } from "next/og";
 import { type NextRequest } from "next/server";
+import { parseOgParams, resolveOgData, type OgCardData } from "@/lib/og";
 
-export const runtime = "edge";
+/**
+ * /og — 社交卡片图片。只接受稳定的可信资源标识（type=site / blog /
+ * currents-item / currents-event，见 src/lib/og.ts），展示内容一律从仓库
+ * 文章或 Currents API 解析，不再反射任何公开 query 文案。
+ *
+ * 缓存边界：
+ * - 成功图片：稳定 CDN 缓存（s-maxage=86400 + swr），资源内容变化靠 CDN 过期收敛；
+ * - 参数非法 400 / 资源不存在 404 / 上游故障 503：一律 no-store，
+ *   绝不把故障或拒绝缓存成长期状态（上游恢复后即恢复出图）。
+ *
+ * 运行时说明：博客卡片需要读仓库 MDX（fs），必须运行在 Node.js runtime；
+ * 原 edge runtime 声明随本次收敛移除。
+ */
+
+const OK_CACHE = "public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
+const FAIL_CACHE = "no-store";
+
+function errorResponse(status: number, message: string): Response {
+  return new Response(`${message}\n`, {
+    status,
+    headers: {
+      "Content-Type": "text/plain; charset=utf-8",
+      "Cache-Control": FAIL_CACHE,
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
+}
 
 /** tag → 主题色（与站内 tagToGlowColor 同源的色相，饱和度提高用于 OG） */
 function tagAccent(tag: string): { main: string; soft: string } {
@@ -22,12 +49,8 @@ function tagAccent(tag: string): { main: string; soft: string } {
   return map[tag] ?? { main: "#6a9bcc", soft: "rgba(106,155,204,0.22)" };
 }
 
-export async function GET(request: NextRequest) {
-  const { searchParams } = request.nextUrl;
-  const title = searchParams.get("title") ?? "Pier";
-  const description = searchParams.get("description") ?? "";
-  const tags = (searchParams.get("tags") ?? "").split(",").filter(Boolean);
-  const readMin = searchParams.get("readMin") ?? "";
+function renderCard(data: OgCardData): ImageResponse {
+  const { title, description, tags, readMin } = data;
   const accent = tagAccent(tags[0] ?? "");
 
   return new ImageResponse(
@@ -252,4 +275,24 @@ export async function GET(request: NextRequest) {
     ),
     { width: 1200, height: 630 }
   );
+}
+
+export async function GET(request: NextRequest): Promise<Response> {
+  const parsed = parseOgParams(request.nextUrl.searchParams);
+  if (!parsed) return errorResponse(400, "invalid og parameters");
+
+  let data: OgCardData | null;
+  try {
+    data = await resolveOgData(parsed);
+  } catch {
+    // 上游（Currents API）故障：明确 503 + no-store，不得缓存成 404
+    return errorResponse(503, "upstream temporarily unavailable");
+  }
+  if (!data) return errorResponse(404, "not found");
+
+  const image = renderCard(data);
+  // ImageResponse 默认带 immutable 长缓存；统一改为受控 CDN 缓存策略
+  const headers = new Headers(image.headers);
+  headers.set("Cache-Control", OK_CACHE);
+  return new Response(image.body, { status: image.status, headers });
 }

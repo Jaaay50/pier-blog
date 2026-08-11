@@ -20,17 +20,12 @@ interface PageProps {
 
 const SITE_URL = "https://ethanpier.com";
 
-function buildOgImageUrl(post: {
-  title: string;
-  description: string;
-  tags: string[];
-  readMinutes: number;
-}): string {
+/** /og 只接受可信资源标识（locale+slug），文案由 /og 自行从仓库文章解析。 */
+function buildOgImageUrl(locale: string, slug: string): string {
   const ogUrl = new URL(`${SITE_URL}/og`);
-  ogUrl.searchParams.set("title", post.title);
-  if (post.description) ogUrl.searchParams.set("description", post.description);
-  if (post.tags.length) ogUrl.searchParams.set("tags", post.tags.join(","));
-  ogUrl.searchParams.set("readMin", String(post.readMinutes));
+  ogUrl.searchParams.set("type", "blog");
+  ogUrl.searchParams.set("locale", locale);
+  ogUrl.searchParams.set("slug", slug);
   return ogUrl.toString();
 }
 
@@ -39,7 +34,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const post = getPostBySlug(slug, locale);
   if (!post) return {};
 
-  const ogImage = buildOgImageUrl(post);
+  const ogImage = buildOgImageUrl(locale, slug);
   const canonicalUrl = `${SITE_URL}/${locale}/blog/${slug}`;
 
   return {
@@ -122,7 +117,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             datePublished: post.date,
             dateModified: post.date,
             inLanguage: locale === "zh" ? "zh-CN" : "en-US",
-            image: buildOgImageUrl(post),
+            image: buildOgImageUrl(locale, slug),
             author: {
               "@type": "Person",
               name: "Ethan Pier",

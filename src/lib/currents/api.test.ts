@@ -2,8 +2,11 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import {
   serverFetchEventDetail,
   serverFetchItemDetail,
+  serverFetchDailyLatest,
   CurrentsApiError,
   CurrentsServerFetchError,
+  isValidCurrentsDailyDate,
+  isValidCurrentsResourceId,
   submitFeedback,
 } from "./api";
 
@@ -232,5 +235,47 @@ describe("serverFetchDetail：只有 404 视为不存在，其余全部上抛可
     const err = await serverFetchEventDetail("evt-x", "zh").catch((e: unknown) => e);
     expect(err).toBeInstanceOf(CurrentsServerFetchError);
     expect((err as CurrentsServerFetchError).kind).toBe("invalid-json");
+  });
+
+  it("服务端取数携带明确超时 signal（挂死连接不占住渲染）", async () => {
+    const fetchSpy = vi.fn(async () => jsonResponse(404, {}));
+    vi.stubGlobal("fetch", fetchSpy);
+    await serverFetchItemDetail("item-x", "zh");
+    await serverFetchDailyLatest("zh");
+    for (const call of fetchSpy.mock.calls as unknown as Array<[string, RequestInit]>) {
+      expect(call[1]?.signal).toBeInstanceOf(AbortSignal);
+    }
+  });
+
+  it("serverFetch（宽松语义）：超时/网络失败收敛到 null，不抛不挂死", async () => {
+    mockFetch(() => Promise.reject(new DOMException("timeout", "TimeoutError")));
+    await expect(serverFetchDailyLatest("zh")).resolves.toBeNull();
+  });
+});
+
+describe("动态参数验证（generateMetadata/页面取数前置拦截）", () => {
+  it("isValidCurrentsResourceId：后端契约同款白名单", () => {
+    expect(isValidCurrentsResourceId("c23f2da60ee0dbe9e0f00d84")).toBe(true);
+    expect(isValidCurrentsResourceId("00420aab-57b8-4814-bd2d-5f4ee5ed1845")).toBe(true);
+    expect(isValidCurrentsResourceId("a_b-C9")).toBe(true);
+    expect(isValidCurrentsResourceId("")).toBe(false);
+    expect(isValidCurrentsResourceId("x".repeat(65))).toBe(false); // 限长
+    expect(isValidCurrentsResourceId("bad id")).toBe(false);
+    expect(isValidCurrentsResourceId("a/../b")).toBe(false);
+    expect(isValidCurrentsResourceId("%2e%2e")).toBe(false);
+    expect(isValidCurrentsResourceId("id?x=1")).toBe(false);
+  });
+
+  it("isValidCurrentsDailyDate：格式与真实日历日期双重校验", () => {
+    expect(isValidCurrentsDailyDate("2026-08-11")).toBe(true);
+    expect(isValidCurrentsDailyDate("2024-02-29")).toBe(true); // 闰年
+    expect(isValidCurrentsDailyDate("2026-02-29")).toBe(false); // 非闰年
+    expect(isValidCurrentsDailyDate("2026-02-30")).toBe(false);
+    expect(isValidCurrentsDailyDate("2026-13-01")).toBe(false);
+    expect(isValidCurrentsDailyDate("2026-00-10")).toBe(false);
+    expect(isValidCurrentsDailyDate("2026-04-31")).toBe(false);
+    expect(isValidCurrentsDailyDate("2026-4-1")).toBe(false); // 格式
+    expect(isValidCurrentsDailyDate("20260401")).toBe(false);
+    expect(isValidCurrentsDailyDate("abcd-ef-gh")).toBe(false);
   });
 });

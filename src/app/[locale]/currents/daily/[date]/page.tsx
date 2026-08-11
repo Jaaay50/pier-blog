@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { serverFetchDailyByDate } from "@/lib/currents/api";
+import { isValidCurrentsDailyDate, serverFetchDailyByDate } from "@/lib/currents/api";
 import { CurrentsDailyBody } from "@/components/currents/CurrentsDailyBody";
 
 export const revalidate = 300;
@@ -18,6 +18,8 @@ interface PageProps {
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, date } = await params;
+  // 非法/非真实日历日期不触发上游请求（页面体同步 404）
+  if (!isValidCurrentsDailyDate(date)) return {};
   const t = await getTranslations({ locale, namespace: "currents" });
   const report = await serverFetchDailyByDate(date, locale);
   if (!report) return {};
@@ -42,7 +44,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CurrentsDailyDatePage({ params }: PageProps) {
   const { locale, date } = await params;
   setRequestLocale(locale);
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
+  // 格式 + 真实日历日期（拒绝 2026-02-30 这类值），非法输入不消耗上游请求
+  if (!isValidCurrentsDailyDate(date)) notFound();
   const t = await getTranslations("currents");
   const report = await serverFetchDailyByDate(date, locale);
   if (!report) notFound();
