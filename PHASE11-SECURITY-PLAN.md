@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-11）：**Phase 11A 已完成并上线；Phase 11B P1 本地代码收口已完成（本地分支，尚未部署）。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
+> 状态（2026-08-12）：**Phase 11A 已完成并上线；Phase 11B P1 本地代码、复审与质量门禁已收口（本地分支，尚未 push/PR/部署）。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
@@ -67,20 +67,23 @@
 
 浏览器会缓存 HSTS；仅在 Dashboard 关闭开关不会清除客户端已有状态。回滚必须先在受影响的 Cloudflare 代理主机上发送 `Strict-Transport-Security: max-age=0`，确认响应生效并等待客户端接收后，再禁用 HSTS。Always Use HTTPS 与 TLS 1.2 应分别按备份恢复，不与 HSTS 一次性混改。
 
-## Phase 11B P1：本地代码收口（2026-08-11，本地完成，尚未部署）
+## Phase 11B P1：本地代码收口（2026-08-11–12，本地完成，尚未部署）
 
 > 状态边界：以下全部修复仅存在于两个仓库的本地分支 `phase11b-p1-local`，未 push、未建 PR、未部署；生产环境仍运行 11A 基线。Cloudflare 残留 Token：橋已撤销，本任务未复验。
 
 ### 1. Vercel Secret 作用域收窄（前端）
 
-- `deploy.yml` 删除 deploy job 级 `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` / `VERCEL_TOKEN`；三项 Secret 只在实际调用 Vercel CLI 的 pull / build / deploy 三个步骤的 step 级 env 注入。checkout、setup-node、npm ci（含其 lifecycle scripts）、版本验证等步骤进程环境不再持有凭据。
-- 新增 `src/workflow-secrets.test.ts` 回归检查（零新依赖，复用既有 js-yaml）：workflow/job 级 env 禁止引用 secrets；引用 Secret 的步骤必须是调用 Vercel CLI 的 run 步骤；三个 CLI 步骤必须具备完整三项 Secret。
+- `deploy.yml` 不再在 GitHub runner 执行本地 `vercel pull/build`：依赖安装固定为 `npm ci --ignore-scripts`，只读取 package metadata 验证 lockfile 中的 Vercel CLI `58.9.1`，最后一步才注入 `VERCEL_ORG_ID` / `VERCEL_PROJECT_ID` / `VERCEL_TOKEN`，由 `vercel deploy --prod` 上传同一 SHA 源码并在 Vercel 远端构建。
+- 这样既不让 npm lifecycle/项目构建直接读取 GitHub Environment 部署凭据，也阻断无凭据步骤通过 `GITHUB_ENV` / `GITHUB_PATH` 污染后续鉴权进程；唯一鉴权步骤固定为 deploy job 最后一步。
+- `src/workflow-secrets.test.ts` 对完整 YAML 字段扫描 dot/bracket/dynamic Secret 引用并校验同名映射；workflow env 只允许固定 npm 版本，job env/defaults/container 禁止；deploy 前置步骤完整对象、Vercel 命令和最终 Secret 集合均精确锁定，任何本地 pull/build、`--prebuilt`、额外 shell/env/步骤都会失败。零新依赖，复用既有 js-yaml。
 
 ### 2. Currents 全局读取限流键（后端）
 
-- 新增 `src/utils/client-ip.ts`：`resolveClientIp` 仅当直连地址属于 loopback/私网（Tunnel/宿主唯一到达路径）时信任 `CF-Connecting-IP`，并用 `node:net` `isIP` 严格验证（单值、限长 45）；其余一律回落 `req.ip`。
+- `src/utils/client-ip.ts`：`resolveClientIp` 仅默认信任 loopback；其余代理必须通过 `TRUSTED_PROXY_IP` 配置精确 IP 白名单。配置缺失时 fail closed，不再默认信任 RFC1918/ULA 私网。
+- 新增 `src/utils/ip-address.ts` 统一规范 IPv4-mapped IPv6、展开/大小写不同但等价的 IPv6；配置值、直连代理地址和合法 `CF-Connecting-IP` 使用同一规范形式，避免可信代理匹配失败或等价 IPv6 拆分限流桶。带 scope 的 IPv6 无法可靠规范时明确拒绝，不抛出未受控异常。
 - 全局 `@fastify/rate-limit` 接入 `keyGenerator: resolveClientIp`（修复前所有访客共享代理网关同一桶）；反馈路由删除重复的 `clientKey`，改用同一函数。
-- 新增 `tests/events/rate-limit-key.test.ts`（9 项）：同 IP 达上限 429 且带 retry-after；62 个不同有效客户端 IP 不共享桶；非法/多值/超长头回落；非 loopback 直连轮换伪造 Cloudflare 头无法绕过全局与反馈限流。
+- `tests/events/rate-limit-key.test.ts` 当前 16 项：覆盖同 IP 429、62 个客户端独立桶、非法/多值/超长头回落、非可信直连伪造头不可绕过、可信代理等价地址匹配，以及等价 IPv6 客户端文本归并到同一限流桶。
+- **生产硬门禁**：部署前必须只读核验 Cloudflare Tunnel / Docker 到 API 容器的真实直连源地址，并将真实值写入 `TRUSTED_PROXY_IP` 后再构建镜像；不得猜测。漏配会安全回落到代理地址，但会让访客再次共享同一桶。
 
 ### 3. /api/csp-report 日志护栏（前端）
 
@@ -101,7 +104,14 @@
 - `src/lib/currents/api.ts` 新增 `isValidCurrentsResourceId`（后端契约同款白名单）与 `isValidCurrentsDailyDate`（格式 + 真实日历日期，拒绝 2026-02-30）；`currents/[id]`、`events/[eventId]`、`daily/[date]` 的 generateMetadata 与页面体取数前统一拦截，非法输入不触发上游请求直接 404。
 - `topics/[topicId]`：topicId 必须属于 `CURRENTS_TOPIC_IDS` 38 项白名单，未知主题 404，不再把任意文本反射进 metadata title/canonical。
 - `serverFetchDetail` 与 `serverFetch` 增加 `AbortSignal.timeout(10s)`；语义保持：真实 404 才返回 null，网络/超时/5xx/契约错误抛 `CurrentsServerFetchError`（详情路径）或收敛为 null（宽松辅助数据），不伪装成 404。
-- 动态 sitemap 复核：既有 shard 白名单、10s 超时、503+no-store 机制完整，未重构；只补 route 层缺失的测试（`sitemaps/[shard]/route.test.ts`：未知分片 404、故障 503+no-store+Retry-After、成功分片缓存头）。
+- 动态 sitemap 保持 shard 白名单、10s 超时、503+no-store 与成功缓存语义；新增非空 query 拒绝，任何 `?nonce=` 等缓存绕过请求直接 400+no-store 且零上游 fetch。route 层 8 项覆盖未知分片、故障、成功缓存与 query 边界。
+- 日报错误边界复用父级 Currents layout，移除重复 `main` / Navbar / Footer；保留可重试按钮，补 `role="alert"`、键盘焦点样式及组件测试。
+
+### 6. MCP 上游响应生命周期（后端）
+
+- `CurrentsClient.get` 的内部超时现在覆盖 fetch、状态映射、完整响应 body 读取与 schema 校验；响应头先返回但 body 挂起时仍会在预算内中止并映射为受控 `timeout`。
+- 非 2xx 响应在抛出稳定错误码前主动取消 body，避免持续 429/5xx 占用连接与响应流；取消失败被吞并，不会覆盖原始 `rate_limited` / `unavailable` 等映射。
+- MCP 协议测试当前 17 项，新增完整 body 超时和非成功 body 取消/取消失败回归。
 
 ### Vercel Firewall 路由限速（待授权，未应用）
 
@@ -111,15 +121,17 @@
 2. 可选同类规则：`path starts with /og` → `120 requests / 60s per IP`，缓解图片生成的算力放大（正常爆文分享峰值由 CDN 缓存承接，不受此限）。
 3. 回滚：Firewall 规则列表内直接 Disable/Delete 对应规则即时生效，无部署依赖，不影响应用代码；规则只影响新请求，无状态残留。
 
-### 验收（本地，2026-08-11）
+### 验收（本地，2026-08-12）
 
-- 前端：`npm audit` 0 漏洞；26 文件 179 测试全过（含新增 32 项）；lint 0 error（2 既有 warning）；tsc 无错误；production build 46 页成功；本地 production server 实测 /og 四类成功、反射拒绝、非法动态参数 404（item/event/daily/topic）、metadata 调用点输出新 OG URL。
-- 后端：`npm audit` 与 MCP audit 均 0 漏洞；typecheck、146 测试（含新增 9 项）、build、MCP typecheck/15 测试/build 全过。
-- 两仓库 `git diff --check` 无空白错误；未引入新依赖、未写入凭据。
+- 代码提交：前端 `96c50e6` + `c80df43` + `3ab0351`；后端 `c097f2f` + `f0ee9a2` + `27fb414`。两仓库均在本地分支 `phase11b-p1-local`，`main` / `origin/main` 未变。
+- 前端（Node `22.23.1` / npm `10.9.8`）：fresh `npm ci`、完整 audit 0 漏洞；27 文件 200 测试全过；lint 0 error（2 既有 warning）；tsc 无错误；production build 46 页成功。另验证 `npm ci --ignore-scripts` 后锁定的 Vercel CLI 可启动；未使用有效 Token 执行部署。
+- 后端：fresh `npm ci` 后 audit 0 漏洞、typecheck、153 测试、build 全过；MCP fresh `npm ci` 后 audit 0 漏洞、typecheck、17 测试、build 全过。
+- 两轮只读交叉复核最终均为无 P1/P2 阻塞；两仓库 `git diff --check` 无空白错误，未引入新依赖、未写入凭据。
+- **尚未执行**：push、PR、GitHub CI、合入、Vercel/GitHub 新部署链真实运行、后端镜像部署与生产验收。生产仍为 Phase 11A；本地静态门禁不能替代这些外部证据。
 
 ### 回滚（本地分支）
 
-两仓库均未动 `main`：丢弃即 `git branch -D phase11b-p1-local`；合入后回滚则 `git revert` 对应 commit。部署前生产不受任何影响。
+两仓库均未动 `main`：丢弃即删除本地 `phase11b-p1-local` 分支；合入后按前端三提交或后端三提交执行 `git revert`，不改写历史。部署前生产不受任何影响。
 
 ## 后续阶段（不在 11A/11B P1 范围）
 
