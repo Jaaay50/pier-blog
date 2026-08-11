@@ -1,6 +1,6 @@
 ## Phase 11: 网站与服务器安全加固
 
-### Phase 11A：安全事务升级（2026-08-11，等待最终上线复验）
+### Phase 11A：安全事务升级（2026-08-11，生产已复验，剩 1 项外部凭据阻塞）
 
 - ✅ 应用边界：Markdown 协议边界、生产 sanitizer 依赖、强制 CSP 与同源报告端点。
 - ✅ 依赖与工具链：Node `22.23.1` / npm `10.9.8`、标准 `npm ci`、本地精确 Vercel CLI、完整 audit 0 漏洞。
@@ -8,7 +8,10 @@
 - ✅ 仓库安全：Actions 仅 GitHub-owned + SHA pinning；前后端 Dependabot；后端/MCP 持续 audit。
 - ✅ Cloudflare：完整 4 条 DNS 盘点；Always Use HTTPS、TLS 1.2/1.3；HSTS `includeSubDomains=false`。
 - ✅ Vercel：Project Node 由 `24.x` 统一为 `22.x`。
-- ⏳ 最终门禁：main CI、生产部署、线上/浏览器验收、main ruleset、仓库级 Secret 删除、Cloudflare Token 撤销与本地敏感历史清理。
+- ✅ 最终代码与部署门禁：前端 CI `31484988819`、部署 `31485088215`、deployment `dpl_GyeRS81zD6QPxZmfYb1FwxHGZ44X`、后端/MCP CI `31484031774` 均成功；生产 alias 为 `ethanpier.com`。
+- ✅ 线上与浏览器验收：14 个路由 200；强制 CSP 与报告端点、4 个 Canvas、主题往返、Currents 数据、Agent 复制、Giscus、API/MCP、HTTP→HTTPS、HSTS 与 TLS 协议边界均通过。
+- ✅ 仓库与本地收尾：前端 `main-protection` ruleset 已启用；仓库级 Vercel Secret 已删除；6 个历史 Token 值从 4 个 Pi JSONL 原子化脱敏；Git 不可达敏感对象与任务临时环境已清理。
+- ⏳ 唯一阻塞：另一 Cloudflare 身份下仍有 1 枚已暴露 Token 为 active；当前登录身份无权访问该账户，需登录对应身份完成撤销后才能标记 Phase 11A 整体闭环。
 
 **后续阶段**：防爬虫、禁复制、服务器加固。
 

@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-11）：**Phase 11A 修复已完成，等待本次 main CI 与生产部署复验**。只有代码、CI、外部设置和线上行为全部通过后才标记上线完成。
+> 状态（2026-08-11）：**应用、CI/CD、生产部署与仓库治理已完成并复验；凭据收尾仍有 1 枚属于另一 Cloudflare 身份的 Token 保持 active，因此 Phase 11A 暂不标记整体闭环。**
 
 ## 目标与边界
 
@@ -31,9 +31,9 @@
 - `.github/workflows/ci.yml` 在 pull request 与 main push 上执行标准 `npm ci`、完整 audit、test、lint、TypeScript 和 production build。
 - `.github/workflows/deploy.yml` 只部署已通过 main CI 的同一 SHA；生产部署使用 `production` Environment、最小权限、并发锁和 `--archive=tgz`，纯文档提交不触发部署。
 - GitHub Actions 仅允许 GitHub-owned Actions，要求完整 SHA；默认 workflow 权限保持只读。
-- `production` Environment 只允许 `main`，Vercel 三项 Secret 已复制到 Environment；仓库级副本在新部署通过后删除。
+- `production` Environment 只允许 `main`，Vercel 三项 Secret 仅保留在 Environment；仓库级副本已在最终部署通过后删除。
 - 前端与后端/MCP 均加入 Dependabot 配置；后端和 MCP 各自持续执行标准安装、生产依赖 audit、类型检查、测试与构建。
-- main ruleset 在新 CI 首次成功后启用，避免在 required check 尚不存在时锁死发布。
+- `main-protection` ruleset 已启用：要求 `validate`、通过 PR 合并并解决 review thread，禁止删除与 force push；Repository Admin 仅保留紧急 bypass。
 
 ### Cloudflare 与传输安全
 
@@ -44,9 +44,15 @@
 
 ### 验收状态
 
-- 本地产品验证：待在最终提交上记录标准 `npm ci`、完整 audit、tests、lint、TypeScript、Next build、Vercel CLI/build 和 workflow lint 结果。
-- 线上验证：待记录 GitHub Actions run、Vercel deployment、主要路由、安全头、CSP/Giscus/主题/Canvas、API/MCP、HTTP 跳转和 TLS 结果。
-- 凭据处置：所有外部设置完成后撤销暴露过的 Cloudflare Token，脱敏本地会话并清理 Git reflog/不可达对象，再复验本地与远端不存在 Token 前缀。
+- 前端最终提交：`1da7cd0` + `9430735`；CI run `31484988819` 成功，标准安装、完整 audit、144 项测试、lint、TypeScript 与 45 页 production build 全部通过。
+- 最终生产部署：run `31485088215` 成功；Vercel deployment `dpl_GyeRS81zD6QPxZmfYb1FwxHGZ44X` 为 Ready，并 alias 到 `ethanpier.com`。
+- 后端/MCP：`7271dfd` + `e49cfbd`；run `31484031774` 的 Backend 与 MCP 两个 job 均成功，持续 audit、类型检查、测试与构建已生效。
+- 线上路由与安全头：根路由及 13 个中英文/产品主路由均为 200；强制 CSP 生效且无 Report-Only；报告端点有效报告 204、跨源 document 400、跨站浏览器请求 403。
+- 浏览器回归：主页 4 个 Canvas 正常；主题明暗往返成功；Currents 渲染 3039 条收录与 20 个详情入口；Agent 配置复制出现“已复制”；Giscus iframe 正常加载；生产页面未发现 console error。
+- 传输安全：API `/health` 为 200，MCP 未授权访问为 401；两者 HTTP 均 301 到 HTTPS；HSTS 为 `max-age=31536000` 且无 `includeSubDomains`；TLS 1.0/1.1 拒绝，TLS 1.2/1.3 成功。
+- GitHub/Vercel：前端仓库级 Secret 为 0，`production` Environment 保留 3 项 Vercel Secret；Actions 限定 GitHub-owned、强制 SHA、默认只读；vulnerability alerts 与 security updates 已启用。
+- 本地凭据清理：4 个 Pi JSONL 中 6 个历史 Token 值已原地原子化脱敏并逐行通过 JSON 校验；前端 Git 的不可达敏感 blob 已通过 reflog expire + GC 清除；任务容器、临时文件、未受 lock 管理的全局 Vercel CLI 与本地临时 Vercel 环境文件已清理。
+- 未闭环项：当前登录的 Cloudflare 身份已显示“无 API 权杖”，但另一 Cloudflare 身份下仍有 1 枚已暴露 Token 经 API 验证为 active；其本地明文已删除，必须登录对应身份后撤销，完成前不得声称凭据轮换闭环。
 
 ## 回滚
 
