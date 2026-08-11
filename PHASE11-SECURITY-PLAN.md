@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-11）：决策阶段。先讨论和确认方案，不直接修改网站、Vercel、Cloudflare、Currents 后端或服务器。
+> 状态（2026-08-11）：**11A 本地修复已完成并提交**（commit `cb76739`），待外部变更确认。防爬虫、禁复制、服务器加固属后续阶段。
 
 ## 目标与边界
 
@@ -9,14 +9,74 @@
 - 防爬虫必须分层处理：`robots.txt` 只约束守规矩的机器人，恶意抓取需要依靠速率限制、WAF/Bot 规则、挑战、封禁和监控。
 - 安全加固不得无意破坏 SEO、RSS、Agent 接入、可访问性、正常分享、代码配置复制或 Currents 的公开只读体验。
 
-## 已确认决策
+## Phase 11A：真实安全风险修复（2026-08-11，本地完成）
 
-1. **先网站、后服务器**：当前先完成网站安全方向的讨论与决策；服务器加固放在网站方案之后单独审计。
-2. **网站第一项先做防爬虫**：先明确保护对象、允许的机器人和处置强度，再选择技术方案。
-3. **复制限制属于明确需求**：希望限制普通访客直接选择、复制或右键搬运网页内容，但具体覆盖范围和例外尚未确定。
-4. **采用边讨论边学习的方式**：每个安全措施都要说明它防什么、挡不住什么、成本和误伤风险，再由橋决定。
-5. **决策先于实施**：当前阶段只记录方向和决策点；未确认前不写防护代码、不调整 Cloudflare/Vercel 规则、不修改生产服务器。
-6. **SSH 恢复不等于服务器已加固**：服务器 SSH 已修复；后续仍需基于实时状态检查防火墙、登录策略、补丁、日志、备份和最小权限。
+### 已完成（本地 commit cb76739）
+
+**Markdown 注入防护**
+- 统一 `src/lib/currents/markdown.ts` 为唯一安全渲染入口，添加 `rehype-sanitize` 最小 schema
+- 只保留段落/标题/列表/引用/代码/表格/强调/链接；拒绝 script/style/iframe/svg/form/事件属性
+- 链接只允许 `http/https/mailto` 与站内相对路径；拒绝 `javascript:`/`data:`/`vbscript:` 及协议混淆
+- 删除 `CurrentsReader.tsx` 重复实现；`CurrentsDetailBody.tsx` 三处 `dangerouslySetInnerHTML` 改调统一入口
+- 新增 21 个注入安全测试（`<script>`/事件属性/SVG/MathML/危险协议/属性注入/GFM 回归）
+
+**依赖安全**
+- 升级 `next@16.2.12→16.3.0` + `@next/mdx@16.3.0` + `eslint-config-next@16.3.0`（修复 postcss/sharp/nanoid 传递依赖漏洞）
+- 增加 `js-yaml@^4.1.0`（修复 CVE-2026-59870），overrides 强制 gray-matter 使用 4.x 安全 API
+- `src/lib/posts.ts` 自定义 gray-matter engine 调用 `js-yaml.load`（默认安全模式）
+- `engines.node="22.x"` 统一 Node 版本
+- 增加 `rehype-sanitize@6.0.0`
+- `npm audit --omit=dev`: 0 漏洞（was 5 high）
+
+**安全响应头**
+- `next.config.mjs` 增加全站响应头：X-Content-Type-Options/Referrer-Policy/Permissions-Policy/X-Frame-Options
+- CSP **Report-Only** 模式（观察违规不阻断），包含 ParticleGate/主题脚本/Giscus/Currents API 白名单
+
+**供应链加固**
+- `.github/workflows/deploy.yml`：
+  - Actions 固定完整 SHA（checkout v5.0.0 + setup-node v5.0.0）
+  - Vercel CLI 固定 `58.9.1`（不再 `@latest`）
+  - `npm install` → `npm ci`（只读安装，遵守 lockfile）
+  - 部署前依次执行 `npm audit --omit=dev` / `npm test` / `npm run lint` / `npx tsc --noEmit`
+  - `permissions: contents: read`（最小权限）
+  - `concurrency: production-deploy`（防止并发生产部署）
+
+**本地验证**
+- `npm test`: 133/133（新增 21 个 Markdown 注入测试）
+- `npm run lint`: 0 error（2 个既有 warning）
+- `npx tsc --noEmit`: 通过
+- `npm run build`: 全静态（44 页 SSG/SSR）
+- `npm audit --omit=dev`: 0 漏洞
+- `git diff --check`: 无尾随空白
+
+### 待外部确认（一次性清单）
+
+详细计划见 `/Users/ethan/Documents/Codex/phase11a-backups/20260811-160601/EXTERNAL-CHANGES-PLAN.md`
+
+**Cloudflare**（需要 CF_API_TOKEN 或 Dashboard 操作）
+- 开启 Always Use HTTPS（`currents-api.ethanpier.com` 与 `currents-mcp.ethanpier.com` HTTP→HTTPS 301 跳转）
+- 增加 HSTS（max-age=31536000，includeSubDomains=true，preload=false）
+- 设置 TLS 最低版本 1.2
+
+**GitHub**
+- 启用 Dependabot vulnerability alerts 与 security updates
+- 限制 Actions 权限（`allowed_actions: selected` + `sha_pinning_required: true`）
+- 创建 production Environment（可选移动 Secrets）
+- 保护 main 分支（要求 CI 通过）
+
+**Vercel**（可选）
+- 添加 Deployment Checks（要求 GitHub Actions 成功）
+
+**Push 与验证**
+- `git push origin main` 触发部署
+- 验证主站安全头、HTTP→HTTPS、Giscus、Currents 渲染、所有路由 200
+
+### 后续阶段（不在 11A 范围）
+- 观察 CSP Report-Only 违规日志，决定是否切换为强制模式
+- 防爬虫策略（robots.txt/速率限制/WAF 规则）
+- 禁复制（页面选择/右键限制）
+- 服务器 SSH/防火墙加固
+
 
 ## 决策顺序
 

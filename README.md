@@ -50,6 +50,6 @@ Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/
 
 同日（2026-08-11）Agent 接入页与 AI 日报页排版优化已通过 commits `8319969` / `0fd04b5` 部署到生产：Agent 页采用「主文档栏 + 右侧粘性目录/快速接入栏」双栏与四阶段接入说明，代码块和示例提问提供可访问的复制成功/失败反馈；日报页采用 1020px 左锚定宽版单栏、分类锚点导航和统一编辑列表。验证：112/112 tests、TypeScript、production build、`git diff --check` 通过；Actions run `31468832109` success，production deployment `pier-blog-e5gt0npjh-jia-ethans-projects.vercel.app` Ready，`ethanpier.com` 中英文 Agent 页与中文日报均完成线上技术验收。
 
-下一阶段先讨论后实施网站安全：防爬虫为第一项，复制限制为第二项，网站安全基线完成后再进入服务器安全审计。当前只记录决策和待确认项，尚未修改 Cloudflare、Vercel、网站防护代码或服务器配置。
+下一阶段：防爬虫、复制限制、服务器安全加固（Phase 11A 传输安全、Markdown 注入、依赖与供应链已完成本地修复，待外部变更确认）。
 
 Deployed on Vercel via GitHub Actions (`.github/workflows/deploy.yml`).
