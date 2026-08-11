@@ -401,4 +401,15 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - ✅ 日期标题取消白色渐变和吸顶层，改为透明内容流样式，直接融入页面背景
 - ✅ 本地验证：test 106/106、lint 0 error（2 个既有 warning）、TypeScript、build、`git diff --check` 均通过
 - 交付：commit `ff5beef`；Actions run `31459121708` 成功，production deployment `pier-blog-p9cmagbz4-jia-ethans-projects.vercel.app`；未另建 PR
-- 验收边界：本地自动化验证与部署工作流通过；按要求尚未执行浏览器视觉/真实键盘验收
+- 验收边界：本地自动化验证与部署工作流通过；浏览器视觉验收已随 2026-08-11 排版工作补做（多视口双主题截图，无布局回归）
+
+# Agent 接入页与 AI 日报页排版优化（2026-08-11，本地完成未提交）
+
+- ✅ Agent 页脱离旧 `max-w-3xl` 孤岛：xl 起「主文档栏 832px + 右侧粘性目录/快速接入栏 240px（2xl 864+256）」，<xl 转为正文顶部紧凑横滚目录
+- ✅ 首屏双入口：主按钮「通过邮件申请」（沿用现有 mailto），次按钮「查看配置步骤」锚至 `#configure`；正文按理解接入/配置/安装与验证/排障与申请四阶段组织（accent eyebrow + 锚点）
+- ✅ 新增 `src/components/currents/AgentCopyBlock.tsx`（代码块常驻复制按钮 + 示例提问复制卡片，含「已复制」反馈）与 `AgentToc.tsx`（滚动监听高亮当前章节，对 Lenis 缓动可靠）；零新依赖
+- ✅ 日报页移除 `mx-auto max-w-3xl` 居中窄栏：1020px 左锚定宽版单栏，日期下分类锚点胶囊（移动端容器内横滚），条目统一 divide-y 编辑列表（来源·评分同一元数据行，评分不再悬浮右侧），栏目标题升为 serif + 分隔线，LEAD 中等强调（摘要限三行）
+- ✅ i18n：`zh.json`/`en.json` 各增 9 个 key（阶段标签/复制反馈/目录标题）
+- ✅ 验证：test 106/106、lint 0 error（2 个既有 warning）、tsc、build 通过；本地生产服务器 2560/1680/1440/390 视口 × 浅深主题无横向溢出、无新增控制台错误；复制/锚点/目录高亮交互实测通过；`/zh/currents`、热点榜、详情页与英文路由无回归
+- ⏳ 代码与文档变更均在工作区待橋 review，未 commit
+- 备注：本地截图控制台中的 `currents-api` CORS 错误为本地 origin 噪音，生产无此问题
