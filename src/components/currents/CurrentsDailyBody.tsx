@@ -36,7 +36,7 @@ export function CurrentsDailyBody({ report, locale, labels }: Props) {
   );
 
   return (
-    <div className="mx-auto max-w-3xl px-6 py-14">
+    <div className="mx-auto max-w-3xl py-14">
       <div className="mb-6">
         <Link href="/currents" className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]">
           <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">

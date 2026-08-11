@@ -182,7 +182,7 @@ export function CurrentsHotClient() {
   }, [locale, type, retryCount]);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pb-14">
+    <div className="pb-14">
       {/* 综合 / 新闻 / 产品发布 / 研究 切换 */}
       <div role="tablist" aria-label={t("hotTypeLabel")} className="mb-6 flex flex-wrap gap-2">
         {TYPE_TABS.map((tab) => (

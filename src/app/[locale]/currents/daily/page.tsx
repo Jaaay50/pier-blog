@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { serverFetchDailyLatest } from "@/lib/currents/api";
 import { CurrentsDailyBody } from "@/components/currents/CurrentsDailyBody";
 
@@ -48,8 +46,7 @@ export default async function CurrentsDailyPage({ params }: PageProps) {
   if (!report) notFound();
 
   return (
-    <main className="relative min-h-screen">
-      <Navbar />
+    <>
       <CurrentsDailyBody
         report={report}
         locale={locale}
@@ -62,7 +59,6 @@ export default async function CurrentsDailyPage({ params }: PageProps) {
           empty: t("empty"),
         }}
       />
-      <SiteFooter maxWidth="max-w-6xl" />
-    </main>
+    </>
   );
 }

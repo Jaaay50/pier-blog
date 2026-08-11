@@ -13,7 +13,7 @@ Personal blog & portfolio — exploring the intersection of AI, interaction desi
 - **数据可视化** — 零依赖 SVG 雷达图 / tag 条形图过滤 / 活动热力图
 - **全文搜索** — FlexSearch 客户端索引（⌘K），关键词高亮 + 键盘导航 + 相关文章推荐
 - **双语内容** — next-intl（en/zh）+ MDX 双语文章 + 双语 RSS
-- **潮汐 · Currents** — `/currents` AI 前沿资讯聚合：独立后端（[`currents-backend`](https://github.com/Jaaay50/currents-backend)，私有）每日 3 次采集 19 个信源，经 LLM 双语摘要、评分与深度解读后入库；提供精选/全部/论文视图、今日要闻、搜索、收藏、日报、热点榜、主题地图、原文翻译与独立事件页。事件页按时间线区分官方/媒体/社区/聚合，支持 merge 308、split 独立身份与真实 24h/3h 热度曲线。阶段 A 已在资讯/事件详情页上线双语反馈入口及后端防滥用写入契约；阶段 B 已交付五工具只读 MCP Server + Agent Skill（热点、搜索、资讯、事件、日报）。API 与 MCP 分别经 `currents-api.ethanpier.com`、`currents-mcp.ethanpier.com/mcp` 提供；更新日志位于 `/currents/changelog`
+- **潮汐 · Currents** — `/currents` AI 前沿资讯聚合：独立后端（[`currents-backend`](https://github.com/Jaaay50/currents-backend)，私有）每日 3 次采集 19 个信源，经 LLM 双语摘要、评分与深度解读后入库；提供精选/全部/论文视图、今日要闻、搜索、收藏、日报、热点榜、主题地图、原文翻译与独立事件页。事件页按时间线区分官方/媒体/社区/聚合，支持 merge 308、split 独立身份与真实 24h/3h 热度曲线。阶段 A 已在资讯/事件详情页上线双语「报告内容问题」入口及后端防滥用写入契约；阶段 B 已交付五工具只读 MCP Server + Agent Skill（热点、搜索、资讯、事件、日报）。阶段 C：统一 Currents 产品外壳（常驻左侧导航）、`/currents/agent` Agent 接入页（受邀开放、只读、中英双语）、`/feedback` 全局产品反馈页与多类型全站搜索。API 与 MCP 分别经 `currents-api.ethanpier.com`、`currents-mcp.ethanpier.com/mcp` 提供；更新日志位于 `/currents/changelog`
 - **可访问性** — prefers-reduced-motion 全链路降级（静态背景 / 原生滚动 / 无动画直切）
 
 ## Tech Stack
@@ -46,6 +46,6 @@ npm run lint       # ESLint
 
 Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署，当前剩余项主要是 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收。完整记录见 [PROGRESS.md](./PROGRESS.md)，各阶段规划见 `PHASE*-PLAN.md`。
 
-Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-10，阶段 A 独立反馈页与阶段 B MCP Server + Agent Skill 均已上线并完成首次生产验收；具体客户端仍需逐一核验接入与重启持久性。
+Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-11：阶段 A 详情页「报告内容问题」入口与阶段 B MCP Server + Agent Skill 服务端均已上线并完成首次生产验收；阶段 C（Currents 产品外壳、Agent 接入页、全局反馈页、统一搜索）已实现并部署。注意区分：技术实现与服务端部署 ≠ 客户端真实接入——具体客户端仍需逐一核验发现、五工具调用、凭据隔离与重启持久性。
 
 Deployed on Vercel via GitHub Actions (`.github/workflows/deploy.yml`).

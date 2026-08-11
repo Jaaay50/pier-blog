@@ -1263,3 +1263,14 @@ html[data-density="compact"] .currents-card-read .currents-card-summary {
   background: color-mix(in srgb, var(--accent) 12%, transparent);
   font-weight: 700;
 }
+
+/* CurrentsShell 移动端抽屉动画（motion-safe 包裹，reduced-motion 下无动画） */
+@keyframes currents-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes currents-slide-in {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}

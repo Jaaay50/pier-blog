@@ -1,7 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { CurrentsTopicDetailClient } from "@/components/currents/CurrentsTopicDetailClient";
 
 export const revalidate = 300;
@@ -47,12 +45,8 @@ export default async function CurrentsTopicDetailPage({ params }: PageProps) {
   setRequestLocale(locale);
 
   return (
-    <main className="relative min-h-screen">
-      <Navbar />
-      <div className="pt-16">
-        <CurrentsTopicDetailClient topicId={topicId} />
-      </div>
-      <SiteFooter maxWidth="max-w-6xl" />
-    </main>
+    <div className="pt-14">
+      <CurrentsTopicDetailClient topicId={topicId} />
+    </div>
   );
 }

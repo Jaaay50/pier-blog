@@ -1,9 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { CurrentsClient } from "@/components/currents/CurrentsClient";
-import { Link } from "@/i18n/navigation";
 import { locales } from "@/i18n/config";
 
 const SITE_URL = "https://ethanpier.com";
@@ -47,45 +44,23 @@ export default async function CurrentsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("currents");
-  const tChangelog = await getTranslations("changelog");
+  const tNav = await getTranslations("currentsNav");
 
   return (
-    <main className="relative min-h-screen">
-      <Navbar />
-
-      {/* Header：静态 SEO 壳，h1 必须存在于构建产物 HTML */}
-      <header className="mx-auto max-w-6xl px-6 pb-8 pt-16">
+    <>
+      {/* Header：静态 SEO 壳，h1 必须存在于构建产物 HTML。
+          副标首句写全产品名「潮汐 · AI 动态」；原 pill 子导航已由侧栏承担 */}
+      <header className="pb-8 pt-14">
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("title")}
         </h1>
-        <p className="max-w-2xl text-[var(--text-secondary)]">{t("subtitle")}</p>
-        {/* 批次 2：热点榜 / 主题地图入口（页头，不挤移动端工具栏） */}
-        <nav aria-label="currents-sub" className="mt-4 flex gap-2">
-          <Link
-            href="/currents/hot"
-            className="rounded-full border border-[var(--border)] px-3.5 py-1 text-[13px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--accent)]"
-          >
-            {t("hotTitle")}
-          </Link>
-          <Link
-            href="/currents/topics"
-            className="rounded-full border border-[var(--border)] px-3.5 py-1 text-[13px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--accent)]"
-          >
-            {t("topicsTitle")}
-          </Link>
-          <Link
-            href="/currents/changelog"
-            className="rounded-full border border-[var(--border)] px-3.5 py-1 text-[13px] text-[var(--text-secondary)] transition-colors hover:border-[var(--accent)]/60 hover:text-[var(--accent)]"
-          >
-            {tChangelog("title")}
-          </Link>
-        </nav>
+        <p className="max-w-2xl text-[var(--text-secondary)]">
+          {tNav("brand")} · {tNav("brandTagline")}——{t("subtitle")}
+        </p>
       </header>
 
       {/* 数据岛：sticky toolbar + 时间线 + 阅读层 */}
       <CurrentsClient />
-
-      <SiteFooter maxWidth="max-w-6xl" />
-    </main>
+    </>
   );
 }

@@ -119,8 +119,8 @@ export function CurrentsFilters({
   };
 
   return (
-    <div className="sticky top-[65px] z-30 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 px-6 py-3 backdrop-blur-sm">
-      <div className="mx-auto max-w-6xl">
+    <div className="sticky top-[65px] z-30 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 py-3 backdrop-blur-sm">
+      <div>
         {/* 顶层视图：精选 | 全部动态 | 论文 */}
         <div role="tablist" aria-label="view" className="mb-3 flex gap-1">
           {VIEW_KEYS.map((key) => {

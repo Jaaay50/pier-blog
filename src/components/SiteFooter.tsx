@@ -60,7 +60,9 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
                 { href: '/blog', label: tNav('blog') },
                 { href: '/about', label: tNav('about') },
                 { href: '/portfolio', label: tNav('portfolio') },
+                { href: '/currents/agent', label: t('agent') },
                 { href: '/currents/changelog', label: t('changelog') },
+                { href: '/feedback', label: t('feedback') },
               ] as const).map(({ href, label }) => (
                 <li key={href}>
                   <TransitionLink

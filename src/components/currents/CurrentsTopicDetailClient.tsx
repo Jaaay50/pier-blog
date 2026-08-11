@@ -78,7 +78,7 @@ export function CurrentsTopicDetailClient({ topicId }: { topicId: string }) {
   }, [hasMore, nextCursor, loadingMore, topicId, locale]);
 
   return (
-    <div className="mx-auto max-w-6xl px-6 pb-14">
+    <div className="pb-14">
       <div className="mb-6">
         <Link
           href="/currents/topics"

@@ -44,7 +44,7 @@ export function CurrentsHighlights({ locale, sourceMap }: Props) {
 
   return (
     <div className="px-6 pt-8">
-      <div className="mx-auto max-w-6xl">
+      <div>
         {/* 状态条 */}
         {stats && (
           <p className="mb-4 text-xs text-[var(--text-muted)]">

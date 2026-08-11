@@ -31,9 +31,47 @@ export interface ChangelogEntry {
   items: ChangelogItem[];
 }
 
-export const CHANGELOG_LAST_UPDATED = "2026-08-07";
+export const CHANGELOG_LAST_UPDATED = "2026-08-11";
 
 export const changelogEntries: ChangelogEntry[] = [
+  {
+    phase: "phase3",
+    date: "2026-08-11",
+    phaseLabelZh: "Phase 3 · 产品闭环",
+    phaseLabelEn: "Phase 3 · Product Loop",
+    noteZh: "潮汐从「内容产品」补全为「可发现、可接入、可反馈」的完整产品：Agent 接入与全局反馈上线，全站搜索不再只覆盖博客。",
+    noteEn: "Currents grows from a content product into a complete, discoverable one: Agent Access and global Feedback are live, and site search no longer covers only the blog.",
+    items: [
+      {
+        type: "new",
+        titleZh: "Agent 接入页面上线",
+        titleEn: "Agent Access Page",
+        descZh: "新增 Agent 接入页：五个只读工具说明、MCP 连接配置、Skill 安装步骤、验证问题与排障指南。受邀开放、只读、中英双语。",
+        descEn: "A new Agent Access page: five read-only tools, MCP connection configs, Skill installation, verification questions, and troubleshooting. Invite-only, read-only, bilingual.",
+      },
+      {
+        type: "new",
+        titleZh: "全局反馈页面上线",
+        titleEn: "Global Feedback Page",
+        descZh: "新增独立反馈页：产品问题、功能建议、信源建议与 Agent 接入问题都可以匿名提交；详情页的内容纠错保留并更名为「报告内容问题」。",
+        descEn: "A new standalone Feedback page: product issues, feature ideas, source suggestions, and Agent access problems — all anonymous. In-context content correction stays on detail pages, renamed to Report a content issue.",
+      },
+      {
+        type: "new",
+        titleZh: "潮汐常驻导航",
+        titleEn: "Persistent Currents Navigation",
+        descZh: "潮汐所有页面新增统一的左侧导航：精选、全部动态、热点榜、AI 日报、主题、收藏、Agent 接入一跳可达；移动端改为抽屉导航。",
+        descEn: "All Currents pages share a persistent left rail — Featured, All Updates, Hot Board, AI Daily, Topics, Favorites, and Agent Access are one click away. On mobile it folds into a drawer.",
+      },
+      {
+        type: "improved",
+        titleZh: "全站搜索覆盖潮汐",
+        titleEn: "Site Search Covers Currents",
+        descZh: "全站搜索不再只索引博客：功能页面、主题与更新日志都能被搜到，搜索 MCP、Skill、Agent、反馈时直达对应功能页。",
+        descEn: "Site search no longer indexes only the blog: feature pages, topics, and the changelog are all searchable — searching MCP, Skill, Agent, or Feedback takes you straight to the right page.",
+      },
+    ],
+  },
   {
     phase: "phase2",
     date: "2026-08-07",

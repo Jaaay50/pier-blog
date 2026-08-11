@@ -10,16 +10,8 @@ import {
 import { useRouter } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "motion/react";
-import type { SearchablePost } from "@/lib/search";
-
-interface SearchDoc extends SearchablePost {
-  id: number;
-}
-
-interface FlexIndex {
-  add(id: number, text: string): void;
-  search(query: string, options?: { limit?: number }): number[];
-}
+import type { FlexIndexLike, SearchDoc, SearchDocType } from "@/lib/search";
+import { rankResults } from "@/lib/search";
 
 const HISTORY_KEY = "pier-search-history";
 const HISTORY_MAX = 5;
@@ -64,21 +56,24 @@ function Highlight({ text, query }: { text: string; query: string }) {
 }
 
 /**
- * Phase 7：全站搜索模态框。
- * - Cmd/Ctrl+K 唤起，Esc 关闭
- * - FlexSearch 客户端索引（懒加载 /api/search-index）
- * - 标题/描述/标签/正文联合搜索，结果高亮
- * - 键盘导航（↑↓ + Enter）、最近搜索（localStorage）
+ * 全站搜索模态框。
+ * - Cmd/Ctrl+K 唤起，Esc 关闭；监听 "pier:open-search" 自定义事件（Currents 侧栏入口）
+ * - FlexSearch 客户端索引（懒加载 /api/search-index），召回后用 rankResults 重排
+ * - 覆盖博客 + 功能页 + 主题页；标题/描述/标签/keywords/正文联合搜索，结果高亮 + 类型徽章
+ * - 键盘导航（↑↓ + Enter）、最近搜索（localStorage）、加载与失败状态
  * - reduced-motion 无动画
  */
 export function SearchModal() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [docs, setDocs] = useState<SearchDoc[] | null>(null);
+  const [loadState, setLoadState] = useState<"idle" | "loading" | "error">(
+    "idle"
+  );
   const [results, setResults] = useState<SearchDoc[]>([]);
   const [selected, setSelected] = useState(0);
   const [history, setHistory] = useState<string[]>([]);
-  const indexRef = useRef<FlexIndex | null>(null);
+  const indexRef = useRef<FlexIndexLike | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
   const locale = useLocale();
@@ -90,7 +85,7 @@ export function SearchModal() {
     setOpen(true);
   }, []);
 
-  /* 快捷键：Cmd/Ctrl+K 唤起，Esc 关闭 */
+  /* 快捷键：Cmd/Ctrl+K 唤起，Esc 关闭；外部 "pier:open-search" 事件唤起 */
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -101,51 +96,57 @@ export function SearchModal() {
       if (e.key === "Escape") setOpen(false);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+    window.addEventListener("pier:open-search", openModal);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("pier:open-search", openModal);
+    };
+  }, [openModal]);
+
+  /** 加载（或重试）搜索索引；始终在事件/宏任务上下文调用，不在 effect 同步阶段触发 */
+  const loadIndex = useCallback(async () => {
+    setLoadState("loading");
+    try {
+      const [{ Index }, res] = await Promise.all([
+        import("flexsearch"),
+        fetch("/api/search-index"),
+      ]);
+      if (!res.ok) throw new Error(`search-index ${res.status}`);
+      const data = await res.json();
+      const list: SearchDoc[] = data[locale] ?? data.en;
+
+      const index = new Index({
+        tokenize: "forward",
+        cache: true,
+      }) as unknown as FlexIndexLike;
+      list.forEach((d, i) =>
+        index.add(
+          i,
+          `${d.title} ${d.description} ${d.tags.join(" ")} ${d.keywords.join(
+            " "
+          )} ${d.excerpt}`
+        )
+      );
+      indexRef.current = index;
+      setDocs(list);
+      setLoadState("idle");
+    } catch {
+      setLoadState("error");
+    }
+  }, [locale]);
 
   /* 打开时：聚焦、懒加载索引 */
   useEffect(() => {
     if (!open) return;
     // 等 modal 挂载后聚焦
     requestAnimationFrame(() => inputRef.current?.focus());
+    if (docs || loadState !== "idle") return;
+    // 宏任务中触发加载：effect 同步阶段不调用任何 setState
+    const timer = setTimeout(() => void loadIndex(), 0);
+    return () => clearTimeout(timer);
+  }, [open, docs, loadState, loadIndex]);
 
-    if (docs) return;
-    let cancelled = false;
-    (async () => {
-      try {
-        const [{ Index }, res] = await Promise.all([
-          import("flexsearch"),
-          fetch("/api/search-index"),
-        ]);
-        const data = await res.json();
-        const posts: SearchablePost[] = data[locale] ?? data.en;
-        const withId: SearchDoc[] = posts.map((p, i) => ({ ...p, id: i }));
-
-        const index = new Index({
-          tokenize: "forward",
-          cache: true,
-        }) as unknown as FlexIndex;
-        withId.forEach((d) =>
-          index.add(
-            d.id,
-            `${d.title} ${d.description} ${d.tags.join(" ")} ${d.excerpt}`
-          )
-        );
-        if (!cancelled) {
-          indexRef.current = index;
-          setDocs(withId);
-        }
-      } catch {
-        // 索引加载失败：保持 docs 为 null，展示空态
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [open, docs, locale]);
-
-  /* 查询 */
+  /* 查询：FlexSearch 召回 → rankResults 重排 */
   useEffect(() => {
     if (!query.trim() || !indexRef.current || !docs) {
       setResults([]);
@@ -153,16 +154,29 @@ export function SearchModal() {
       return;
     }
     const ids = indexRef.current.search(query, { limit: 8 });
-    setResults(ids.map((id) => docs[id]).filter(Boolean));
+    setResults(rankResults(docs, query, ids));
     setSelected(0);
   }, [query, docs]);
 
   const go = useCallback(
-    (slug: string) => {
+    (doc: SearchDoc) => {
       if (query.trim()) saveHistory(query.trim());
       setOpen(false);
       setQuery("");
-      router.push(`/blog/${slug}`);
+      // 手动剥离 query string：i18n router.push 会把整串当 pathname，
+      // 导致 "/currents?view=all" 的查询参数丢失
+      const qIndex = doc.href.indexOf("?");
+      if (qIndex === -1) {
+        router.push(doc.href);
+      } else {
+        const pathname = doc.href.slice(0, qIndex);
+        const params = new URLSearchParams(doc.href.slice(qIndex + 1));
+        const queryObj: Record<string, string> = {};
+        params.forEach((value, key) => {
+          queryObj[key] = value;
+        });
+        router.push({ pathname, query: queryObj });
+      }
     },
     [query, router]
   );
@@ -176,19 +190,31 @@ export function SearchModal() {
       e.preventDefault();
       setSelected((s) => Math.max(s - 1, 0));
     } else if (e.key === "Enter" && results[selected]) {
-      go(results[selected].slug);
+      go(results[selected]);
     }
   };
 
   const showEmpty = query.trim() && docs && results.length === 0;
   const showHistory = !query.trim() && history.length > 0;
+  const showLoading = loadState === "loading" && !docs;
+  const showError = loadState === "error" && !docs;
 
+  const typeLabel = (type: SearchDocType): string =>
+    type === "blog"
+      ? t("typeBlog")
+      : type === "page"
+        ? t("typePage")
+        : t("typeTopic");
+
+  /* 热门 tag：只统计博客类型的 tags */
   const fallbackTags = useMemo(() => {
     if (!docs) return [];
     const counts = new Map<string, number>();
-    docs.forEach((d) =>
-      d.tags.forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1))
-    );
+    docs
+      .filter((d) => d.type === "blog")
+      .forEach((d) =>
+        d.tags.forEach((tag) => counts.set(tag, (counts.get(tag) ?? 0) + 1))
+      );
     return Array.from(counts.entries())
       .sort((a, b) => b[1] - a[1])
       .slice(0, 4)
@@ -259,8 +285,8 @@ export function SearchModal() {
                 <div className="max-h-[50vh] overflow-y-auto p-2">
                   {results.map((doc, i) => (
                     <button
-                      key={doc.slug}
-                      onClick={() => go(doc.slug)}
+                      key={`${doc.type}:${doc.id}`}
+                      onClick={() => go(doc)}
                       onMouseEnter={() => setSelected(i)}
                       data-no-ripple
                       className={`block w-full rounded-lg px-3 py-2.5 text-left transition-colors ${
@@ -269,19 +295,26 @@ export function SearchModal() {
                           : "hover:bg-[var(--bg-card)]"
                       }`}
                     >
-                      <div className="mb-0.5 font-medium">
-                        <Highlight text={doc.title} query={query} />
+                      <div className="mb-0.5 flex items-center gap-2 font-medium">
+                        <span className="shrink-0 rounded border border-[var(--border)] px-1.5 py-px text-[10px] text-[var(--text-muted)]">
+                          {typeLabel(doc.type)}
+                        </span>
+                        <span className="min-w-0 truncate">
+                          <Highlight text={doc.title} query={query} />
+                        </span>
                       </div>
                       <div className="line-clamp-1 text-sm text-[var(--text-secondary)]">
                         <Highlight text={doc.description} query={query} />
                       </div>
-                      <div className="mt-1 flex gap-1.5">
-                        {doc.tags.slice(0, 3).map((tag) => (
-                          <span key={tag} className="rounded bg-[var(--bg-card)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
+                      {doc.tags.length > 0 && (
+                        <div className="mt-1 flex gap-1.5">
+                          {doc.tags.slice(0, 3).map((tag) => (
+                            <span key={tag} className="rounded bg-[var(--bg-card)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </button>
                   ))}
 
@@ -325,12 +358,38 @@ export function SearchModal() {
                     </div>
                   )}
 
-                  {/* 初始空态 */}
-                  {!query.trim() && !showHistory && (
+                  {/* 加载中 */}
+                  {showLoading && (
                     <p className="px-3 py-6 text-center text-sm text-[var(--text-muted)]">
-                      {t("hint")}
+                      {t("loading")}
                     </p>
                   )}
+
+                  {/* 加载失败：显式错误态 + 重试 */}
+                  {showError && (
+                    <div className="px-3 py-6 text-center">
+                      <p className="mb-3 text-sm text-[var(--text-muted)]">
+                        {t("unavailable")}
+                      </p>
+                      <button
+                        onClick={() => void loadIndex()}
+                        data-no-ripple
+                        className="rounded-full border border-[var(--border)] px-4 py-1.5 text-xs text-[var(--text-secondary)] transition-colors hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+                      >
+                        {t("retry")}
+                      </button>
+                    </div>
+                  )}
+
+                  {/* 初始空态 */}
+                  {!query.trim() &&
+                    !showHistory &&
+                    !showLoading &&
+                    !showError && (
+                      <p className="px-3 py-6 text-center text-sm text-[var(--text-muted)]">
+                        {t("hint")}
+                      </p>
+                    )}
                 </div>
               </div>
             </motion.div>

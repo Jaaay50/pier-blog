@@ -1,7 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { Waterline } from "@/components/Waterline";
 import { Link } from "@/i18n/navigation";
 import { locales } from "@/i18n/config";
@@ -79,11 +77,9 @@ export default async function CurrentsChangelogPage({
   const isZh = locale === "zh";
 
   return (
-    <main className="relative min-h-screen">
-      <Navbar />
-
+    <>
       {/* Header：静态 SEO 壳，h1 必须存在于构建产物 HTML */}
-      <header className="mx-auto max-w-4xl px-6 pb-10 pt-16">
+      <header className="mx-auto max-w-4xl pb-10 pt-14">
         <nav aria-label="breadcrumb" className="mb-6">
           <Link
             href="/currents"
@@ -102,7 +98,7 @@ export default async function CurrentsChangelogPage({
       </header>
 
       {/* 版本时间线 */}
-      <div className="mx-auto max-w-4xl px-6 pb-16">
+      <div className="mx-auto max-w-4xl pb-16">
         <ol className="space-y-14">
           {changelogEntries.map((entry) => (
             <li key={entry.phase} className="relative border-l border-[var(--border)] pl-6 md:pl-8">
@@ -169,8 +165,6 @@ export default async function CurrentsChangelogPage({
           </Link>
         </div>
       </div>
-
-      <SiteFooter maxWidth="max-w-4xl" />
-    </main>
+    </>
   );
 }

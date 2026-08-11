@@ -12,6 +12,7 @@ import { getAllSlugs, getPostsForLocale } from "@/lib/posts";
 import { locales } from "@/i18n/config";
 import { CURRENTS_API_BASE } from "@/lib/currents/api";
 import { CHANGELOG_LAST_UPDATED } from "@/lib/currents/changelog";
+import { CURRENTS_TOPIC_IDS } from "@/lib/currents/topics";
 
 export const SITE_URL = "https://ethanpier.com";
 
@@ -113,15 +114,6 @@ function safeLastmod(value: string | null | undefined): string | undefined {
 
 /* ─────────────── static 分片：零后端依赖 ─────────────── */
 
-/** Currents 主题详情页：主题 id 清单与后端 src/topics.ts 保持一致。 */
-const CURRENTS_TOPIC_IDS = [
-  "openai", "anthropic", "google", "meta", "mistral", "qwen", "xai", "deepseek",
-  "nvidia", "microsoft", "apple", "bytedance",
-  "llm", "agent", "multimodal", "video", "image", "audio", "robotics", "reasoning",
-  "rl", "rag", "embeddings", "finetuning", "inference", "hardware", "safety",
-  "memory", "planning", "code", "mcp", "benchmark", "transformer",
-  "opensource", "papers", "product-launch", "policy", "funding",
-];
 
 export function buildStaticShardEntries(): SitemapUrlEntry[] {
   const posts = getPostsForLocale("en");
@@ -145,6 +137,16 @@ export function buildStaticShardEntries(): SitemapUrlEntry[] {
     ...bilingualEntries("/currents/changelog", {
       lastmod: new Date(CHANGELOG_LAST_UPDATED).toISOString(),
       changefreq: "weekly",
+      priority: 0.5,
+    }),
+    ...bilingualEntries("/currents/agent", {
+      lastmod: new Date(CHANGELOG_LAST_UPDATED).toISOString(),
+      changefreq: "monthly",
+      priority: 0.6,
+    }),
+    ...bilingualEntries("/feedback", {
+      lastmod: new Date(CHANGELOG_LAST_UPDATED).toISOString(),
+      changefreq: "monthly",
       priority: 0.5,
     }),
   ];

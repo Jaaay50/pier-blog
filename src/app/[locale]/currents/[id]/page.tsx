@@ -1,8 +1,6 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { serverFetchItemDetail, serverFetchSources } from "@/lib/currents/api";
 import { safeJsonLd } from "@/lib/json-ld";
 import { renderMarkdown } from "@/lib/currents/markdown";
@@ -98,7 +96,7 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
   }
 
   return (
-    <main className="relative min-h-screen">
+    <>
       {/* NewsArticle JSON-LD（外部数据经 safeJsonLd 防 </script> 逃逸） */}
       <script
         type="application/ld+json"
@@ -119,7 +117,6 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
           }),
         }}
       />
-      <Navbar />
       <CurrentsDetailBody
         item={item}
         deepReadHtml={deepReadHtml}
@@ -167,7 +164,6 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
         }}
         sourceName={sourceName}
       />
-      <SiteFooter maxWidth="max-w-6xl" />
-    </main>
+    </>
   );
 }

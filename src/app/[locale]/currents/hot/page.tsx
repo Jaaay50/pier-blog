@@ -1,7 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { Navbar } from "@/components/Navbar";
-import { SiteFooter } from "@/components/SiteFooter";
 import { CurrentsHotClient } from "@/components/currents/CurrentsHotClient";
 import { locales } from "@/i18n/config";
 
@@ -50,16 +48,14 @@ export default async function CurrentsHotPage({
   const t = await getTranslations("currents");
 
   return (
-    <main className="relative min-h-screen">
-      <Navbar />
-      <header className="mx-auto max-w-6xl px-6 pb-8 pt-16">
+    <>
+      <header className="pb-8 pt-14">
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("hotTitle")}
         </h1>
         <p className="max-w-2xl text-[var(--text-secondary)]">{t("hotSubtitle")}</p>
       </header>
       <CurrentsHotClient />
-      <SiteFooter maxWidth="max-w-6xl" />
-    </main>
+    </>
   );
 }
