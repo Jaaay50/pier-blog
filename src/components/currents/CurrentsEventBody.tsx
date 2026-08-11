@@ -1,6 +1,7 @@
 "use client";
 
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { TransitionLink } from "@/components/TransitionLink";
 import { fmtDateTime, fmtTime } from "@/lib/currents/format-time";
 import { EventHeatChart, type EventHeatChartLabels } from "./EventHeatChart";
 import { FeedbackForm, type FeedbackLabels } from "./FeedbackForm";
@@ -72,7 +73,7 @@ function TimelineEntry({
         aria-hidden
         className="currents-tl-node absolute -left-4 top-1.5 -translate-x-1/2 sm:-left-5"
       />
-      <div className="card-glass rounded-xl p-4">
+      <div className="currents-surface-list rounded-xl p-4">
         <div className="mb-1.5 flex flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)]">
           <span
             className={`rounded-full border px-2 py-0.5 text-[10px] font-medium ${ROLE_CLASS[entry.sourceRole]}`}
@@ -187,7 +188,7 @@ export function CurrentsEventBody({
       </div>
 
       {event.progress && (
-        <p className="card-glass mb-3 rounded-xl p-4 text-[14px] leading-relaxed text-[var(--text-secondary)]">
+        <p className="currents-surface-list mb-3 rounded-xl p-4 text-[14px] leading-relaxed text-[var(--text-secondary)]">
           {event.progress}
         </p>
       )}
@@ -204,12 +205,12 @@ export function CurrentsEventBody({
           {event.splitParent && (
             <p>
               {labels.splitParent}{" "}
-              <Link
+              <TransitionLink
                 href={`/currents/events/${event.splitParent}`}
                 className="text-[var(--accent)] hover:underline"
               >
                 {event.splitParent}
-              </Link>
+              </TransitionLink>
             </p>
           )}
           {event.splitChildren.length > 0 && (
@@ -218,9 +219,9 @@ export function CurrentsEventBody({
               {event.splitChildren.map((id, i) => (
                 <span key={id}>
                   {i > 0 && " · "}
-                  <Link href={`/currents/events/${id}`} className="text-[var(--accent)] hover:underline">
+                  <TransitionLink href={`/currents/events/${id}`} className="text-[var(--accent)] hover:underline">
                     {id}
-                  </Link>
+                  </TransitionLink>
                 </span>
               ))}
             </p>

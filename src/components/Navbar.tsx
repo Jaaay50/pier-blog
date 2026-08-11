@@ -19,6 +19,9 @@ export function Navbar() {
   const locale = useLocale();
   const t = useTranslations("nav");
   const [menuOpen, setMenuOpen] = useState(false);
+  // Currents 产品面使用与 CurrentsShell 同一轴线（--currents-shell-max，1760px）；
+  // 其他博客页面保持 max-w-6xl 不变
+  const isCurrents = pathname.startsWith("/currents");
 
   const navLinks = [
     { href: "/blog", label: t("blog") },
@@ -57,7 +60,11 @@ export function Navbar() {
 
   return (
     <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-sm">
-      <div className="mx-auto max-w-6xl px-6 py-4">
+      <div
+        className={`mx-auto py-4 ${
+          isCurrents ? "currents-shell-container" : "max-w-6xl px-6"
+        }`}
+      >
         <div className="flex items-center justify-between">
           <MagneticWrapper strength={0.2}>
             <TransitionLink

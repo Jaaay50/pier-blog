@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { Waterline } from "@/components/Waterline";
-import { Link } from "@/i18n/navigation";
+import { TransitionLink } from "@/components/TransitionLink";
 import { locales } from "@/i18n/config";
 import { changelogEntries, type ChangelogItemType } from "@/lib/currents/changelog";
 
@@ -81,12 +81,12 @@ export default async function CurrentsChangelogPage({
       {/* Header：静态 SEO 壳，h1 必须存在于构建产物 HTML */}
       <header className="mx-auto max-w-4xl pb-10 pt-14">
         <nav aria-label="breadcrumb" className="mb-6">
-          <Link
+          <TransitionLink
             href="/currents"
             className="text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
           >
             ← {tNav("currents")}
-          </Link>
+          </TransitionLink>
         </nav>
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("title")}
@@ -130,7 +130,7 @@ export default async function CurrentsChangelogPage({
                   const typeLabel = t(`type${item.type[0].toUpperCase()}${item.type.slice(1)}`);
                   return (
                     <li key={`${entry.phase}-${item.type}-${item.titleEn}`}>
-                      <article className="card-glass card-glass-hover rounded-xl p-4 md:p-5">
+                      <article className="currents-surface-list rounded-xl p-4 md:p-5">
                         <div className="flex items-start gap-3">
                           <span
                             className={`mt-0.5 inline-block shrink-0 rounded-full border px-2.5 py-0.5 text-[11px] font-medium leading-4 ${TYPE_BADGE_CLASS[item.type]}`}
@@ -157,12 +157,12 @@ export default async function CurrentsChangelogPage({
 
         {/* 返回 Currents */}
         <div className="mt-14 border-t border-[var(--border)] pt-8">
-          <Link
+          <TransitionLink
             href="/currents"
             className="text-sm font-medium text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
           >
             ← {t("backToCurrents")}
-          </Link>
+          </TransitionLink>
         </div>
       </div>
     </>

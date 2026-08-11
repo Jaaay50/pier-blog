@@ -7,6 +7,8 @@ import { useTranslations } from 'next-intl';
 
 interface SiteFooterProps {
   maxWidth?: string;
+  /** Currents 产品面：使用 --currents-shell-max（1760px）自适应工作台宽度 */
+  currentsWidth?: boolean;
 }
 
 function RssIcon() {
@@ -27,7 +29,7 @@ function GithubIcon() {
   );
 }
 
-export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
+export function SiteFooter({ maxWidth = 'max-w-4xl', currentsWidth = false }: SiteFooterProps) {
   const t = useTranslations('footer');
   const tNav = useTranslations('nav');
 
@@ -37,7 +39,7 @@ export function SiteFooter({ maxWidth = 'max-w-4xl' }: SiteFooterProps) {
       <div className="pointer-events-none absolute -bottom-6 -right-4" aria-hidden>
         <PierGlyph size={140} className="text-[var(--text-muted)] opacity-[0.04]" />
       </div>
-      <div className={`mx-auto ${maxWidth} px-6 py-12`}>
+      <div className={currentsWidth ? 'currents-shell-container mx-auto py-12' : `mx-auto ${maxWidth} px-6 py-12`}>
         {/* Three-column grid */}
         <div className="grid gap-10 sm:grid-cols-3">
           {/* Col 1: Brand */}

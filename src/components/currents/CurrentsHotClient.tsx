@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { TransitionLink } from "@/components/TransitionLink";
 import { fetchHot } from "@/lib/currents/api";
 import type { CurrentsHotEvent, CurrentsHotStatus, CurrentsHotType } from "@/lib/currents/types";
 import { CurrentsError } from "./CurrentsError";
@@ -52,7 +52,7 @@ function HotCard({ event, watching }: { event: CurrentsHotEvent; watching?: bool
   })();
 
   return (
-    <div className={`currents-card card-glass card-glass-hover rounded-xl ${watching ? "opacity-80" : ""}`}>
+    <div className={`currents-card currents-surface-list rounded-xl ${watching ? "opacity-80" : ""}`}>
       <div className="currents-card-meta flex items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2 text-[11px] text-[var(--text-muted)]">
           <span
@@ -80,12 +80,12 @@ function HotCard({ event, watching }: { event: CurrentsHotEvent; watching?: bool
         </span>
       </div>
 
-      <Link
+      <TransitionLink
         href={`/currents/events/${event.eventId}`}
         className="currents-card-title mb-1.5 block font-semibold leading-snug tracking-tight transition-colors hover:text-[var(--accent)]"
       >
         {event.title ?? t("hotUntitled")}
-      </Link>
+      </TransitionLink>
 
       {event.progress && (
         <p className="mb-1 text-[13px] leading-relaxed text-[var(--text-secondary)]">{event.progress}</p>

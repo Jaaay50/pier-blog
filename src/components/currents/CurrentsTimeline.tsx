@@ -83,8 +83,9 @@ export function CurrentsTimeline({ items, sources }: CurrentsTimelineProps) {
 
         return (
           <section key={group.key} aria-label={dateLabel}>
-            {/* 日期分组头（吸顶 + 视觉分隔） */}
-            <header className="sticky top-[65px] z-10 mb-4 flex items-baseline gap-2 border-b border-[var(--border)] bg-[var(--bg-primary)] py-2">
+            {/* 日期分组头（吸顶 + 视觉分隔）：与筛选工具栏同一暖纸半透明层级，
+                top 57px 与 Navbar 实际高度对齐，不再硬编码 65px */}
+            <header className="currents-surface-sticky sticky top-[57px] z-10 mb-4 flex items-baseline gap-2 border-b border-[var(--border)] py-2">
               <h2 className="font-display text-lg font-semibold tracking-tight">
                 {dateLabel}
               </h2>

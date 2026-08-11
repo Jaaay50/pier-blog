@@ -28,6 +28,20 @@
   --border: #dedcd1;          /* Hairline soft */
   --border-hover: #d1cfc5;    /* Hairline */
 
+  /* ---- 潮汐 Currents 语义表面（暖纸张层级，非纯白） ---- */
+  --currents-surface-list: rgba(255, 252, 246, 0.45);        /* 普通列表卡：低白比例 */
+  --currents-surface-list-hover: rgba(255, 252, 246, 0.6);
+  --currents-surface-highlight: rgba(255, 252, 246, 0.68);   /* 要闻强调：更强玻璃 */
+  --currents-surface-sticky: rgba(250, 249, 245, 0.86);      /* sticky 工具栏/日期：暖纸半透明 */
+  --currents-border: #dedcd1;
+  --currents-shadow-list: 0 1px 2px rgba(20, 20, 19, 0.04);
+  --currents-shadow-list-hover: 0 6px 18px rgba(20, 20, 19, 0.07);
+  --currents-shadow-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 1px 2px rgba(20, 20, 19, 0.05),
+    0 8px 24px rgba(20, 20, 19, 0.06);
+  --currents-shadow-sticky: 0 4px 16px rgba(20, 20, 19, 0.05);
+
   /* 语义化模式变量 */
   --glow-color: rgba(217, 119, 87, 0.12);
   --shadow-card: 0 2px 8px rgba(20, 20, 19, 0.06);
@@ -63,6 +77,20 @@
 
   --border: #222222;
   --border-hover: #333333;
+
+  /* ---- 潮汐 Currents 语义表面（深色同步适配） ---- */
+  --currents-surface-list: rgba(26, 26, 26, 0.42);
+  --currents-surface-list-hover: rgba(26, 26, 26, 0.55);
+  --currents-surface-highlight: rgba(26, 26, 26, 0.55);
+  --currents-surface-sticky: rgba(15, 15, 15, 0.82);
+  --currents-border: #222222;
+  --currents-shadow-list: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --currents-shadow-list-hover: 0 6px 18px rgba(0, 0, 0, 0.4);
+  --currents-shadow-highlight:
+    inset 0 1px 0 rgba(255, 255, 255, 0.08),
+    0 1px 2px rgba(0, 0, 0, 0.4),
+    0 8px 24px rgba(0, 0, 0, 0.3);
+  --currents-shadow-sticky: 0 4px 16px rgba(0, 0, 0, 0.35);
 
   --glow-color: rgba(106, 155, 204, 0.25);
   --shadow-card: 0 0 0 transparent;
@@ -1082,6 +1110,9 @@ html[data-particles-ready] .hero-title-ssr {
   --currents-time-w: 3.5rem;
   --currents-time-gap: 1rem;
   --currents-node: 0.625rem;
+  /* 产品外壳共享宽度：Navbar / CurrentsShell / SiteFooter 同一轴线
+     目标 max 1760px + 自适应 gutter，不超宽铺满也不在中屏留巨边 */
+  --currents-shell-max: 1760px;
 }
 
 html[data-density="compact"] {
@@ -1228,28 +1259,18 @@ html[data-density="comfortable"] {
   }
 }
 
-/* 已读弱化（标准 / 宽松档；紧凑档保持原样） */
+/* 已读状态：不再整卡 opacity（禁用态观感 + 覆盖 card-glass transition）。
+   改为局部覆盖表面变量 + 左侧已读细标记；标题/正文保持清晰可读。
+   只写 background-color/border-left-color，不写 transition 简写，
+   card-glass 的完整 transition 声明保持生效，hover 无跳变。 */
 .currents-card-read {
-  opacity: 0.55;
-  transition: opacity 0.2s ease;
+  --currents-surface-list: color-mix(in srgb, var(--currents-surface-list) 55%, transparent);
+  border-left-color: color-mix(in srgb, var(--text-muted) 45%, transparent);
+  border-left-width: 2px;
 }
 
-.currents-card-read:hover,
-.currents-card-read:focus-visible {
-  opacity: 0.9;
-}
-
-html[data-density="compact"] .currents-card-read {
-  opacity: 1;
-}
-
-html[data-density="compact"] .currents-card-read .currents-card-summary {
-  display: -webkit-box;
-}
-
-/* 已读只收起摘要 <p>，标题保留可见 */
-.currents-card-read .currents-card-summary {
-  display: none;
+.currents-card-read .currents-card-title {
+  color: var(--text-secondary);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1264,13 +1285,79 @@ html[data-density="compact"] .currents-card-read .currents-card-summary {
   font-weight: 700;
 }
 
-/* CurrentsShell 移动端抽屉动画（motion-safe 包裹，reduced-motion 下无动画） */
-@keyframes currents-fade-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
+/* ============================================
+   Currents 语义表面类（消费 --currents-surface-* 变量）
+   列表卡 / 要闻强调 / sticky 工具栏与日期标题，同一暖纸层级
+   ============================================ */
+.currents-surface-list {
+  background-color: var(--currents-surface-list);
+  border: 1px solid var(--currents-border);
+  box-shadow: var(--currents-shadow-list);
+  backdrop-filter: blur(10px) saturate(1.25);
+  -webkit-backdrop-filter: blur(10px) saturate(1.25);
+  backdrop-filter: blur(10px) saturate(1.25);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease,
+    transform 0.3s ease, background-color 0.3s ease;
 }
 
-@keyframes currents-slide-in {
-  from { transform: translateX(-100%); }
-  to { transform: translateX(0); }
+.currents-surface-list:hover {
+  background-color: var(--currents-surface-list-hover);
+  border-color: var(--border-hover);
+  box-shadow: var(--currents-shadow-list-hover);
+  transform: translateY(-2px);
+}
+
+.currents-surface-highlight {
+  background-color: var(--currents-surface-highlight);
+  border: 1px solid var(--currents-border);
+  box-shadow: var(--currents-shadow-highlight);
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+  transition: border-color 0.3s ease, box-shadow 0.3s ease,
+    transform 0.3s ease, background-color 0.3s ease;
+}
+
+.currents-surface-highlight:hover {
+  border-color: var(--border-hover);
+  transform: translateY(-3px);
+}
+
+.currents-surface-sticky {
+  background-color: var(--currents-surface-sticky);
+  backdrop-filter: blur(12px) saturate(1.3);
+  -webkit-backdrop-filter: blur(12px) saturate(1.3);
+  backdrop-filter: blur(12px) saturate(1.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .currents-surface-list,
+  .currents-surface-list:hover,
+  .currents-surface-highlight,
+  .currents-surface-highlight:hover {
+    transition: none;
+    transform: none;
+  }
+}
+
+/* 主内容容器查询：要闻 / 筛选器按内容可用宽度响应，不只依赖视口断点 */
+.currents-content {
+  container-type: inline-size;
+  /* 容器名 "main"：供 @min-[Npx]/main: 容器查询使用 */
+  container-name: main;
+}
+
+/* 自适应编辑工作台：gutter 随视口缩放（最小 16px），上限 1760px。
+   Navbar 与 SiteFooter 在 Currents 路由消费同一变量保持轴线对齐 */
+.currents-shell-container {
+  max-width: var(--currents-shell-max);
+  padding-left: max(1rem, env(safe-area-inset-left));
+  padding-right: max(1rem, env(safe-area-inset-right));
+}
+
+@media (min-width: 1760px) {
+  .currents-shell-container {
+    padding-left: 2.5rem;
+    padding-right: 2.5rem;
+  }
 }

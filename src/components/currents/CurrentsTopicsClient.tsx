@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { TransitionLink } from "@/components/TransitionLink";
 import { fetchTopics } from "@/lib/currents/api";
 import type { CurrentsTopicsResponse } from "@/lib/currents/types";
 import { CurrentsError } from "./CurrentsError";
@@ -52,15 +52,15 @@ export function CurrentsTopicsClient() {
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {topics.map((topic) => (
-                    <div key={topic.id} className="card-glass card-glass-hover rounded-xl p-4">
+                    <div key={topic.id} className="currents-surface-list rounded-xl p-4">
                       <div className="mb-2 flex items-baseline justify-between gap-2">
                         <h3 className="font-medium tracking-tight">
-                          <Link
+                          <TransitionLink
                             href={`/currents/topics/${topic.id}`}
                             className="transition-colors hover:text-[var(--accent)]"
                           >
                             {topic.name}
-                          </Link>
+                          </TransitionLink>
                         </h3>
                         <span className="shrink-0 text-[11px] tabular-nums text-[var(--text-muted)]">
                           {t("topicsCount", { count: topic.count })}
@@ -72,12 +72,12 @@ export function CurrentsTopicsClient() {
                       <ul className="space-y-1">
                         {topic.preview.slice(0, 3).map((p) => (
                           <li key={p.id}>
-                            <Link
+                            <TransitionLink
                               href={`/currents/${p.id}`}
                               className="line-clamp-1 block text-[12px] text-[var(--text-muted)] transition-colors hover:text-[var(--accent)]"
                             >
                               {p.title}
-                            </Link>
+                            </TransitionLink>
                           </li>
                         ))}
                       </ul>

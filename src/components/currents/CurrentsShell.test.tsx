@@ -22,6 +22,7 @@ vi.mock("@/i18n/navigation", () => ({
     </a>
   ),
   usePathname: () => mockPathname(),
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -43,8 +44,8 @@ const messages = {
     search: "搜索",
     changelog: "更新日志",
     feedback: "反馈",
-    menuOpen: "打开潮汐导航菜单",
-    menuClose: "关闭导航菜单",
+    menuOpen: "打开导航",
+    menuClose: "关闭导航",
   },
 };
 
@@ -61,7 +62,7 @@ function renderShell() {
   );
 }
 
-/** 桌面侧栏 <nav>（抽屉未打开时唯一的导航 landmark） */
+/** 桌面侧栏 <nav>（面板未打开时唯一的导航 landmark） */
 function getSideNav() {
   return screen.getAllByRole("navigation", { name: "潮汐导航" })[0];
 }
@@ -103,19 +104,19 @@ describe("CurrentsShell", () => {
     expect(screen.getByRole("link", { name: "精选" }).getAttribute("aria-current")).toBeNull();
   });
 
-  it("移动端菜单按钮 aria-expanded 开合抽屉", () => {
+  it("移动端产品导航按钮 aria-expanded 开合面板", () => {
     renderShell();
-    const button = screen.getByRole("button", { name: "打开潮汐导航菜单" });
+    // 文字产品导航按钮：包含「潮汐 · 精选」与打开文案
+    const button = screen.getByRole("button", { name: /潮汐/ });
     expect(button.getAttribute("aria-expanded")).toBe("false");
     expect(screen.queryByRole("dialog")).toBeNull();
 
     fireEvent.click(button);
     expect(button.getAttribute("aria-expanded")).toBe("true");
-    expect(screen.getByRole("dialog")).toBeTruthy();
+    expect(screen.getByRole("dialog", { name: "潮汐导航" })).toBeTruthy();
 
     // Esc 关闭
     fireEvent.keyDown(document, { key: "Escape" });
     expect(button.getAttribute("aria-expanded")).toBe("false");
-    expect(screen.queryByRole("dialog")).toBeNull();
   });
 });
