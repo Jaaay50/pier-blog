@@ -392,7 +392,7 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - 前端回滚点：合并前 main commit `b9c5648` + 上一生产部署 `pier-blog-e2tbza2sc-jia-ethans-projects.vercel.app`
 - ➖ OpenAPI 与公共 REST API 产品化不在当前范围；反馈管理继续使用服务器 CLI；Agent 接入为受邀开放，不做自助 Token
 
-## PR #3 Review 后续修正（代码完成，尚未部署）
+## PR #3 Review 后续修正（已部署，待浏览器验收）
 
 - ✅ 修复 query-only 导航等待超时、重复 destination 误启动转场，以及 reduced-motion 动效降级
 - ✅ 修复 1280–1535px 内容宽度断崖、1760px gutter 跳变，并让 Navbar、筛选器与侧栏统一消费实际导航高度
@@ -400,4 +400,5 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - ✅ 修复反馈页产品外壳复用、多信源计数缺失、已读卡表面变量循环与左边框覆盖
 - ✅ 日期标题取消白色渐变和吸顶层，改为透明内容流样式，直接融入页面背景
 - ✅ 本地验证：test 106/106、lint 0 error（2 个既有 warning）、TypeScript、build、`git diff --check` 均通过
-- 交付边界：代码与文档纳入本次 `main` 收尾提交；未另建 PR，尚未部署或浏览器验收，线上仍是 PR #3 / `5361594` 基线
+- 交付：commit `ff5beef`；Actions run `31459121708` 成功，production deployment `pier-blog-p9cmagbz4-jia-ethans-projects.vercel.app`；未另建 PR
+- 验收边界：本地自动化验证与部署工作流通过；按要求尚未执行浏览器视觉/真实键盘验收
