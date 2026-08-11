@@ -33,18 +33,22 @@ Lighthouse（本地生产构建，见 `docs/lighthouse/`）：
 
 ## Development
 
+Requires Node.js `22.23.1` and npm `10.9.8` (see `.nvmrc`, `.node-version`, and `packageManager`).
+
 ```bash
-npm install
+npm ci
 npm run dev        # 开发（3000 被占用时 --port 3002）
-npm run build      # 生产构建
+npm test           # Vitest
 npm run lint       # ESLint
+npx tsc --noEmit   # TypeScript
+npm run build      # 生产构建
 ```
 
 文章写在 `src/content/blog/*.{en,zh}.mdx`，frontmatter 需要 `title` / `date` / `description` / `tags`。
 
 ## Project Log
 
-Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署，当前剩余项包括 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收，以及 Phase 11 网站与服务器安全加固决策。完整记录见 [PROGRESS.md](./PROGRESS.md)，安全阶段见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。
+Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署；Phase 11A 安全事务升级已完成并上线。当前剩余项包括 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收，以及 Phase 11 后续的防爬虫、复制限制与服务器安全审计。完整记录见 [PROGRESS.md](./PROGRESS.md)，安全阶段见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。
 
 Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-11：阶段 A 详情页「报告内容问题」入口、阶段 B MCP Server + Agent Skill（服务端）、阶段 C 产品闭环（Currents 统一产品外壳、`/currents/agent` Agent 接入页、`/feedback` 全局反馈页、统一全站搜索）均已上线并完成生产验收；同日完成 Currents 响应式与动效统一修复（PR #3、merge commit `5361594`、生产部署 `pier-blog-9eixpss8u`）：外壳扩至 1760px 自适应编辑工作台，移动端改为「潮汐 · 当前页」文字产品导航 + 底部筛选面板，浅色表面统一暖纸语义层级，已读态改为局部标记（不再整卡降 opacity），今日要闻改为主故事 + 2×2 次要卡，内部导航恢复 TransitionLink/View Transitions。Review 后续修正已通过 commit `ff5beef` 与 Actions run `31459121708` 部署：侧栏改为 ≥1536px 显示，1280–1535px 渐进预留侧栏空间，日期标题取消白色渐变与吸顶层，并补齐导航、筛选面板和卡片状态问题；同日的 Agent/日报排版工作已完成多视口浏览器验收（见下）。注意区分：服务端部署 ≠ 客户端真实接入——具体客户端仍需逐一核验工具发现、五工具调用、凭据隔离与重启持久性。
 

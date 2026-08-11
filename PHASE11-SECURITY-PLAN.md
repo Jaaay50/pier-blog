@@ -53,6 +53,7 @@
 - GitHub/Vercel：前端仓库级 Secret 为 0，`production` Environment 保留 3 项 Vercel Secret；Actions 限定 GitHub-owned、强制 SHA、默认只读；vulnerability alerts 与 security updates 已启用。
 - 本地凭据清理：4 个 Pi JSONL 中 6 个历史 Token 值已原地原子化脱敏并逐行通过 JSON 校验；前端 Git 的不可达敏感 blob 已通过 reflog expire + GC 清除；任务容器、临时文件、未受 lock 管理的全局 Vercel CLI 与本地临时 Vercel 环境文件已清理。
 - 已接受的残余风险：当前登录的 Cloudflare 身份已显示“无 API 权杖”，但另一 Cloudflare 身份下仍有 1 枚已暴露 Token 经 API 验证为 active；其本地明文已删除，云端 Token 未撤销。该既有凭据风险不计入 Phase 11A 闭环阻塞范围。
+- 闭环记录：文档提交 `5633dd2` 已推送；CI run `31489111025` 成功；docs-only deploy workflow `31489223884` 的 `authorize` 成功、`deploy` 按规则跳过，未产生额外生产部署。
 
 ## 回滚
 

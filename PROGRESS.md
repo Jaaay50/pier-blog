@@ -12,6 +12,7 @@
 - ✅ 线上与浏览器验收：14 个路由 200；强制 CSP 与报告端点、4 个 Canvas、主题往返、Currents 数据、Agent 复制、Giscus、API/MCP、HTTP→HTTPS、HSTS 与 TLS 协议边界均通过。
 - ✅ 仓库与本地收尾：前端 `main-protection` ruleset 已启用；仓库级 Vercel Secret 已删除；6 个历史 Token 值从 4 个 Pi JSONL 原子化脱敏；Git 不可达敏感对象与任务临时环境已清理。
 - ⚠️ 已接受的残余风险：另一 Cloudflare 身份下仍有 1 枚已暴露 Token 为 active；当前登录身份无权访问该账户，本地明文已删除，云端 Token 未撤销。该既有凭据风险不阻塞 Phase 11A 闭环。
+- ✅ 闭环记录：文档提交 `5633dd2`；CI `31489111025` 成功；docs-only deploy workflow `31489223884` 的 `authorize` 成功、`deploy` 跳过，未产生额外生产部署。
 
 **后续阶段**：防爬虫、禁复制、服务器加固。
 
