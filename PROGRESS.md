@@ -373,8 +373,9 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 
 - ✅ Phase 0–7、批次 2、事件基础、独立事件页、详情 hardening、24h 热度曲线与完整事件 sitemap 已上线
 - ✅ 阶段 A：资讯/事件详情页内容反馈入口（现名「报告内容问题」）+ `POST /v1/feedback` 已上线并完成生产验收
-- ✅ 阶段 B：五工具只读 MCP Server + Agent Skill 已实现、部署并完成首次生产验收（服务端）
-- ✅ 阶段 C：Currents 统一产品外壳（常驻左侧导航 + 移动端抽屉）、`/currents/agent` Agent 接入页、`/feedback` 全局产品反馈页（后端 `targetType=site` + 迁移 011）、多类型全站搜索（博客/功能页/主题，功能页关键词优先）已实现并部署
-- ✅ SG2 运维事故已恢复；页面 200、API health 200、MCP 未授权 401 为当前复验基线
-- ⏳ 客户端真实接入仍待逐一核验：雪、佳、Codex 等具体客户端需核验工具发现、五工具调用、凭据隔离与重启持久性（服务端已部署 ≠ 客户端已接入）
+- ✅ 阶段 B：五工具只读 MCP Server + Agent Skill 已实现、部署并完成生产验收（服务端；受邀凭据 tools/list 与五工具实调已于 2026-08-11 复验）
+- ✅ 阶段 C：Currents 统一产品外壳（常驻左侧导航 + 移动端抽屉）、`/currents/agent` Agent 接入页、`/feedback` 全局产品反馈页（后端 `targetType=site` + 迁移 011）、多类型全站搜索（博客/功能页/主题，功能页关键词优先）已上线并完成生产验收（PR #2、Vercel run 31449399427、commit 209cf97；后端 PR #1、镜像 `currents-api:feedback-site-20260811-b8e67b7`）
+- ✅ SG2 运维事故已恢复；页面 200、API health 200、MCP 未授权 401 为当前复验基线（2026-08-11 阶段 C 部署后复验通过）
+- ⏳ 客户端真实接入仍待逐一核验：Codex、Claude Code、佳等具体客户端需核验配置持久化、工具发现与五工具调用（服务端已部署 ≠ 客户端已接入；受邀凭据发放后逐客户端验收）
+- 阶段 C 回滚点：后端镜像 `currents-api:feedback-20260810-bd31fc5` + 数据库备份 `/opt/currents/backups/pre-fb-site-20260811T013149Z.db`；前端 Vercel 上一部署（run 31400949712，commit c511e23）
 - ➖ OpenAPI 与公共 REST API 产品化不在当前范围；反馈管理继续使用服务器 CLI；Agent 接入为受邀开放，不做自助 Token

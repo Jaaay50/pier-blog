@@ -46,6 +46,6 @@ npm run lint       # ESLint
 
 Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署，当前剩余项主要是 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收。完整记录见 [PROGRESS.md](./PROGRESS.md)，各阶段规划见 `PHASE*-PLAN.md`。
 
-Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-11：阶段 A 详情页「报告内容问题」入口与阶段 B MCP Server + Agent Skill 服务端均已上线并完成首次生产验收；阶段 C（Currents 产品外壳、Agent 接入页、全局反馈页、统一搜索）已实现并部署。注意区分：技术实现与服务端部署 ≠ 客户端真实接入——具体客户端仍需逐一核验发现、五工具调用、凭据隔离与重启持久性。
+Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-11：阶段 A 详情页「报告内容问题」入口、阶段 B MCP Server + Agent Skill（服务端）、阶段 C 产品闭环（Currents 统一产品外壳、`/currents/agent` Agent 接入页、`/feedback` 全局反馈页、统一全站搜索）均已上线并完成生产验收。注意区分：服务端部署 ≠ 客户端真实接入——具体客户端仍需逐一核验工具发现、五工具调用、凭据隔离与重启持久性。
 
 Deployed on Vercel via GitHub Actions (`.github/workflows/deploy.yml`).
