@@ -14,6 +14,12 @@ function call(shard: string): Promise<Response> {
   });
 }
 
+function callWithSearch(shard: string, search: string): Promise<Response> {
+  return GET(new Request(`https://ethanpier.com/sitemaps/${shard}${search}`), {
+    params: Promise.resolve({ shard }),
+  });
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
@@ -67,5 +73,62 @@ describe("GET /sitemaps/[shard]", () => {
     );
     const xml = await res.text();
     expect(xml).toContain("/currents/events/0abc");
+  });
+});
+
+describe("GET /sitemaps/[shard] — 非空 query 一律拒绝（缓存绕过防护）", () => {
+  it("任意 query（含 nonce）400 + no-store，且不触发任何上游 fetch", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    for (const search of [
+      "?nonce=abc123",
+      "?nonce=",
+      "?a=1&b=2",
+      "?" + "x".repeat(500),
+    ]) {
+      const res = await callWithSearch("currents-items.xml", search);
+      expect(res.status, search).toBe(400);
+      expect(res.headers.get("cache-control"), search).toBe("no-store");
+    }
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("query 拒绝在分片名校验之前生效：未知分片 + query 仍是 400 而非 404", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const res = await callWithSearch("evil.xml", "?nonce=x");
+    expect(res.status).toBe(400);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("事件分片带 query 同样 400 + no-store + 零 fetch", async () => {
+    const fetchSpy = vi.fn();
+    vi.stubGlobal("fetch", fetchSpy);
+
+    const res = await callWithSearch("currents-events-0.xml", "?nonce=cache-bust");
+    expect(res.status).toBe(400);
+    expect(res.headers.get("cache-control")).toBe("no-store");
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("无 query 的正常请求不受影响（回归）", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({ schemaVersion: 1, events: [], nextCursor: null, hasMore: false }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      ),
+    );
+    const res = await call("currents-events-0.xml");
+    expect(res.status).toBe(200);
+    expect(res.headers.get("cache-control")).toBe(
+      "public, max-age=300, s-maxage=3600, stale-while-revalidate=86400",
+    );
   });
 });

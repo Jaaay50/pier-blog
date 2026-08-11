@@ -343,10 +343,10 @@ export const serverFetchSources = () =>
   serverFetch<{ sources: CurrentsSource[] }>("/v1/sources", 3600);
 
 export const serverFetchDailyLatest = (locale: string) =>
-  serverFetch<CurrentsDailyReport>(`/v1/dailies/latest?locale=${encodeURIComponent(locale)}`, 300);
+  serverFetchDetail<CurrentsDailyReport>(`/v1/dailies/latest?locale=${encodeURIComponent(locale)}`, 300);
 
 export const serverFetchDailyByDate = (date: string, locale: string) =>
-  serverFetch<CurrentsDailyReport>(`/v1/dailies/${encodeURIComponent(date)}?locale=${encodeURIComponent(locale)}`, 300);
+  serverFetchDetail<CurrentsDailyReport>(`/v1/dailies/${encodeURIComponent(date)}?locale=${encodeURIComponent(locale)}`, 300);
 
 export const serverFetchDailyArchive = (locale: string, limit = 30) =>
   serverFetch<CurrentsDailyArchiveResponse>(`/v1/dailies?locale=${encodeURIComponent(locale)}&limit=${limit}`, 300);

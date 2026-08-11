@@ -3,6 +3,8 @@ import {
   serverFetchEventDetail,
   serverFetchItemDetail,
   serverFetchDailyLatest,
+  serverFetchDailyByDate,
+  serverFetchSources,
   CurrentsApiError,
   CurrentsServerFetchError,
   isValidCurrentsDailyDate,
@@ -247,9 +249,92 @@ describe("serverFetchDetail：只有 404 视为不存在，其余全部上抛可
     }
   });
 
-  it("serverFetch（宽松语义）：超时/网络失败收敛到 null，不抛不挂死", async () => {
+  it("Daily 主数据现在采用严格语义：超时/网络失败必须抛出 CurrentsServerFetchError", async () => {
     mockFetch(() => Promise.reject(new DOMException("timeout", "TimeoutError")));
+    await expect(serverFetchDailyLatest("zh")).rejects.toBeInstanceOf(CurrentsServerFetchError);
+    await expect(serverFetchDailyLatest("zh")).rejects.toMatchObject({ kind: "network" });
+  });
+});
+
+describe("serverFetchDailyLatest / serverFetchDailyByDate：主数据严格故障语义（Phase 11B P1）", () => {
+  it("后端明确 404 → 返回 null（真实不存在 → notFound）", async () => {
+    mockFetch(() => jsonResponse(404, { error: "not_found" }));
     await expect(serverFetchDailyLatest("zh")).resolves.toBeNull();
+    await expect(serverFetchDailyByDate("2026-08-11", "zh")).resolves.toBeNull();
+  });
+
+  it("超时（AbortError/TimeoutError）→ throw CurrentsServerFetchError(kind=network)，不收敛为 null", async () => {
+    mockFetch(() => Promise.reject(new DOMException("The operation was aborted", "AbortError")));
+    const err = await serverFetchDailyLatest("zh").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CurrentsServerFetchError);
+    expect((err as CurrentsServerFetchError).kind).toBe("network");
+
+    const errByDate = await serverFetchDailyByDate("2026-08-11", "zh").catch((e: unknown) => e);
+    expect(errByDate).toBeInstanceOf(CurrentsServerFetchError);
+    expect((errByDate as CurrentsServerFetchError).kind).toBe("network");
+  });
+
+  it("网络失败 → throw CurrentsServerFetchError(kind=network)", async () => {
+    mockFetch(() => Promise.reject(new TypeError("fetch failed")));
+    const err = await serverFetchDailyLatest("zh").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CurrentsServerFetchError);
+    expect((err as CurrentsServerFetchError).kind).toBe("network");
+  });
+
+  it("429 → throw CurrentsServerFetchError(kind=http, status=429)，不收敛为 null", async () => {
+    mockFetch(() => jsonResponse(429, { error: "rate_limited" }));
+    const err = await serverFetchDailyLatest("zh").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CurrentsServerFetchError);
+    expect((err as CurrentsServerFetchError).kind).toBe("http");
+    expect((err as CurrentsServerFetchError).status).toBe(429);
+
+    const errByDate = await serverFetchDailyByDate("2026-08-11", "zh").catch((e: unknown) => e);
+    expect(errByDate).toBeInstanceOf(CurrentsServerFetchError);
+    expect((errByDate as CurrentsServerFetchError).kind).toBe("http");
+    expect((errByDate as CurrentsServerFetchError).status).toBe(429);
+  });
+
+  it.each([500, 502, 503])("5xx（HTTP %i）→ throw CurrentsServerFetchError(kind=http)，不收敛为 null", async (status) => {
+    mockFetch(() => jsonResponse(status, { error: "internal_error" }));
+    const err = await serverFetchDailyLatest("zh").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CurrentsServerFetchError);
+    expect((err as CurrentsServerFetchError).kind).toBe("http");
+    expect((err as CurrentsServerFetchError).status).toBe(status);
+  });
+
+  it("非法 JSON → throw CurrentsServerFetchError(kind=invalid-json)，不收敛为 null", async () => {
+    mockFetch(() => new Response("<html>Bad Gateway</html>", { status: 200 }));
+    const err = await serverFetchDailyLatest("zh").catch((e: unknown) => e);
+    expect(err).toBeInstanceOf(CurrentsServerFetchError);
+    expect((err as CurrentsServerFetchError).kind).toBe("invalid-json");
+
+    const errByDate = await serverFetchDailyByDate("2026-08-11", "zh").catch((e: unknown) => e);
+    expect(errByDate).toBeInstanceOf(CurrentsServerFetchError);
+    expect((errByDate as CurrentsServerFetchError).kind).toBe("invalid-json");
+  });
+
+  it("200 + 合法 JSON → 正常返回报告对象", async () => {
+    const report = { date: "2026-08-11", lead: { title: "Lead" } };
+    mockFetch(() => jsonResponse(200, report));
+    await expect(serverFetchDailyLatest("zh")).resolves.toEqual(report);
+    await expect(serverFetchDailyByDate("2026-08-11", "zh")).resolves.toEqual(report);
+  });
+});
+
+describe("serverFetchSources：辅助数据仍保持宽松 null 语义（不因 Daily 改严格而连带改动）", () => {
+  it("超时/网络失败仍收敛到 null，不抛不挂死", async () => {
+    mockFetch(() => Promise.reject(new DOMException("timeout", "TimeoutError")));
+    await expect(serverFetchSources()).resolves.toBeNull();
+  });
+
+  it("HTTP 错误仍收敛到 null", async () => {
+    mockFetch(() => jsonResponse(500, { error: "internal_error" }));
+    await expect(serverFetchSources()).resolves.toBeNull();
+  });
+
+  it("200 + 合法 JSON → 正常返回", async () => {
+    mockFetch(() => jsonResponse(200, { sources: [] }));
+    await expect(serverFetchSources()).resolves.toEqual({ sources: [] });
   });
 });
 

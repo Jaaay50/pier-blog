@@ -19,7 +19,13 @@ interface PageProps {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "currents" });
-  const report = await serverFetchDailyLatest(locale);
+  // generateMetadata 中的取数异常不应阻塞 metadata 输出；catch 后回退默认 description。
+  let report: Awaited<ReturnType<typeof serverFetchDailyLatest>> = null;
+  try {
+    report = await serverFetchDailyLatest(locale);
+  } catch {
+    // 页面体会同步触发相同请求并正确抛出 → error.tsx；metadata 不二次抛出。
+  }
   const title = `${t("dailyTitle")} — 潮汐 · Currents`;
   const description = report?.lead?.title ?? t("subtitle");
   const canonicalUrl = `${SITE_URL}/${locale}/currents/daily`;
@@ -43,6 +49,7 @@ export default async function CurrentsDailyPage({ params }: PageProps) {
   setRequestLocale(locale);
   const t = await getTranslations("currents");
   const report = await serverFetchDailyLatest(locale);
+  // serverFetchDailyLatest 严格语义：null = 404（真实不存在），throw = 可重试故障
   if (!report) notFound();
 
   return (

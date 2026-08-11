@@ -49,10 +49,23 @@ function unavailableResponse(): Response {
 const EVENT_SHARD_RE = /^currents-events-([0-9a-f]|other)\.xml$/;
 
 export async function GET(
-  _req: Request,
+  req: Request,
   { params }: { params: Promise<{ shard: string }> }
 ) {
   const { shard } = await params;
+
+  // Phase 11B P1: 阻断非空 query 的缓存绕过企图（?nonce= 等）。
+  // 正常 sitemap 请求为裸路径；query 存在即为异常，立即 400 + no-store，不触发上游请求。
+  const url = new URL(req.url);
+  if (url.search !== '') {
+    return new Response('sitemap does not accept query parameters\n', {
+      status: 400,
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': FAIL_CACHE,
+      },
+    });
+  }
 
   if (shard === "currents-items.xml") {
     try {
