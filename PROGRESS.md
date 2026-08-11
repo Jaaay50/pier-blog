@@ -378,4 +378,16 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - ✅ SG2 运维事故已恢复；页面 200、API health 200、MCP 未授权 401 为当前复验基线（2026-08-11 阶段 C 部署后复验通过）
 - ⏳ 客户端真实接入仍待逐一核验：Codex、Claude Code、佳等具体客户端需核验配置持久化、工具发现与五工具调用（服务端已部署 ≠ 客户端已接入；受邀凭据发放后逐客户端验收）
 - 阶段 C 回滚点：后端镜像 `currents-api:feedback-20260810-bd31fc5` + 数据库备份 `/opt/currents/backups/pre-fb-site-20260811T013149Z.db`；前端 Vercel 上一部署（run 31400949712，commit c511e23）
+
+# Currents 响应式与动效统一修复（2026-08-11）
+
+- ✅ 外壳统一为 1760px 自适应编辑工作台，Navbar/CurrentsShell/SiteFooter 同一轴线（`--currents-shell-max`）
+- ✅ 侧栏仅 ≥1280px 显示（224px），1024–1279px 保持全宽正文，消除 1024px 临界断崖
+- ✅ 移动端以「潮汐 · 当前页」文字产品导航替换第二个汉堡；筛选器桌面滚动收缩单行工具栏、移动端吸顶极简栏 + 底部面板
+- ✅ 新增 `--currents-surface-*` 语义表面变量（浅色暖纸层级 / 深色同步）；已读态改局部标记 + 左边框，不再整卡 opacity
+- ✅ 今日要闻重构为主故事 7/12 + 右侧 2×2 次要卡（容器查询驱动），消除主卡内部空白
+- ✅ 站内导航全面恢复 TransitionLink/View Transitions；GSAP/Lenis 单一驱动循环未动；删除遗留 `currents-fade-in`/`currents-slide-in` keyframes
+- ✅ 验收：test 91 过 / lint 0 error / build 通过；生产 9 视口（375–2560）无横向溢出、2560px 壳 1760px、移动端吸顶 56px、桌面收缩栏 52–60px
+- 交付：PR #3、merge commit `5361594`、生产部署 `pier-blog-9eixpss8u-jia-ethans-projects.vercel.app`
+- 前端回滚点：合并前 main commit `b9c5648` + 上一生产部署 `pier-blog-e2tbza2sc-jia-ethans-projects.vercel.app`
 - ➖ OpenAPI 与公共 REST API 产品化不在当前范围；反馈管理继续使用服务器 CLI；Agent 接入为受邀开放，不做自助 Token
