@@ -36,7 +36,10 @@ export function CurrentsCard({ item, sourceName }: CurrentsCardProps) {
 
   const highScore = (item.score ?? 0) >= 80;
 
-  const hasSecondary = Boolean(item.reason) || Boolean(item.tags && item.tags.length > 0);
+  const hasSecondary =
+    Boolean(item.reason) ||
+    Boolean(item.tags && item.tags.length > 0) ||
+    (multiSourceCount != null && multiSourceCount > 1);
 
   return (
     <TransitionLink

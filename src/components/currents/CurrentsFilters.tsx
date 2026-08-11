@@ -96,6 +96,15 @@ const PILL_ACTIVE = "border-[var(--accent)]/60 text-[var(--accent)]";
 const PILL_IDLE =
   "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]";
 
+const FOCUSABLE_SELECTOR = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
+
 export function CurrentsFilters({
   view,
   onViewChange,
@@ -124,6 +133,7 @@ export function CurrentsFilters({
   // 移动端底部筛选面板
   const [sheetOpen, setSheetOpen] = useState(false);
   const sheetButtonRef = useRef<HTMLButtonElement>(null);
+  const sheetLayerRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
   // 桌面收缩态「更多筛选」展开行
   const [moreOpen, setMoreOpen] = useState(false);
@@ -140,37 +150,140 @@ export function CurrentsFilters({
     };
   }, []);
 
-  // 收缩检测：哨兵离开视口 → 筛选区进入吸顶收缩态（桌面 ≥xl 有效）
+  // 收缩检测以实际 Navbar 高度为基准；Navbar 尺寸变化时重建观察器。
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const entry = entries[0];
-        if (entry) setCollapsed(!entry.isIntersecting);
-      },
-      // top 58px 与 Navbar 实际高度对齐，吸顶线以下即视为越过
-      { rootMargin: "-58px 0px 0px 0px", threshold: 0 },
-    );
-    observer.observe(sentinel);
-    return () => observer.disconnect();
+    if (!sentinel || typeof IntersectionObserver === "undefined") return;
+
+    let observer: IntersectionObserver | null = null;
+    const observe = () => {
+      observer?.disconnect();
+      const rawHeight = getComputedStyle(document.documentElement)
+        .getPropertyValue("--site-nav-height")
+        .trim();
+      const navbarHeight = Number.parseFloat(rawHeight) || 57;
+      observer = new IntersectionObserver(
+        (entries) => {
+          const entry = entries[0];
+          if (entry) setCollapsed(!entry.isIntersecting);
+        },
+        { rootMargin: `-${navbarHeight}px 0px 0px 0px`, threshold: 0 },
+      );
+      observer.observe(sentinel);
+    };
+
+    observe();
+    const navbar = document.querySelector<HTMLElement>("[data-site-navbar]");
+    if (!navbar || typeof ResizeObserver === "undefined") {
+      return () => observer?.disconnect();
+    }
+
+    const resizeObserver = new ResizeObserver(observe);
+    resizeObserver.observe(navbar);
+    return () => {
+      observer?.disconnect();
+      resizeObserver.disconnect();
+    };
   }, []);
 
-  // 底部面板：Esc / 外部点击关闭 + 焦点管理（复用 SearchModal 模式）
+  // 底部面板是完整模态：锁滚动、隔离背景、圈住焦点，并在关闭后恢复触发点。
   useEffect(() => {
     if (!sheetOpen) return;
+
     const trigger = sheetButtonRef.current;
-    const first = sheetRef.current?.querySelector<HTMLElement>(
-      "input, button, select, [tabindex]",
-    );
-    first?.focus();
+    const layer = sheetLayerRef.current;
+    const sheet = sheetRef.current;
+    if (!layer || !sheet) return;
+
+    const focusable = () =>
+      Array.from(sheet.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
+        (element) => !element.hidden && element.getAttribute("aria-hidden") !== "true",
+      );
+
+    // 先把焦点移入面板，再隔离触发按钮所在背景，避免 aria-hidden 拒绝生效。
+    const first = focusable()[0];
+    (first ?? sheet).focus();
+
+    const isolated: Array<{
+      element: HTMLElement;
+      inert: boolean;
+      ariaHidden: string | null;
+    }> = [];
+    let branch: HTMLElement = layer;
+    while (branch.parentElement && branch.parentElement !== document.body) {
+      for (const sibling of Array.from(branch.parentElement.children)) {
+        if (!(sibling instanceof HTMLElement) || sibling === branch) continue;
+        isolated.push({
+          element: sibling,
+          inert: sibling.inert,
+          ariaHidden: sibling.getAttribute("aria-hidden"),
+        });
+        sibling.inert = true;
+        sibling.setAttribute("aria-hidden", "true");
+      }
+      branch = branch.parentElement;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const previousPaddingRight = document.body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    document.body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setSheetOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setSheetOpen(false);
+        return;
+      }
+      if (e.key !== "Tab") return;
+
+      const elements = focusable();
+      if (elements.length === 0) {
+        e.preventDefault();
+        sheet.focus();
+        return;
+      }
+
+      const firstElement = elements[0];
+      const lastElement = elements[elements.length - 1];
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
     };
+
+    const onFocusIn = (e: FocusEvent) => {
+      if (!sheet.contains(e.target as Node)) {
+        (focusable()[0] ?? sheet).focus();
+      }
+    };
+
+    const desktopQuery = window.matchMedia("(min-width: 1280px)");
+    const onDesktopChange = (e: MediaQueryListEvent) => {
+      if (e.matches) setSheetOpen(false);
+    };
+
     document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("focusin", onFocusIn);
+    desktopQuery.addEventListener("change", onDesktopChange);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      trigger?.focus();
+      document.removeEventListener("focusin", onFocusIn);
+      desktopQuery.removeEventListener("change", onDesktopChange);
+      document.body.style.overflow = previousOverflow;
+      document.body.style.paddingRight = previousPaddingRight;
+      for (const { element, inert, ariaHidden } of isolated) {
+        element.inert = inert;
+        if (ariaHidden === null) element.removeAttribute("aria-hidden");
+        else element.setAttribute("aria-hidden", ariaHidden);
+      }
+      if (trigger?.isConnected) trigger.focus();
     };
   }, [sheetOpen]);
 
@@ -297,7 +410,7 @@ export function CurrentsFilters({
       <div ref={sentinelRef} aria-hidden className="h-px" />
 
       {/* ===== 移动端吸顶极简栏（<xl）：当前视图 + 筛选状态 + 筛选按钮 ===== */}
-      <div className="currents-surface-sticky sticky top-[57px] z-30 flex h-14 items-center justify-between gap-3 border-b border-[var(--border)] xl:hidden">
+      <div className="currents-surface-sticky sticky top-[var(--site-nav-height)] z-30 flex h-14 items-center justify-between gap-3 border-b border-[var(--border)] xl:hidden">
         <span className="flex min-w-0 items-baseline gap-2 text-sm">
           <span className="shrink-0 font-medium">{viewLabel}</span>
           {activeFilterCount > 0 && (
@@ -322,7 +435,7 @@ export function CurrentsFilters({
       {/* ===== 移动端底部筛选面板（<xl） ===== */}
       <AnimatePresence>
         {sheetOpen && (
-          <div className="fixed inset-0 z-[80] xl:hidden">
+          <div ref={sheetLayerRef} className="fixed inset-0 z-[80] xl:hidden">
             <motion.div
               aria-hidden
               initial={{ opacity: 0 }}
@@ -338,6 +451,7 @@ export function CurrentsFilters({
               role="dialog"
               aria-modal="true"
               aria-label={t("filtersOpen")}
+              tabIndex={-1}
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
@@ -442,7 +556,7 @@ export function CurrentsFilters({
             ? { duration: 0 }
             : { type: "spring", stiffness: 320, damping: 34 }
         }
-        className={`sticky top-[57px] z-30 hidden xl:block ${
+        className={`sticky top-[var(--site-nav-height)] z-30 hidden xl:block ${
           collapsed
             ? "currents-surface-sticky rounded-xl border border-[var(--border)] px-4 py-2.5 shadow-[var(--currents-shadow-sticky)]"
             : "border-b border-transparent py-3"
@@ -566,7 +680,7 @@ export function CurrentsFilters({
                 ? { duration: 0 }
                 : { duration: 0.18, ease: "easeOut" }
             }
-            className="currents-surface-sticky sticky top-[124px] z-20 hidden overflow-hidden rounded-xl border border-[var(--border)] px-4 xl:block"
+            className="currents-surface-sticky sticky top-[calc(var(--site-nav-height)+4.25rem)] z-20 hidden overflow-hidden rounded-xl border border-[var(--border)] px-4 xl:block"
           >
             <div className="flex flex-wrap items-center gap-2.5 py-3">
               {view !== "papers" && (

@@ -104,6 +104,27 @@ describe("CurrentsShell", () => {
     expect(screen.getByRole("link", { name: "精选" }).getAttribute("aria-current")).toBeNull();
   });
 
+  it("/feedback 复用产品导航并高亮反馈入口", () => {
+    mockPathname.mockReturnValue("/feedback");
+    renderShell();
+    expect(screen.getByRole("link", { name: "反馈" }).getAttribute("aria-current")).toBe(
+      "page",
+    );
+  });
+
+  it("1280–1535px 渐进预留侧栏空间，1536px 无缝切换为网格", () => {
+    renderShell();
+    const content = screen.getByText("content").parentElement;
+    const layout = content?.parentElement;
+    expect(layout?.className).toContain(
+      "min-[1280px]:ml-[clamp(0px,calc(100vw-1280px),16rem)]",
+    );
+    expect(layout?.className).toContain("2xl:grid-cols-[224px_minmax(0,1fr)]");
+    expect(layout?.className.split(" ")).not.toContain(
+      "xl:grid-cols-[224px_minmax(0,1fr)]",
+    );
+  });
+
   it("移动端产品导航按钮 aria-expanded 开合面板", () => {
     renderShell();
     // 文字产品导航按钮：包含「潮汐 · 精选」与打开文案

@@ -2,6 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
+import { CurrentsShell } from "@/components/currents/CurrentsShell";
 import { SiteFeedbackForm, type SiteFeedbackLabels } from "@/components/feedback/SiteFeedbackForm";
 import { locales } from "@/i18n/config";
 
@@ -75,25 +76,27 @@ export default async function FeedbackPage({
     <main className="relative min-h-screen">
       <Navbar />
 
-      <header className="mx-auto max-w-3xl px-6 pb-8 pt-16">
-        <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
-          {t("title")}
-        </h1>
-        <p className="max-w-2xl leading-relaxed text-[var(--text-secondary)]">
-          {t("subtitle")}
-        </p>
-      </header>
+      <CurrentsShell>
+        <div className="mx-auto max-w-3xl pb-16 pt-16">
+          <header className="pb-8">
+            <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
+              {t("title")}
+            </h1>
+            <p className="max-w-2xl leading-relaxed text-[var(--text-secondary)]">
+              {t("subtitle")}
+            </p>
+          </header>
 
-      <section className="mx-auto max-w-3xl px-6 pb-16">
-        <SiteFeedbackForm locale={locale} labels={labels} />
-        <p className="mt-8 border-t border-[var(--border)] pt-6 text-[13px] leading-relaxed text-[var(--text-muted)]">
-          {t("contentCorrectionNote")}
-        </p>
-      </section>
+          <section>
+            <SiteFeedbackForm locale={locale} labels={labels} />
+            <p className="mt-8 border-t border-[var(--border)] pt-6 text-[13px] leading-relaxed text-[var(--text-muted)]">
+              {t("contentCorrectionNote")}
+            </p>
+          </section>
+        </div>
+      </CurrentsShell>
 
-      <SiteFooter maxWidth="max-w-3xl" />
-
-
+      <SiteFooter currentsWidth />
     </main>
   );
 }

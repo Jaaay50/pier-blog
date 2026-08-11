@@ -379,7 +379,7 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - ⏳ 客户端真实接入仍待逐一核验：Codex、Claude Code、佳等具体客户端需核验配置持久化、工具发现与五工具调用（服务端已部署 ≠ 客户端已接入；受邀凭据发放后逐客户端验收）
 - 阶段 C 回滚点：后端镜像 `currents-api:feedback-20260810-bd31fc5` + 数据库备份 `/opt/currents/backups/pre-fb-site-20260811T013149Z.db`；前端 Vercel 上一部署（run 31400949712，commit c511e23）
 
-# Currents 响应式与动效统一修复（2026-08-11）
+# Currents 响应式与动效统一修复（2026-08-11，已部署 PR #3 基线）
 
 - ✅ 外壳统一为 1760px 自适应编辑工作台，Navbar/CurrentsShell/SiteFooter 同一轴线（`--currents-shell-max`）
 - ✅ 侧栏仅 ≥1280px 显示（224px），1024–1279px 保持全宽正文，消除 1024px 临界断崖
@@ -391,3 +391,13 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - 交付：PR #3、merge commit `5361594`、生产部署 `pier-blog-9eixpss8u-jia-ethans-projects.vercel.app`
 - 前端回滚点：合并前 main commit `b9c5648` + 上一生产部署 `pier-blog-e2tbza2sc-jia-ethans-projects.vercel.app`
 - ➖ OpenAPI 与公共 REST API 产品化不在当前范围；反馈管理继续使用服务器 CLI；Agent 接入为受邀开放，不做自助 Token
+
+## PR #3 Review 后续修正（代码完成，尚未部署）
+
+- ✅ 修复 query-only 导航等待超时、重复 destination 误启动转场，以及 reduced-motion 动效降级
+- ✅ 修复 1280–1535px 内容宽度断崖、1760px gutter 跳变，并让 Navbar、筛选器与侧栏统一消费实际导航高度
+- ✅ 修复移动端筛选面板的焦点圈、背景隔离、滚动锁、Esc、焦点恢复与跨断点关闭
+- ✅ 修复反馈页产品外壳复用、多信源计数缺失、已读卡表面变量循环与左边框覆盖
+- ✅ 日期标题取消白色渐变和吸顶层，改为透明内容流样式，直接融入页面背景
+- ✅ 本地验证：test 106/106、lint 0 error（2 个既有 warning）、TypeScript、build、`git diff --check` 均通过
+- 交付边界：代码与文档纳入本次 `main` 收尾提交；未另建 PR，尚未部署或浏览器验收，线上仍是 PR #3 / `5361594` 基线

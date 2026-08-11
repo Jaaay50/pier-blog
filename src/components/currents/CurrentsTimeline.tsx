@@ -59,7 +59,7 @@ function timeLabelFor(item: CurrentsListItem, locale: string): string | null {
   });
 }
 
-/** 时间线：日期分组头吸顶并带视觉分隔；桌面端时间在轨道左侧独立成列，节点加大 */
+/** 时间线：日期分组头融入内容流；桌面端时间在轨道左侧独立成列，节点加大 */
 export function CurrentsTimeline({ items, sources }: CurrentsTimelineProps) {
   const locale = useLocale();
   const t = useTranslations("currents");
@@ -83,9 +83,8 @@ export function CurrentsTimeline({ items, sources }: CurrentsTimelineProps) {
 
         return (
           <section key={group.key} aria-label={dateLabel}>
-            {/* 日期分组头（吸顶 + 视觉分隔）：与筛选工具栏同一暖纸半透明层级，
-                top 57px 与 Navbar 实际高度对齐，不再硬编码 65px */}
-            <header className="currents-surface-sticky sticky top-[57px] z-10 mb-4 flex items-baseline gap-2 border-b border-[var(--border)] py-2">
+            {/* 日期标题保持在内容流中，直接融入页面背景，避免与筛选栏叠层。 */}
+            <header className="mb-4 flex items-baseline gap-2 border-b border-[var(--border)] py-2">
               <h2 className="font-display text-lg font-semibold tracking-tight">
                 {dateLabel}
               </h2>

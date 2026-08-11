@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { usePathname } from "@/i18n/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { motion, AnimatePresence } from "motion/react";
@@ -15,13 +15,15 @@ import { PierWordmark } from "./brand/PierWordmark";
 const COLLAPSE_BREAKPOINT = 1100;
 
 export function Navbar() {
+  const navRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const locale = useLocale();
   const t = useTranslations("nav");
   const [menuOpen, setMenuOpen] = useState(false);
   // Currents 产品面使用与 CurrentsShell 同一轴线（--currents-shell-max，1760px）；
   // 其他博客页面保持 max-w-6xl 不变
-  const isCurrents = pathname.startsWith("/currents");
+  const isCurrentsProduct =
+    pathname.startsWith("/currents") || pathname === "/feedback";
 
   const navLinks = [
     { href: "/blog", label: t("blog") },
@@ -37,6 +39,29 @@ export function Navbar() {
     setPrevPathname(pathname);
     setMenuOpen(false);
   }
+
+  // Sticky 产品控件消费实际 Navbar 高度，避免字体、语言或菜单变化后偏移失准。
+  useLayoutEffect(() => {
+    const nav = navRef.current;
+    if (!nav) return;
+
+    const updateHeight = () => {
+      const height = nav.getBoundingClientRect().height;
+      if (height > 0) {
+        document.documentElement.style.setProperty("--site-nav-height", `${height}px`);
+      }
+    };
+
+    updateHeight();
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateHeight);
+      return () => window.removeEventListener("resize", updateHeight);
+    }
+
+    const observer = new ResizeObserver(updateHeight);
+    observer.observe(nav);
+    return () => observer.disconnect();
+  }, []);
 
   // 视口变宽（不再折叠）时关闭菜单，避免状态残留
   useEffect(() => {
@@ -59,10 +84,14 @@ export function Navbar() {
   }, [menuOpen]);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-sm">
+    <nav
+      ref={navRef}
+      data-site-navbar
+      className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-sm"
+    >
       <div
         className={`mx-auto py-4 ${
-          isCurrents ? "currents-shell-container" : "max-w-6xl px-6"
+          isCurrentsProduct ? "currents-shell-container" : "max-w-6xl px-6"
         }`}
       >
         <div className="flex items-center justify-between">

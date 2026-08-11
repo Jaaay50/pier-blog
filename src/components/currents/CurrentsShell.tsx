@@ -11,9 +11,9 @@ import { TransitionLink } from "@/components/TransitionLink";
  * 潮汐 · Currents 统一产品外壳。
  * - 容器：自适应编辑工作台，max 1760px，与 Navbar / SiteFooter 同一轴线
  *   （宽度经由 --currents-shell-max CSS 变量共享）
- * - 桌面（≥xl / 1280px）：224px 粘性左侧栏 + 内容区（minmax(0,1fr)）
- * - 1024–1279px：不显示桌面侧栏，保留足够正文宽度
- * - 移动（<xl）：文字产品导航按钮「潮汐 · 当前页」+ AnimatePresence 展开面板
+ * - 1280–1535px：左侧预留空间从 0 连续增长到 256px，不在断点瞬间挤压正文
+ * - 宽屏（≥2xl / 1536px）：224px 粘性左侧栏 + 内容区（minmax(0,1fr)）
+ * - 紧凑布局（<2xl）：文字产品导航按钮「潮汐 · 当前页」+ AnimatePresence 展开面板
  * - 当前页高亮由 pathname + URL 视图参数（view/favorites）决定，
  *   指示器用 motion layoutId 在项间滑动，不做静态切换
  * - 站内导航全部走 TransitionLink（View Transitions 页面转场）
@@ -46,7 +46,7 @@ function SearchGlyph() {
   );
 }
 
-function ChevronIcon({ open }: { open: boolean }) {
+function ChevronIcon({ open, reducedMotion }: { open: boolean; reducedMotion: boolean }) {
   return (
     <motion.svg
       className="h-3.5 w-3.5 shrink-0"
@@ -58,7 +58,7 @@ function ChevronIcon({ open }: { open: boolean }) {
       strokeLinejoin="round"
       aria-hidden="true"
       animate={{ rotate: open ? 180 : 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
+      transition={reducedMotion ? { duration: 0 } : { duration: 0.2, ease: "easeOut" }}
     >
       <path d="M6 9l6 6 6-6" />
     </motion.svg>
@@ -73,6 +73,7 @@ function useCurrentKey(): string {
   if (pathname.startsWith("/currents/topics")) return "topics";
   if (pathname.startsWith("/currents/changelog")) return "changelog";
   if (pathname.startsWith("/currents/agent")) return "agent";
+  if (pathname === "/feedback") return "feedback";
   if (pathname === "/currents") {
     // 首页三视图：favorites=1 → 收藏；view=all/papers → 全部动态；默认精选
     if (searchParams.get("favorites") === "1") return "favorites";
@@ -94,6 +95,7 @@ function NavList({
   idPrefix: string;
 }) {
   const t = useTranslations("currentsNav");
+  const reducedMotion = useReducedMotion();
 
   const renderLink = (item: NavItem) => {
     const active = currentKey === item.key;
@@ -104,7 +106,11 @@ function NavList({
             layoutId={`${idPrefix}-indicator`}
             aria-hidden
             className="absolute inset-0 rounded-r-lg border-l-2 border-[var(--accent)] bg-[var(--accent-soft-block)]"
-            transition={{ type: "spring", stiffness: 420, damping: 34 }}
+            transition={
+              reducedMotion
+                ? { duration: 0 }
+                : { type: "spring", stiffness: 420, damping: 34 }
+            }
           />
         )}
         <TransitionLink
@@ -218,9 +224,9 @@ function CurrentsShellInner({ children }: { children: ReactNode }) {
 
   return (
     <>
-      {/* 移动端产品导航条（<xl）：「潮汐 · 当前页」文字按钮，chevron 指示展开态。
+      {/* 紧凑产品导航条（<2xl）：「潮汐 · 当前页」文字按钮，chevron 指示展开态。
           不再是与全站菜单重复的第二个纯汉堡入口 */}
-      <div className="relative border-b border-[var(--border)] px-4 py-2.5 xl:hidden">
+      <div className="relative border-b border-[var(--border)] px-4 py-2.5 2xl:hidden">
         <button
           ref={navButtonRef}
           type="button"
@@ -241,7 +247,7 @@ function CurrentsShellInner({ children }: { children: ReactNode }) {
           </span>
           <span className="flex shrink-0 items-center gap-1 text-xs text-[var(--text-muted)]">
             {panelOpen ? t("menuClose") : t("menuOpen")}
-            <ChevronIcon open={panelOpen} />
+            <ChevronIcon open={panelOpen} reducedMotion={Boolean(reducedMotion)} />
           </span>
         </button>
 
@@ -276,13 +282,12 @@ function CurrentsShellInner({ children }: { children: ReactNode }) {
         </AnimatePresence>
       </div>
 
-      {/* 容器：自适应编辑工作台（max 1760px，gutter 由 CSS 变量控制）。
-          侧栏仅 ≥xl(1280px)；1024–1279px 保持全宽正文，不做 240px 断崖 */}
+      {/* 1280px 起左侧预留从 0 连续增长；到 1536px 恰好达到 224px 侧栏
+          + 32px 间距，切换为网格时正文宽度不发生断崖。 */}
       <div className="currents-shell-container mx-auto w-full px-4 sm:px-6 lg:px-10">
-        <div className="xl:grid xl:grid-cols-[224px_minmax(0,1fr)] xl:gap-8">
-          <aside className="hidden xl:block">
-            {/* top-20 = Navbar 实际高度（≈57px）+ 呼吸间距 */}
-            <div className="sticky top-20 pb-10 pt-14">
+        <div className="min-[1280px]:ml-[clamp(0px,calc(100vw-1280px),16rem)] 2xl:ml-0 2xl:grid 2xl:grid-cols-[224px_minmax(0,1fr)] 2xl:gap-8">
+          <aside className="hidden 2xl:block">
+            <div className="sticky top-[calc(var(--site-nav-height)+1.5rem)] pb-10 pt-14">
               {/* 弱化品牌重复：小号 eyebrow 层级，与页面 H1 拉开视觉重量 */}
               <div className="mb-5 border-b border-[var(--border)] pb-4">
                 <p className="text-[13px] font-semibold tracking-wide text-[var(--text-primary)]">
@@ -313,7 +318,9 @@ export function CurrentsShell({ children }: { children: ReactNode }) {
     <Suspense
       fallback={
         <div className="currents-shell-container mx-auto w-full px-4 sm:px-6 lg:px-10">
-          {children}
+          <div className="min-[1280px]:ml-[clamp(0px,calc(100vw-1280px),16rem)]">
+            {children}
+          </div>
         </div>
       }
     >
