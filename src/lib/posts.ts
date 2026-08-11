@@ -1,6 +1,20 @@
 import fs from "fs";
 import path from "path";
-import matter from "gray-matter";
+import rawMatter from "gray-matter";
+import { load as yamlLoad } from "js-yaml";
+
+/**
+ * gray-matter 默认 engine 调用 js-yaml 3 的 safeLoad，该 API 在 js-yaml 4 已移除。
+ * 项目通过 overrides 强制 js-yaml@^4.1.0（修复 CVE-2026-59870），
+ * 这里提供自定义 engine：js-yaml 4 的 load 默认即安全模式（无任意代码执行标签）。
+ */
+function matter(input: string) {
+  return rawMatter(input, {
+    engines: {
+      yaml: (s: string) => yamlLoad(s) as object,
+    },
+  });
+}
 
 export interface BlogPost {
   slug: string;

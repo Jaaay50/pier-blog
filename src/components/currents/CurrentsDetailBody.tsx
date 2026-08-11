@@ -169,7 +169,7 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
               {translationHtml ? (
                 <div
                   className="prose currents-reader-prose max-w-none"
-                  // 翻译由受信任后台 LLM 管线产出并经 rehype 序列化
+                  // 翻译经 renderMarkdown 统一入口清洗（rehype-sanitize 最小 schema）
                   dangerouslySetInnerHTML={{ __html: translationHtml }}
                 />
               ) : (
@@ -194,7 +194,7 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
                 deepReadHtml ? (
                   <div
                     className="prose currents-reader-prose max-w-none"
-                    // deepRead 由受信任后台 LLM 管线产出并经 rehype 序列化
+                    // deepRead 经 renderMarkdown 统一入口清洗（rehype-sanitize 最小 schema）
                     dangerouslySetInnerHTML={{ __html: deepReadHtml }}
                   />
                 ) : (

@@ -2,12 +2,8 @@
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
-import remarkRehype from "remark-rehype";
-import rehypeStringify from "rehype-stringify";
 import { fetchItemDetail } from "@/lib/currents/api";
+import { renderMarkdown } from "@/lib/currents/markdown";
 import type { CurrentsItemDetail } from "@/lib/currents/types";
 import { ScoreBadge } from "./ScoreBadge";
 import { FavoriteButton } from "./FavoriteButton";
@@ -36,17 +32,6 @@ function detailReducer(state: DetailState, action: DetailAction): DetailState {
     case "error":
       return { status: "error", item: null };
   }
-}
-
-/** 轻量 markdown → HTML（复用项目已有 unified 管线，渲染进 prose 容器） */
-async function renderMarkdown(md: string): Promise<string> {
-  const file = await unified()
-    .use(remarkParse)
-    .use(remarkGfm)
-    .use(remarkRehype)
-    .use(rehypeStringify)
-    .process(md);
-  return String(file);
 }
 
 const FOCUSABLE_SELECTOR =
@@ -268,7 +253,7 @@ export function CurrentsReader({ itemId, onClose }: CurrentsReaderProps) {
                 html ? (
                   <div
                     className="prose currents-reader-prose mb-8 max-w-none"
-                    // deepRead 由受信任的后台 LLM 管线产出并经 rehype 序列化
+                    // deepRead 经 renderMarkdown 统一入口清洗（rehype-sanitize 最小 schema）
                     dangerouslySetInnerHTML={{ __html: html }}
                   />
                 ) : (
