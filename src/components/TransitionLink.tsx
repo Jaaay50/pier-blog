@@ -8,6 +8,8 @@ import type { ComponentProps } from 'react';
 interface TransitionLinkProps
   extends Omit<ComponentProps<typeof Link>, 'href' | 'onClick'> {
   href: string;
+  /** 额外点击回调（如关闭导航面板）；不影响 View Transitions 处理 */
+  onNavigate?: () => void;
 }
 
 /**
@@ -44,6 +46,7 @@ export function TransitionLink({
   href,
   children,
   className,
+  onNavigate,
   ...props
 }: TransitionLinkProps) {
   const router = useRouter();
@@ -56,6 +59,7 @@ export function TransitionLink({
   }, [pathname, locale]);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    onNavigate?.();
     // 不支持 / 修饰键 / 减弱动效：走默认导航
     if (
       !('startViewTransition' in document) ||

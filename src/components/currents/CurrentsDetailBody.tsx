@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Link, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
+import { TransitionLink } from "@/components/TransitionLink";
 import type { CurrentsItemDetail } from "@/lib/currents/types";
 import { ScoreBadge } from "./ScoreBadge";
 import { FavoriteButton } from "./FavoriteButton";
@@ -181,7 +182,7 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
 
           {/* tab：AI 导读 */}
           {tab === "summary" && item.summary && (
-            <section className="card-glass mb-10 rounded-xl p-5">
+            <section className="currents-surface-list mb-10 rounded-xl p-5">
               <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{item.summary}</p>
             </section>
           )}
@@ -222,12 +223,12 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
               <ul className="space-y-2">
                 {related.map((r) => (
                   <li key={r.id}>
-                    <Link
+                    <TransitionLink
                       href={`/currents/${r.id}`}
                       className="text-sm text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
                     >
                       {r.title}
-                    </Link>
+                    </TransitionLink>
                     {r.publishedAt && (
                       <span className="ml-2 text-xs text-[var(--text-muted)]">
                         {new Date(r.publishedAt).toLocaleDateString(locale === "zh" ? "zh-CN" : "en-US")}
@@ -284,7 +285,7 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
         <aside className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-24 space-y-6">
             {item.scoreBreakdown && (
-              <div className="card-glass rounded-xl p-4">
+              <div className="currents-surface-list rounded-xl p-4">
                 <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{labels.scoreBreakdown}</h2>
                 <ul className="space-y-2">
                   {BREAKDOWN_KEYS.map((k) => (

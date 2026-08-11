@@ -92,7 +92,7 @@ export function EventHeatChart({
     : labels.empty;
 
   return (
-    <section className="card-glass mb-8 rounded-xl p-4 sm:p-5" aria-labelledby="event-heat-chart-title">
+    <section className="currents-surface-list mb-8 rounded-xl p-4 sm:p-5" aria-labelledby="event-heat-chart-title">
       <div className="mb-4">
         <h2 id="event-heat-chart-title" className="font-display text-lg font-semibold tracking-tight">
           {labels.title}

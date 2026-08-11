@@ -5,7 +5,7 @@ export function CurrentsSkeleton({ count = 6 }: { count?: number }) {
   return (
     <div aria-hidden="true" className="space-y-6">
       {Array.from({ length: count }).map((_, i) => (
-        <div key={i} className="card-glass rounded-xl p-5">
+        <div key={i} className="currents-surface-list rounded-xl p-5">
           <div className="mb-3 flex items-center justify-between">
             <div className="skeleton-block h-3 w-24 rounded-full" />
             <div className="skeleton-block h-5 w-10 rounded-full" />

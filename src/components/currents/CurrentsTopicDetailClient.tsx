@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Link } from "@/i18n/navigation";
+import { TransitionLink } from "@/components/TransitionLink";
 import { fetchSources, fetchTopicItems } from "@/lib/currents/api";
 import type { CurrentsListItem, CurrentsSource } from "@/lib/currents/types";
 import { CurrentsTimeline } from "./CurrentsTimeline";
@@ -80,7 +80,7 @@ export function CurrentsTopicDetailClient({ topicId }: { topicId: string }) {
   return (
     <div className="pb-14">
       <div className="mb-6">
-        <Link
+        <TransitionLink
           href="/currents/topics"
           className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
         >
@@ -88,7 +88,7 @@ export function CurrentsTopicDetailClient({ topicId }: { topicId: string }) {
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           {t("backToTopics")}
-        </Link>
+        </TransitionLink>
       </div>
 
       {topic && (

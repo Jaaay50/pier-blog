@@ -145,7 +145,10 @@
     "feedbackErrorRateLimit": "Too many submissions. Please try again later.",
     "feedbackErrorNetwork": "Network error. Please retry.",
     "feedbackErrorGeneric": "Submission failed. Please try again later.",
-    "feedbackClose": "Dismiss"
+    "feedbackClose": "Dismiss",
+    "filtersOpen": "Filters",
+    "moreFilters": "More filters",
+    "activeFilters": "{count} active"
   },
   "currentsNav": {
     "brand": "Currents",

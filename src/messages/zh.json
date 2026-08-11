@@ -145,7 +145,10 @@
     "feedbackErrorRateLimit": "提交过于频繁，请稍后再试。",
     "feedbackErrorNetwork": "网络异常，请重试。",
     "feedbackErrorGeneric": "提交失败，请稍后再试。",
-    "feedbackClose": "收起"
+    "feedbackClose": "收起",
+    "filtersOpen": "筛选",
+    "moreFilters": "更多筛选",
+    "activeFilters": "{count} 项筛选"
   },
   "currentsNav": {
     "brand": "潮汐",
