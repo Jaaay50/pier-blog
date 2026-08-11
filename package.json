@@ -89,7 +89,7 @@
     "jsdom": "^26.1.0",
     "opentype.js": "^2.0.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
+    "typescript": "^7",
     "vercel": "58.9.1",
     "vitest": "^3.2.7",
     "@types/js-yaml": "^4.0.9"
