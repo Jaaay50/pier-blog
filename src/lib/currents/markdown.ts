@@ -7,12 +7,44 @@ import rehypeStringify from "rehype-stringify";
 
 type Schema = typeof defaultSchema;
 
+interface HastNode {
+  type: string;
+  tagName?: string;
+  properties?: Record<string, unknown>;
+  children?: HastNode[];
+}
+
+function isProtocolRelativeHref(value: string): boolean {
+  const browserNormalized = value
+    .replace(/^[\u0000-\u0020]+|[\u0000-\u0020]+$/g, "")
+    .replace(/[\t\n\r]/g, "")
+    .replace(/\\/g, "/");
+  return browserNormalized.startsWith("//");
+}
+
+/** 协议相对 URL 会跳出当前站点，不属于站内相对路径。 */
+function removeProtocolRelativeHrefs() {
+  return (tree: HastNode) => {
+    const visit = (node: HastNode) => {
+      if (node.type === "element" && node.tagName === "a" && node.properties) {
+        const href = node.properties.href;
+        if (typeof href === "string" && isProtocolRelativeHref(href)) {
+          delete node.properties.href;
+        }
+      }
+      node.children?.forEach(visit);
+    };
+    visit(tree);
+  };
+}
+
 /**
  * 最小允许 HTML schema：只保留 Currents 深度解读/翻译实际需要的标签。
  *
  * 允许：段落/标题/列表/引用/代码/表格/强调/删除线/链接/换行
  * 拒绝：script/style/iframe/object/embed/form/input/svg/math 等一切主动内容
- * 链接协议仅允许 http/https/mailto；相对路径与 # 锚点天然放行；
+ * 链接协议仅允许 http/https/mailto；站内相对路径与 # 锚点放行；
+ * //host、\\host 等浏览器会解析为跨站导航的协议相对 URL 显式拒绝；
  * javascript:/data:/vbscript:/协议混淆（大小写、空白、控制字符）由
  * hast-util-sanitize 在 AST 层解析后按协议白名单拒绝，不依赖字符串正则。
  */
@@ -64,6 +96,7 @@ export async function renderMarkdown(md: string): Promise<string> {
     .use(remarkGfm)
     .use(remarkRehype)
     .use(rehypeSanitize, safeSchema)
+    .use(removeProtocolRelativeHrefs)
     .use(rehypeStringify)
     .process(md);
   return String(file);

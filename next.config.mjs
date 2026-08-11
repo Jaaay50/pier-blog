@@ -2,6 +2,25 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+const cspReportPath = "/api/csp-report";
+const cspReportEndpoint = `https://ethanpier.com${cspReportPath}`;
+const contentSecurityPolicy = [
+  "default-src 'self'",
+  "script-src 'self' 'unsafe-inline' https://giscus.app",
+  "script-src-attr 'none'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob:",
+  "font-src 'self'",
+  "connect-src 'self' https://currents-api.ethanpier.com",
+  "frame-src https://giscus.app",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  "object-src 'none'",
+  `report-to csp-endpoint`,
+  `report-uri ${cspReportPath}`,
+].join("; ");
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["js", "jsx", "ts", "tsx"],
@@ -27,22 +46,14 @@ const nextConfig = {
             key: "X-Frame-Options",
             value: "SAMEORIGIN",
           },
-          // CSP Report-Only 模式：先观察违规，不阻断
           {
-            key: "Content-Security-Policy-Report-Only",
-            value: [
-              "default-src 'self'",
-              "script-src 'self' 'unsafe-inline' https://giscus.app https://unpkg.com",
-              "style-src 'self' 'unsafe-inline'",
-              "img-src 'self' data: https: blob:",
-              "font-src 'self' data:",
-              "connect-src 'self' https://giscus.app https://currents-api.ethanpier.com",
-              "frame-src 'self' https://giscus.app",
-              "base-uri 'self'",
-              "form-action 'self' https://currents-api.ethanpier.com",
-              "frame-ancestors 'self'",
-              "object-src 'none'",
-            ].join("; "),
+            key: "Reporting-Endpoints",
+            value: `csp-endpoint="${cspReportEndpoint}"`,
+          },
+          // 先以兼容现有 Next 内联脚本/样式的基线强制执行，并同步收集违规报告。
+          {
+            key: "Content-Security-Policy",
+            value: contentSecurityPolicy,
           },
         ],
       },

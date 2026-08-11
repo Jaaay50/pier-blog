@@ -106,22 +106,32 @@ describe("renderMarkdown 安全清洗", () => {
       expect(html).not.toContain("vbscript:");
     });
 
-    it("允许 http/https/mailto 与相对路径、# 锚点", async () => {
+    it("允许 http/https/mailto 与站内相对路径、query、# 锚点", async () => {
       const html = await renderMarkdown(
-        "[a](https://example.com) [b](http://example.com) [c](mailto:hi@example.com) [d](/currents/123) [e](#section)",
+        "[a](https://example.com) [b](http://example.com) [c](mailto:hi@example.com) [d](/currents/123) [e](#section) [f](./local) [g](../parent) [h](?view=all)",
       );
       expect(html).toContain('href="https://example.com"');
       expect(html).toContain('href="http://example.com"');
       expect(html).toContain('href="mailto:hi@example.com"');
       expect(html).toContain('href="/currents/123"');
       expect(html).toContain('href="#section"');
+      expect(html).toContain('href="./local"');
+      expect(html).toContain('href="../parent"');
+      expect(html).toContain('href="?view=all"');
     });
 
-    it("协议相对 URL（//evil.com）按相对路径放行但不含危险协议", async () => {
-      const html = await renderMarkdown("[x](//example.com/path)");
-      // 协议相对 URL 无协议前缀，不在 javascript:/data: 危险面内
-      expect(html).not.toContain("javascript:");
-      expect(html).not.toContain("data:");
+    it("拒绝 //host、///host 与 HTML 实体混淆的协议相对 URL", async () => {
+      const vectors = [
+        "[plain](//evil.example/path)",
+        "[triple](///evil.example/path)",
+        "[entity](&#47;&#47;evil.example/path)",
+      ];
+
+      for (const vector of vectors) {
+        const html = await renderMarkdown(vector);
+        expect(html).not.toMatch(/<a\s[^>]*href/i);
+        expect(html).toContain("<a>");
+      }
     });
   });
 

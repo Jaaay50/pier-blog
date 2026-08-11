@@ -1,63 +1,180 @@
 name: Deploy to Vercel
 
 on:
-  push:
-    branches: [main]
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
   workflow_dispatch:
+    inputs:
+      confirm_production:
+        description: Confirm deployment of the current main commit
+        required: true
+        type: boolean
 
-# 最小权限：只读仓库内容
-permissions:
-  contents: read
+permissions: {}
 
-# 防止并发部署到 production
 concurrency:
   group: production-deploy
   cancel-in-progress: false
 
 env:
-  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
-  NODE_VERSION: "22"
-  VERCEL_VERSION: "58.9.1"
+  NPM_VERSION: "10.9.8"
 
 jobs:
-  deploy:
+  authorize:
+    if: >-
+      (github.event_name == 'workflow_run' &&
+       github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event == 'push' &&
+       github.event.workflow_run.head_branch == 'main') ||
+      (github.event_name == 'workflow_dispatch' &&
+       github.ref == 'refs/heads/main' &&
+       inputs.confirm_production == true)
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      actions: read
+      contents: read
+    outputs:
+      deploy_sha: ${{ steps.target.outputs.sha }}
+      should_deploy: ${{ steps.changes.outputs.should_deploy }}
+    steps:
+      - name: Resolve deployment target
+        id: target
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          WORKFLOW_RUN_SHA: ${{ github.event.workflow_run.head_sha }}
+          DISPATCH_SHA: ${{ github.sha }}
+        run: |
+          if [[ "${EVENT_NAME}" == "workflow_run" ]]; then
+            target_sha="${WORKFLOW_RUN_SHA}"
+          else
+            target_sha="${DISPATCH_SHA}"
+          fi
+
+          if [[ ! "${target_sha}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Invalid deployment SHA: ${target_sha}" >&2
+            exit 1
+          fi
+
+          echo "sha=${target_sha}" >> "${GITHUB_OUTPUT}"
+
+      - name: Checkout target commit
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: ${{ steps.target.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Verify current main and CI result
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          main_sha="$(gh api "repos/${GITHUB_REPOSITORY}/git/ref/heads/main" --jq '.object.sha')"
+          if [[ "${TARGET_SHA}" != "${main_sha}" ]]; then
+            echo "Refusing to deploy stale commit ${TARGET_SHA}; current main is ${main_sha}." >&2
+            exit 1
+          fi
+
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            successful_runs="$(
+              gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/ci.yml/runs?head_sha=${TARGET_SHA}&status=success&per_page=100" \
+                --jq "[.workflow_runs[] | select(.event == \"push\" and .head_branch == \"main\" and .head_sha == \"${TARGET_SHA}\" and .conclusion == \"success\")] | length"
+            )"
+            if [[ "${successful_runs}" -lt 1 ]]; then
+              echo "No successful CI run exists for main commit ${TARGET_SHA}." >&2
+              exit 1
+            fi
+          fi
+
+      - name: Detect deployable changes
+        id: changes
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          GH_TOKEN: ${{ github.token }}
+          TARGET_SHA: ${{ steps.target.outputs.sha }}
+        run: |
+          if [[ "${EVENT_NAME}" == "workflow_dispatch" ]]; then
+            echo "should_deploy=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          previous_sha="$(
+            gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/deploy.yml/runs?branch=main&status=success&per_page=100" \
+              --jq '.workflow_runs[0].head_sha // empty'
+          )"
+
+          # Fail open to a deployment when no trustworthy comparison base exists.
+          if [[ ! "${previous_sha}" =~ ^[0-9a-f]{40}$ ]] ||
+             ! git merge-base --is-ancestor "${previous_sha}" "${TARGET_SHA}"; then
+            echo "should_deploy=true" >> "${GITHUB_OUTPUT}"
+            exit 0
+          fi
+
+          should_deploy=false
+          while IFS= read -r changed_path; do
+            normalized_path="$(printf '%s' "${changed_path}" | tr '[:upper:]' '[:lower:]')"
+            case "${normalized_path}" in
+              *.md|docs/*) ;;
+              *) should_deploy=true; break ;;
+            esac
+          done < <(git diff --name-only "${previous_sha}" "${TARGET_SHA}")
+
+          echo "should_deploy=${should_deploy}" >> "${GITHUB_OUTPUT}"
+
+  deploy:
+    needs: authorize
+    if: needs.authorize.outputs.should_deploy == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    environment:
+      name: production
+    env:
+      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
     steps:
       - name: Checkout
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
+          ref: ${{ needs.authorize.outputs.deploy_sha }}
           persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version-file: .nvmrc
           cache: "npm"
 
-      - name: Install Vercel CLI (pinned version)
-        run: npm install --global vercel@${{ env.VERCEL_VERSION }}
+      - name: Verify toolchain
+        run: |
+          test "$(node --version)" = "v$(cat .nvmrc)"
+          test "$(cat .node-version)" = "$(cat .nvmrc)"
+          test "$(npm --version)" = "${NPM_VERSION}"
 
-      - name: Install dependencies
-        run: npm ci --legacy-peer-deps
+      - name: Install locked dependencies
+        run: npm ci
 
-      - name: Audit dependencies (production only)
-        run: npm audit --omit=dev --audit-level=high
-
-      - name: Run tests
-        run: npm test
-
-      - name: Lint code
-        run: npm run lint
-
-      - name: Type check
-        run: npx tsc --noEmit
+      - name: Verify pinned local Vercel CLI
+        run: |
+          declared_version="$(node -p 'require("./package.json").devDependencies?.vercel || ""')"
+          resolved_version="$(node -p 'require("./node_modules/vercel/package.json").version')"
+          if [[ -z "${declared_version}" || "${declared_version}" != "${resolved_version}" ]]; then
+            echo "Vercel CLI must be an exact devDependency matching the lockfile." >&2
+            exit 1
+          fi
+          test -x ./node_modules/.bin/vercel
+          ./node_modules/.bin/vercel --version
 
       - name: Pull Vercel Environment Information
-        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        run: ./node_modules/.bin/vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
 
       - name: Build Project Artifacts
-        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: ./node_modules/.bin/vercel build --prod --token="${VERCEL_TOKEN}"
 
       - name: Deploy Project Artifacts to Vercel
-        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        run: ./node_modules/.bin/vercel deploy --prebuilt --prod --archive=tgz --token="${VERCEL_TOKEN}"

@@ -1,25 +1,16 @@
 ## Phase 11: 网站与服务器安全加固
 
-### Phase 11A：真实安全风险修复（2026-08-11，✅ 已完成并上线）
+### Phase 11A：安全事务升级（2026-08-11，等待最终上线复验）
 
-**已完成**（commits `cb76739` / `2ab1432` / `43142eb`，Actions run `31473747159`）：
-- ✅ Markdown 注入防护：`rehype-sanitize` 最小 schema + 21 个注入安全测试
-- ✅ 依赖安全：`next@16.3.0` + `js-yaml@^4.1.0` + `npm audit --omit=dev` **0 漏洞**
-- ✅ 安全响应头：X-Content-Type-Options / Referrer-Policy / Permissions-Policy / X-Frame-Options / CSP Report-Only
-- ✅ 供应链加固：Actions 固定 SHA、Vercel CLI 固定版本、npm ci、audit/test/lint 门控、最小权限、concurrency
-- ✅ Cloudflare：Always Use HTTPS + HSTS（max-age=31536000）+ TLS 1.2
-- ✅ GitHub Dependabot：vulnerability alerts + security updates
+- ✅ 应用边界：Markdown 协议边界、生产 sanitizer 依赖、强制 CSP 与同源报告端点。
+- ✅ 依赖与工具链：Node `22.23.1` / npm `10.9.8`、标准 `npm ci`、本地精确 Vercel CLI、完整 audit 0 漏洞。
+- ✅ CI/CD：PR/main CI 与 production deploy 分离，Environment Secret、同 SHA门禁、文档-only 跳过、`--archive=tgz`。
+- ✅ 仓库安全：Actions 仅 GitHub-owned + SHA pinning；前后端 Dependabot；后端/MCP 持续 audit。
+- ✅ Cloudflare：完整 4 条 DNS 盘点；Always Use HTTPS、TLS 1.2/1.3；HSTS `includeSubDomains=false`。
+- ✅ Vercel：Project Node 由 `24.x` 统一为 `22.x`。
+- ⏳ 最终门禁：main CI、生产部署、线上/浏览器验收、main ruleset、仓库级 Secret 删除、Cloudflare Token 撤销与本地敏感历史清理。
 
-**生产验证**：
-- ✅ 主站 13 个路由全部 200，安全头生效
-- ✅ HTTP→HTTPS 301 跳转（API/MCP）
-- ✅ HTTPS API health 200，MCP 无凭据 401
-- ✅ TLS 1.1 拒绝，TLS 1.2 正常
-- ✅ GitHub Actions 成功（含 audit/test/lint/build）
-
-**待完成**（非阻断）：GitHub Actions 权限限制、main 分支保护、Vercel Deployment Checks
-
-**后续阶段**：防爬虫、禁复制、服务器加固
+**后续阶段**：防爬虫、禁复制、服务器加固。
 
 ---
 
@@ -440,25 +431,3 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - ✅ 交付：commits `8319969` / `0fd04b5` 已推送 `main`；Actions run `31468832109` success；production deployment `pier-blog-e5gt0npjh-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`
 - ✅ 线上技术验收：`/zh/currents/agent`、`/en/currents/agent`、`/zh/currents/daily` 均为 200；中英文反馈链接 locale 正确；复制按钮状态与剪贴板内容正常；日报 5/5 分类锚点存在；本地 Source Serif 字体加载成功且无新增浏览器错误
 - 回滚：代码基线 `db970b0`；上一 production deployment `pier-blog-ea8cpgns8-jia-ethans-projects.vercel.app`
-
----
-
-# Phase 11: 网站与服务器安全加固（2026-08-11，决策阶段）
-
-详细决策表与实施边界见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。当前未修改 Cloudflare、Vercel、网站防护代码、Currents 后端或服务器配置。
-
-## 已确认方向
-
-- ✅ 先讨论网站安全，服务器安全放在网站方案之后单独审计
-- ✅ 网站第一项先处理防爬虫；先确认允许对象、保护范围和处置强度，再选技术方案
-- ✅ 希望限制普通访客直接选择、复制或右键搬运内容；具体页面范围、代码块/配置等例外和交互强度待决策
-- ✅ 每项措施同时说明威胁模型、能力边界、成本和误伤风险，作为网络安全学习过程
-- ✅ 当前阶段只做决策记录，不直接实施生产防护
-- ✅ 服务器 SSH 已恢复，但不据此认定服务器安全基线完整；后续仍需实时审计防火墙、登录策略、更新、日志、备份与最小权限
-
-## 下一步决策顺序
-
-1. 防爬虫：搜索引擎/RSS/社交预览/AI Bot 的允许策略，博客/Currents/API 的保护范围，限速/挑战/封禁强度。
-2. 禁用复制：覆盖页面、代码与 Agent 配置例外、移动长按、可访问性和版权提示。
-3. 网站安全基线：安全响应头、输入输出边界、依赖供应链、隐私、监控和回滚。
-4. 网站实施完成后，再启动服务器只读安全审计与分步加固。
