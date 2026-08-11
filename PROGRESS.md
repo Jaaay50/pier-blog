@@ -1,19 +1,25 @@
 ## Phase 11: 网站与服务器安全加固
 
-### Phase 11A：真实安全风险修复（2026-08-11，本地完成）
+### Phase 11A：真实安全风险修复（2026-08-11，✅ 已完成并上线）
 
-**已完成**（commit `cb76739`）：
-- ✅ Markdown 注入防护：`rehype-sanitize` 最小 schema，删除客户端重复实现，新增 21 个注入安全测试
-- ✅ 依赖安全：`next@16.3.0` 升级 + `js-yaml@^4.1.0`（CVE-2026-59870）+ `npm audit --omit=dev` 0 漏洞
-- ✅ 安全响应头：`next.config.mjs` 增加 X-Content-Type-Options/Referrer-Policy/Permissions-Policy/X-Frame-Options + CSP Report-Only
-- ✅ 供应链加固：GitHub Actions 固定 SHA、Vercel CLI 固定版本、npm ci、audit/test/lint 门控、最小权限、concurrency
+**已完成**（commits `cb76739` / `2ab1432` / `43142eb`，Actions run `31473747159`）：
+- ✅ Markdown 注入防护：`rehype-sanitize` 最小 schema + 21 个注入安全测试
+- ✅ 依赖安全：`next@16.3.0` + `js-yaml@^4.1.0` + `npm audit --omit=dev` **0 漏洞**
+- ✅ 安全响应头：X-Content-Type-Options / Referrer-Policy / Permissions-Policy / X-Frame-Options / CSP Report-Only
+- ✅ 供应链加固：Actions 固定 SHA、Vercel CLI 固定版本、npm ci、audit/test/lint 门控、最小权限、concurrency
+- ✅ Cloudflare：Always Use HTTPS + HSTS（max-age=31536000）+ TLS 1.2
+- ✅ GitHub Dependabot：vulnerability alerts + security updates
 
-**待外部确认**（一次性清单见 `/Users/ethan/Documents/Codex/phase11a-backups/20260811-160601/EXTERNAL-CHANGES-PLAN.md`）：
-- ⏳ Cloudflare：HTTP→HTTPS 跳转 + HSTS + TLS 1.2
-- ⏳ GitHub：Dependabot + Actions 权限限制 + production Environment
-- ⏳ Push：触发部署并验证
+**生产验证**：
+- ✅ 主站 13 个路由全部 200，安全头生效
+- ✅ HTTP→HTTPS 301 跳转（API/MCP）
+- ✅ HTTPS API health 200，MCP 无凭据 401
+- ✅ TLS 1.1 拒绝，TLS 1.2 正常
+- ✅ GitHub Actions 成功（含 audit/test/lint/build）
 
-**后续阶段**（不在 11A 范围）：防爬虫、禁复制、服务器加固
+**待完成**（非阻断）：GitHub Actions 权限限制、main 分支保护、Vercel Deployment Checks
+
+**后续阶段**：防爬虫、禁复制、服务器加固
 
 ---
 

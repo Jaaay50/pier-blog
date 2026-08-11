@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-11）：**11A 本地修复已完成并提交**（commit `cb76739`），待外部变更确认。防爬虫、禁复制、服务器加固属后续阶段。
+> 状态（2026-08-11）：**Phase 11A 已完成并上线**。防爬虫、禁复制、服务器加固属后续阶段。
 
 ## 目标与边界
 
@@ -9,7 +9,121 @@
 - 防爬虫必须分层处理：`robots.txt` 只约束守规矩的机器人，恶意抓取需要依靠速率限制、WAF/Bot 规则、挑战、封禁和监控。
 - 安全加固不得无意破坏 SEO、RSS、Agent 接入、可访问性、正常分享、代码配置复制或 Currents 的公开只读体验。
 
-## Phase 11A：真实安全风险修复（2026-08-11，本地完成）
+## Phase 11A：真实安全风险修复（2026-08-11，✅ 已完成并上线）
+
+### 已完成并部署
+
+**代码修复**（commits `cb76739` / `2ab1432` / `43142eb`）
+
+**Markdown 注入防护**
+- 统一 `src/lib/currents/markdown.ts` 为唯一安全渲染入口，添加 `rehype-sanitize@6.0.0` 最小 schema
+- 只保留段落/标题/列表/引用/代码/表格/强调/链接；拒绝 script/style/iframe/svg/form/事件属性
+- 链接只允许 `http/https/mailto` 与站内相对路径；拒绝 `javascript:`/`data:`/`vbscript:` 及协议混淆
+- 删除 `CurrentsReader.tsx` 重复实现；`CurrentsDetailBody.tsx` 三处 `dangerouslySetInnerHTML` 改调统一入口
+- 新增 21 个注入安全测试（`<script>`/事件属性/SVG/MathML/危险协议/属性注入/GFM 回归）
+
+**依赖安全**
+- 升级 `next@16.2.12→16.3.0` + `@next/mdx@16.3.0` + `eslint-config-next@16.3.0`（修复 postcss/sharp/nanoid 传递依赖漏洞）
+- 增加 `js-yaml@^4.1.0`（修复 CVE-2026-59870），overrides 强制 gray-matter 使用 4.x 安全 API
+- `src/lib/posts.ts` 自定义 gray-matter engine 调用 `js-yaml.load`（默认安全模式）
+- `engines.node="22.x"` 统一 Node 版本
+- 增加 `rehype-sanitize@6.0.0`
+- `npm audit --omit=dev`: **0 漏洞**（was 5 high）
+
+**安全响应头**
+- `next.config.mjs` 增加全站响应头：X-Content-Type-Options/Referrer-Policy/Permissions-Policy/X-Frame-Options
+- CSP **Report-Only** 模式（观察违规不阻断），包含 ParticleGate/主题脚本/Giscus/Currents API 白名单
+
+**供应链加固**
+- `.github/workflows/deploy.yml`：
+  - Actions 固定完整 SHA（checkout v5.0.0 + setup-node v5.0.0）
+  - Vercel CLI 固定 `58.9.1`（不再 `@latest`）
+  - `npm install` → `npm ci --legacy-peer-deps`（只读安装，遵守 lockfile）
+  - 部署前依次执行 `npm audit --omit=dev` / `npm test` / `npm run lint` / `npx tsc --noEmit`
+  - `permissions: contents: read`（最小权限）
+  - `concurrency: production-deploy`（防止并发生产部署）
+
+**Cloudflare 传输安全**
+- ✅ Always Use HTTPS 已开启（HTTP→HTTPS 301 跳转）
+- ✅ HSTS 已启用（max-age=31536000 / includeSubDomains=true / preload=false / nosniff=true）
+- ✅ TLS 最低版本 1.2
+- 验证：`http://currents-api.ethanpier.com/health` → 301，`http://currents-mcp.ethanpier.com/mcp` → 301
+- 验证：HTTPS 响应头包含 `strict-transport-security: max-age=31536000; includeSubDomains`
+- 验证：TLS 1.1 连接被拒绝，TLS 1.2 正常
+
+**GitHub Dependabot**
+- ✅ Vulnerability alerts 已启用
+- ✅ Security updates 已启用
+
+### 生产验证（2026-08-11 08:55 +08）
+
+**主站**
+- ✅ 所有主要路由 200：/zh /en /zh/blog /en/blog /zh/about /zh/portfolio /zh/lab /zh/currents /zh/currents/agent /zh/feedback /feed.xml /feed-zh.xml /sitemap.xml
+- ✅ 安全响应头全部生效：X-Content-Type-Options / Referrer-Policy / Permissions-Policy / X-Frame-Options / CSP Report-Only / HSTS（Vercel 默认）
+- ✅ Currents 页面脚本来源全部来自 `/_next/static/chunks/`（无注入）
+
+**API/MCP**
+- ✅ HTTP→HTTPS 301 跳转（Location 头正确）
+- ✅ HTTPS 响应包含 HSTS（max-age=31536000; includeSubDomains）
+- ✅ HTTPS API health 200（正常业务响应）
+- ✅ HTTPS MCP 无凭据 401（鉴权正常）
+- ✅ TLS 1.1 拒绝连接，TLS 1.2 正常
+
+**GitHub Actions**
+- ✅ Run `31473747159` 成功（audit/test/lint/tsc/build/deploy 全链路）
+- ✅ 部署至 Vercel production
+
+### 待完成（非阻断）
+
+**GitHub Actions 权限限制**（Dashboard 手动）
+- Settings → Actions → General → 选择 "Allow enterprise, and select..." + SHA pinning
+- Workflow permissions → "Read repository contents"
+
+**GitHub main 分支保护**（Dashboard 手动）
+- Settings → Rules → New ruleset → `main-protection`
+- 要求 status checks、禁止 force push、禁止删除
+
+**Vercel Deployment Checks**（可选）
+- Settings → Deployment Checks → Add "GitHub Actions" check
+
+### 后续阶段（不在 11A 范围）
+- 观察 CSP Report-Only 违规日志（7 天后决定是否切换为强制模式）
+- 防爬虫策略（robots.txt/速率限制/WAF 规则）
+- 禁复制（页面选择/右键限制）
+- 服务器 SSH/防火墙加固
+
+### 回滚方法
+
+**代码回滚**
+```bash
+cd /Users/ethan/Documents/pier-blog
+git revert 43142eb 2ab1432 cb76739
+git push origin main
+```
+
+**Cloudflare 回滚**
+```bash
+export CF_API_TOKEN="CF_API_TOKEN"
+export ZONE_ID="ZONE_ID"
+
+# 关闭 Always Use HTTPS
+curl -sS -X PATCH -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"value":"off"}' \
+  "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/settings/always_use_https"
+
+# 禁用 HSTS
+curl -sS -X PATCH -H "Authorization: Bearer $CF_API_TOKEN" \
+  -H "Content-Type: application/json" \
+  --data '{"value":{"strict_transport_security":{"enabled":false}}}' \
+  "https://api.cloudflare.com/client/v4/zones/$ZONE_ID/settings/security_header"
+
+# 恢复 TLS 版本（查看备份 /Users/ethan/Documents/Codex/phase11a-backups/20260811-160601/cloudflare-tls-before.json）
+```
+
+**GitHub Dependabot 回滚**
+- Dashboard → Settings → Code security and analysis → 关闭 Dependabot alerts 和 security updates
+
 
 ### 已完成（本地 commit cb76739）
 
