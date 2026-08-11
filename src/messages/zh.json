@@ -370,6 +370,10 @@
   "agent": {
     "title": "Agent 接入",
     "heading": "让你的 Agent 直接使用潮汐",
+    "stage4Label": "排障与申请",
+    "stage3Label": "安装与验证",
+    "stage2Label": "配置",
+    "stage1Label": "理解接入",
     "subtitle": "通过 MCP 与 Agent Skill，你的 Agent 可以查询当前 AI 热点、搜索资讯、读取多信源事件时间线与潮汐日报——中英双语，只读，不影响站点数据。",
     "statusInvite": "受邀开放",
     "statusReadonly": "只读",
@@ -423,6 +427,12 @@
     "trouble4Desc": "配置写入了临时会话而非持久配置文件。按上方对应客户端的持久配置位置重新写入。",
     "inviteTitle": "申请受邀接入",
     "inviteDesc": "目前为受邀开放：通过站点公开联系渠道申请，说明你的客户端与使用场景即可，无需提供其他个人信息。",
+    "quickLabel": "快速接入",
+    "tocLabel": "本页内容",
+    "copiedLabel": "已复制",
+    "copyLabel": "复制",
+    "copyFailedLabel": "复制失败",
+    "heroSecondaryAction": "查看配置步骤",
     "inviteAction": "通过邮件申请",
     "feedbackCta": "接入遇到问题？",
     "feedbackCtaAction": "提交 Agent 接入反馈"

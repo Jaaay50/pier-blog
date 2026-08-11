@@ -370,6 +370,10 @@
   "agent": {
     "title": "Agent Access",
     "heading": "Let your Agent use Currents directly",
+    "stage4Label": "Troubleshoot & apply",
+    "stage3Label": "Install & verify",
+    "stage2Label": "Configure",
+    "stage1Label": "Understand",
     "subtitle": "Over MCP and an Agent Skill, your agent can query current AI hot events, search reports, read multi-source event timelines, and fetch the Currents Daily — bilingual, read-only, and never mutating site data.",
     "statusInvite": "Invite-only",
     "statusReadonly": "Read-only",
@@ -423,6 +427,12 @@
     "trouble4Desc": "It was written to a transient session instead of the persistent config file. Re-add it at the persistent location shown above.",
     "inviteTitle": "Request an invite",
     "inviteDesc": "Access is invite-only for now: reach out through the site's public contact channel, mention your client and use case — no other personal information needed.",
+    "quickLabel": "Quick access",
+    "tocLabel": "On this page",
+    "copiedLabel": "Copied",
+    "copyLabel": "Copy",
+    "copyFailedLabel": "Copy failed",
+    "heroSecondaryAction": "View setup steps",
     "inviteAction": "Request via email",
     "feedbackCta": "Running into access issues?",
     "feedbackCtaAction": "Submit Agent access feedback"

@@ -1,6 +1,9 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { locales } from "@/i18n/config";
+import { TransitionLink } from "@/components/TransitionLink";
+import { AgentCopyBlock, AgentCopyChip } from "@/components/currents/AgentCopyBlock";
+import { AgentToc } from "@/components/currents/AgentToc";
 
 const SITE_URL = "https://ethanpier.com";
 const MCP_ENDPOINT = "https://currents-mcp.ethanpier.com/mcp";
@@ -34,33 +37,54 @@ export async function generateMetadata({
 
 function Section({
   id,
+  stage,
   title,
   children,
 }: {
-  id?: string;
+  id: string;
+  /** 四阶段 eyebrow（理解接入 / 配置 / 安装与验证 / 排障与申请） */
+  stage?: string;
   title: string;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} className="mt-14">
+    <section id={id} className="mt-16 scroll-mt-24">
+      {stage && (
+        <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]">
+          {stage}
+        </p>
+      )}
       <h2 className="font-display mb-5 text-2xl font-semibold tracking-tight">{title}</h2>
       {children}
     </section>
   );
 }
 
-function CodeBlock({ children, label }: { children: string; label?: string }) {
+function CodeBlock({
+  children,
+  label,
+  copyLabel,
+  copiedLabel,
+  copyFailedLabel,
+}: {
+  children: string;
+  label?: string;
+  copyLabel: string;
+  copiedLabel: string;
+  copyFailedLabel: string;
+}) {
   return (
-    <figure className="overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--bg-card)]">
-      {label && (
-        <figcaption className="border-b border-[var(--border)] px-4 py-2 text-[11px] font-medium uppercase tracking-widest text-[var(--text-muted)]">
-          {label}
-        </figcaption>
-      )}
+    <AgentCopyBlock
+      text={children}
+      label={label}
+      copyLabel={copyLabel}
+      copiedLabel={copiedLabel}
+      copyFailedLabel={copyFailedLabel}
+    >
       <pre className="overflow-x-auto p-4 text-[13px] leading-relaxed text-[var(--text-primary)]">
         <code className="font-[family-name:var(--font-jetbrains-mono)]">{children}</code>
       </pre>
-    </figure>
+    </AgentCopyBlock>
   );
 }
 
@@ -113,8 +137,25 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
   }
 }`;
 
+  const mailtoHref = `mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
+    locale === "zh" ? "潮汐 Agent 接入申请" : "Currents Agent Access Request",
+  )}`;
+  const feedbackPath = "/feedback?category=agent_access";
+
+  const tocItems = [
+    { id: "understand", label: t("stage1Label") },
+    { id: "configure", label: t("stage2Label") },
+    { id: "install-verify", label: t("stage3Label") },
+    { id: "troubleshoot-apply", label: t("stage4Label") },
+  ];
+  const quickLinks = [
+    { href: mailtoHref, label: t("inviteAction"), external: true },
+    { href: feedbackPath, label: t("feedbackCtaAction") },
+  ];
+
   return (
-    <article className="max-w-3xl pb-8">
+    <div className="pb-8 xl:grid xl:grid-cols-[minmax(0,52rem)_15rem] xl:gap-14 2xl:grid-cols-[minmax(0,54rem)_16rem]">
+      <article className="min-w-0">
       <header className="pb-2">
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("heading")}
@@ -132,9 +173,28 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
             </li>
           ))}
         </ul>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <a
+            href={mailtoHref}
+            className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-contrast)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            {t("inviteAction")}
+          </a>
+          <a
+            href="#configure"
+            className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-hover)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            {t("heroSecondaryAction")}
+          </a>
+        </div>
       </header>
 
-      <Section title={t("layersTitle")}>
+      {/* 窄屏紧凑目录：正文顶部横滚；xl 起转为右侧粘性栏 */}
+      <div className="mt-8 border-y border-[var(--border)] py-2.5 xl:hidden">
+        <AgentToc title={t("tocLabel")} items={tocItems} />
+      </div>
+
+      <Section id="understand" stage={t("stage1Label")} title={t("layersTitle")}>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
             <h3 className="mb-2 text-[15px] font-semibold text-[var(--text-primary)]">
@@ -155,20 +215,22 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
         </div>
       </Section>
 
-      <Section title={t("examplesTitle")}>
+      <Section id="examples" title={t("examplesTitle")}>
         <ul className="grid gap-2 sm:grid-cols-2">
           {examples.map((ex) => (
-            <li
-              key={ex}
-              className="rounded-lg border border-[var(--border)] px-4 py-3 text-sm text-[var(--text-primary)]"
-            >
-              {ex}
+            <li key={ex}>
+              <AgentCopyChip
+                text={ex}
+                copyLabel={t("copyLabel")}
+                copiedLabel={t("copiedLabel")}
+                copyFailedLabel={t("copyFailedLabel")}
+              />
             </li>
           ))}
         </ul>
       </Section>
 
-      <Section title={t("toolsTitle")}>
+      <Section id="tools" title={t("toolsTitle")}>
         <dl className="divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
           {tools.map((tool) => (
             <div key={tool.name} className="px-4 py-3.5 sm:grid sm:grid-cols-[180px_minmax(0,1fr)] sm:gap-4">
@@ -183,7 +245,7 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
         </dl>
       </Section>
 
-      <Section title={t("mcpTitle")}>
+      <Section id="configure" stage={t("stage2Label")} title={t("mcpTitle")}>
         <p className="mb-5 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
           {t("mcpIntro")}
         </p>
@@ -192,19 +254,19 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
             <h3 className="mb-2 text-[15px] font-semibold text-[var(--text-primary)]">
               {t("mcpCodexTitle")}
             </h3>
-            <CodeBlock label="config.toml">{codexConfig}</CodeBlock>
+            <CodeBlock label="config.toml" copyLabel={t("copyLabel")} copiedLabel={t("copiedLabel")} copyFailedLabel={t("copyFailedLabel")}>{codexConfig}</CodeBlock>
           </div>
           <div>
             <h3 className="mb-2 text-[15px] font-semibold text-[var(--text-primary)]">
               {t("mcpClaudeTitle")}
             </h3>
-            <CodeBlock label="shell">{claudeCommand}</CodeBlock>
+            <CodeBlock label="shell" copyLabel={t("copyLabel")} copiedLabel={t("copiedLabel")} copyFailedLabel={t("copyFailedLabel")}>{claudeCommand}</CodeBlock>
           </div>
           <div>
             <h3 className="mb-2 text-[15px] font-semibold text-[var(--text-primary)]">
               {t("mcpGenericTitle")}
             </h3>
-            <CodeBlock label="mcp.json">{genericConfig}</CodeBlock>
+            <CodeBlock label="mcp.json" copyLabel={t("copyLabel")} copiedLabel={t("copiedLabel")} copyFailedLabel={t("copyFailedLabel")}>{genericConfig}</CodeBlock>
             <p className="mt-2 text-[13px] text-[var(--text-muted)]">
               {t("mcpEndpointNote", { endpoint: MCP_ENDPOINT })}
             </p>
@@ -212,7 +274,7 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
         </div>
       </Section>
 
-      <Section title={t("skillTitle")}>
+      <Section id="install-verify" stage={t("stage3Label")} title={t("skillTitle")}>
         <p className="mb-4 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
           {t("skillIntro")}
         </p>
@@ -223,7 +285,7 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
         </ol>
       </Section>
 
-      <Section title={t("verifyTitle")}>
+      <Section id="verify" title={t("verifyTitle")}>
         <p className="mb-4 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
           {t("verifyIntro")}
         </p>
@@ -237,7 +299,7 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
         </p>
       </Section>
 
-      <Section title={t("troubleTitle")}>
+      <Section id="troubleshoot-apply" stage={t("stage4Label")} title={t("troubleTitle")}>
         <dl className="space-y-4">
           {trouble.map((item) => (
             <div
@@ -255,28 +317,39 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
         </dl>
       </Section>
 
-      <Section title={t("inviteTitle")}>
+      <Section id="apply" title={t("inviteTitle")}>
         <p className="mb-4 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)]">
           {t("inviteDesc")}
         </p>
         <div className="flex flex-wrap items-center gap-3">
           <a
-            href={`mailto:${CONTACT_EMAIL}?subject=${encodeURIComponent(
-              locale === "zh" ? "潮汐 Agent 接入申请" : "Currents Agent Access Request",
-            )}`}
+            href={mailtoHref}
             className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-contrast)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             {t("inviteAction")}
           </a>
-          <a
-            href={`/${locale}/feedback?category=agent_access`}
+          <TransitionLink
+            href={feedbackPath}
             className="rounded-lg border border-[var(--border)] px-4 py-2 text-sm font-medium text-[var(--text-secondary)] transition-colors hover:border-[var(--border-hover)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
             {t("feedbackCtaAction")}
-          </a>
+          </TransitionLink>
         </div>
         <p className="mt-3 text-[13px] text-[var(--text-muted)]">{t("feedbackCta")}</p>
       </Section>
-    </article>
+      </article>
+
+      {/* 桌面右侧栏：粘性页内目录 + 快速入口 */}
+      <aside className="hidden xl:block">
+        <div className="sticky top-[calc(var(--site-nav-height)+1.5rem)] pt-16">
+          <AgentToc
+            title={t("tocLabel")}
+            items={tocItems}
+            quickTitle={t("quickLabel")}
+            quickLinks={quickLinks}
+          />
+        </div>
+      </aside>
+    </div>
   );
 }

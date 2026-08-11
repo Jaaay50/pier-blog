@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Source_Serif_4, Noto_Serif_SC, Dancing_Script } from "next/font/google";
+import { Inter, JetBrains_Mono, Noto_Serif_SC, Dancing_Script } from "next/font/google";
+import localFont from "next/font/local";
 import { notFound } from "next/navigation";
 import { NextIntlClientProvider } from "next-intl";
 import { getMessages, setRequestLocale } from "next-intl/server";
@@ -29,9 +30,10 @@ const jetbrainsMono = JetBrains_Mono({
   preload: false,
 });
 
-const sourceSerif = Source_Serif_4({
-  subsets: ["latin"],
-  weight: ["400", "500", "600"],
+const sourceSerif = localFont({
+  src: "../fonts/source-serif-4-latin-variable.woff2",
+  weight: "200 900",
+  style: "normal",
   variable: "--font-serif",
   display: "swap",
   preload: false,
