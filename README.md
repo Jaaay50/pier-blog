@@ -44,10 +44,12 @@ npm run lint       # ESLint
 
 ## Project Log
 
-Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署，当前剩余项主要是 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收。完整记录见 [PROGRESS.md](./PROGRESS.md)，各阶段规划见 `PHASE*-PLAN.md`。
+Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署，当前剩余项包括 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收，以及 Phase 11 网站与服务器安全加固决策。完整记录见 [PROGRESS.md](./PROGRESS.md)，安全阶段见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。
 
 Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-11：阶段 A 详情页「报告内容问题」入口、阶段 B MCP Server + Agent Skill（服务端）、阶段 C 产品闭环（Currents 统一产品外壳、`/currents/agent` Agent 接入页、`/feedback` 全局反馈页、统一全站搜索）均已上线并完成生产验收；同日完成 Currents 响应式与动效统一修复（PR #3、merge commit `5361594`、生产部署 `pier-blog-9eixpss8u`）：外壳扩至 1760px 自适应编辑工作台，移动端改为「潮汐 · 当前页」文字产品导航 + 底部筛选面板，浅色表面统一暖纸语义层级，已读态改为局部标记（不再整卡降 opacity），今日要闻改为主故事 + 2×2 次要卡，内部导航恢复 TransitionLink/View Transitions。Review 后续修正已通过 commit `ff5beef` 与 Actions run `31459121708` 部署：侧栏改为 ≥1536px 显示，1280–1535px 渐进预留侧栏空间，日期标题取消白色渐变与吸顶层，并补齐导航、筛选面板和卡片状态问题；同日的 Agent/日报排版工作已完成多视口浏览器验收（见下）。注意区分：服务端部署 ≠ 客户端真实接入——具体客户端仍需逐一核验工具发现、五工具调用、凭据隔离与重启持久性。
 
-同日（2026-08-11）Agent 接入页与 AI 日报页排版优化已在本地完成并通过验收（**本地变更，尚未提交**）：Agent 页改为「主文档栏 832px + 右侧粘性目录/快速接入栏 240px」双栏、首屏双入口（申请受邀接入 / 查看配置步骤）、正文按理解接入/配置/安装与验证/排障与申请四阶段组织、代码块与示例提问带可复制交互（新增 `AgentCopyBlock`/`AgentToc` 组件）；日报页移除 `max-w-3xl` 居中窄栏，改为 1020px 左锚定宽版单栏，新增分类锚点胶囊导航，条目统一为编辑列表（来源与评分同行），LEAD 为中等强调模块。验证：test 106/106、lint 0 error、tsc、build 通过；2560/1680/1440/390 视口 × 浅深双主题无横向溢出，交互与英文路由回归通过。
+同日（2026-08-11）Agent 接入页与 AI 日报页排版优化已通过 commits `8319969` / `0fd04b5` 部署到生产：Agent 页采用「主文档栏 + 右侧粘性目录/快速接入栏」双栏与四阶段接入说明，代码块和示例提问提供可访问的复制成功/失败反馈；日报页采用 1020px 左锚定宽版单栏、分类锚点导航和统一编辑列表。验证：112/112 tests、TypeScript、production build、`git diff --check` 通过；Actions run `31468832109` success，production deployment `pier-blog-e5gt0npjh-jia-ethans-projects.vercel.app` Ready，`ethanpier.com` 中英文 Agent 页与中文日报均完成线上技术验收。
+
+下一阶段先讨论后实施网站安全：防爬虫为第一项，复制限制为第二项，网站安全基线完成后再进入服务器安全审计。当前只记录决策和待确认项，尚未修改 Cloudflare、Vercel、网站防护代码或服务器配置。
 
 Deployed on Vercel via GitHub Actions (`.github/workflows/deploy.yml`).

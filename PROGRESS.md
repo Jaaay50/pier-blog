@@ -403,13 +403,37 @@ Phase 1 动效引擎 → 2 转场流体 → 3 WebGL → 4 微交互 → 5 实验
 - 交付：commit `ff5beef`；Actions run `31459121708` 成功，production deployment `pier-blog-p9cmagbz4-jia-ethans-projects.vercel.app`；未另建 PR
 - 验收边界：本地自动化验证与部署工作流通过；浏览器视觉验收已随 2026-08-11 排版工作补做（多视口双主题截图，无布局回归）
 
-# Agent 接入页与 AI 日报页排版优化（2026-08-11，本地完成未提交）
+# Agent 接入页与 AI 日报页排版优化（2026-08-11，已部署并完成技术验收）
 
 - ✅ Agent 页脱离旧 `max-w-3xl` 孤岛：xl 起「主文档栏 832px + 右侧粘性目录/快速接入栏 240px（2xl 864+256）」，<xl 转为正文顶部紧凑横滚目录
 - ✅ 首屏双入口：主按钮「通过邮件申请」（沿用现有 mailto），次按钮「查看配置步骤」锚至 `#configure`；正文按理解接入/配置/安装与验证/排障与申请四阶段组织（accent eyebrow + 锚点）
 - ✅ 新增 `src/components/currents/AgentCopyBlock.tsx`（代码块常驻复制按钮 + 示例提问复制卡片，含「已复制」反馈）与 `AgentToc.tsx`（滚动监听高亮当前章节，对 Lenis 缓动可靠）；零新依赖
 - ✅ 日报页移除 `mx-auto max-w-3xl` 居中窄栏：1020px 左锚定宽版单栏，日期下分类锚点胶囊（移动端容器内横滚），条目统一 divide-y 编辑列表（来源·评分同一元数据行，评分不再悬浮右侧），栏目标题升为 serif + 分隔线，LEAD 中等强调（摘要限三行）
-- ✅ i18n：`zh.json`/`en.json` 各增 9 个 key（阶段标签/复制反馈/目录标题）
-- ✅ 验证：test 106/106、lint 0 error（2 个既有 warning）、tsc、build 通过；本地生产服务器 2560/1680/1440/390 视口 × 浅深主题无横向溢出、无新增控制台错误；复制/锚点/目录高亮交互实测通过；`/zh/currents`、热点榜、详情页与英文路由无回归
-- ⏳ 代码与文档变更均在工作区待橋 review，未 commit
-- 备注：本地截图控制台中的 `currents-api` CORS 错误为本地 origin 噪音，生产无此问题
+- ✅ 复制交互 Review 修正：反馈链接不再重复 locale；Clipboard API 失败时依次尝试 legacy copy 与手动选择；复制成功/失败通过动态 accessible name 和 `aria-live` 通知；请求序号与计时器清理避免连续点击竞态
+- ✅ i18n：`zh.json`/`en.json` 各增 10 个 key（阶段标签、复制状态与目录标题）
+- ✅ 验证：18 个测试文件、112/112 tests、lint 0 error（2 个既有 warning）、TypeScript、production build、`git diff --check` 通过；独立 Review Agent 无部署阻断
+- ✅ 交付：commits `8319969` / `0fd04b5` 已推送 `main`；Actions run `31468832109` success；production deployment `pier-blog-e5gt0npjh-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`
+- ✅ 线上技术验收：`/zh/currents/agent`、`/en/currents/agent`、`/zh/currents/daily` 均为 200；中英文反馈链接 locale 正确；复制按钮状态与剪贴板内容正常；日报 5/5 分类锚点存在；本地 Source Serif 字体加载成功且无新增浏览器错误
+- 回滚：代码基线 `db970b0`；上一 production deployment `pier-blog-ea8cpgns8-jia-ethans-projects.vercel.app`
+
+---
+
+# Phase 11: 网站与服务器安全加固（2026-08-11，决策阶段）
+
+详细决策表与实施边界见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。当前未修改 Cloudflare、Vercel、网站防护代码、Currents 后端或服务器配置。
+
+## 已确认方向
+
+- ✅ 先讨论网站安全，服务器安全放在网站方案之后单独审计
+- ✅ 网站第一项先处理防爬虫；先确认允许对象、保护范围和处置强度，再选技术方案
+- ✅ 希望限制普通访客直接选择、复制或右键搬运内容；具体页面范围、代码块/配置等例外和交互强度待决策
+- ✅ 每项措施同时说明威胁模型、能力边界、成本和误伤风险，作为网络安全学习过程
+- ✅ 当前阶段只做决策记录，不直接实施生产防护
+- ✅ 服务器 SSH 已恢复，但不据此认定服务器安全基线完整；后续仍需实时审计防火墙、登录策略、更新、日志、备份与最小权限
+
+## 下一步决策顺序
+
+1. 防爬虫：搜索引擎/RSS/社交预览/AI Bot 的允许策略，博客/Currents/API 的保护范围，限速/挑战/封禁强度。
+2. 禁用复制：覆盖页面、代码与 Agent 配置例外、移动长按、可访问性和版权提示。
+3. 网站安全基线：安全响应头、输入输出边界、依赖供应链、隐私、监控和回滚。
+4. 网站实施完成后，再启动服务器只读安全审计与分步加固。
