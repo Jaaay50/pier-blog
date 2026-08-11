@@ -91,7 +91,7 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vercel": "58.9.1",
-    "vitest": "^3.2.7",
+    "vitest": "^4.1.10",
     "@types/js-yaml": "^4.0.9"
   }
 }
