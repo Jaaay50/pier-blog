@@ -153,8 +153,8 @@ jobs:
           test "$(cat .node-version)" = "$(cat .nvmrc)"
           test "$(npm --version)" = "${NPM_VERSION}"
 
-      - name: Install locked dependencies
-        run: npm ci
+      - name: Install locked dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
 
       - name: Verify pinned local Vercel CLI
         run: |
@@ -165,25 +165,13 @@ jobs:
             exit 1
           fi
           test -x ./node_modules/.bin/vercel
-          ./node_modules/.bin/vercel --version
 
-      # Vercel Secret 最小作用域（Phase 11B P1 复审后收紧）：
-      # - pull：TOKEN（鉴权）+ ORG_ID/PROJECT_ID（fresh checkout 无 .vercel/，非交互式定位项目）
-      # - build：零 Secret、零 --token。构建完全消费 pull 写入的本地 .vercel/ 项目配置，
-      #   项目构建进程（next build 及任意依赖脚本）拿不到任何 Vercel 凭据。
-      # - deploy：仅 TOKEN。org/project 读取 pull 产物 .vercel/project.json，不重复注入。
-      # checkout / setup-node / npm ci / 版本验证等步骤的进程环境不含任何 Secret。
-      - name: Pull Vercel Environment Information
+      # 只在最后一步注入 Vercel 凭据。GitHub runner 不执行项目 lifecycle/build：
+      # npm ci 强制 --ignore-scripts，源码由 Vercel 上传后在远端 production 环境构建。
+      # 因此依赖脚本与项目构建无法通过 GITHUB_ENV/GITHUB_PATH 污染后续凭据进程。
+      - name: Deploy source through Vercel remote build
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: ./node_modules/.bin/vercel pull --yes --environment=production --token="${VERCEL_TOKEN}"
-
-      - name: Build Project Artifacts
-        run: ./node_modules/.bin/vercel build --prod
-
-      - name: Deploy Project Artifacts to Vercel
-        env:
-          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-        run: ./node_modules/.bin/vercel deploy --prebuilt --prod --archive=tgz --token="${VERCEL_TOKEN}"
+        run: ./node_modules/.bin/vercel deploy --yes --prod --archive=tgz --token="${VERCEL_TOKEN}"
