@@ -1,11 +1,11 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-12）：**Phase 11A、Phase 11B P1 与 Phase 11D P1 已完成并通过生产验收；Phase 11C P1（Vercel Firewall 边缘限流）已生效并完成当前可行验收，结论为有保留通过：CSP 规则已完成 429 闭环，OG 规则因 Vercel Security Checkpoint 先行挑战而尚未独立观测到自身 429。复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
+> 状态（2026-08-12）：**Phase 11A、Phase 11B P1、Phase 11D P1 与 Phase 11E P1 已完成并通过生产验收；Phase 11C P1（Vercel Firewall 边缘限流）已生效并完成当前可行验收，结论为有保留通过：CSP 规则已完成 429 闭环，OG 规则因 Vercel Security Checkpoint 先行挑战而尚未独立观测到自身 429。服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
 - 建立可执行、可观察、可回滚的安全基线，优先修复真实注入、凭据、供应链和发布治理风险。
-- 公开网页无法从技术上保证绝对不可复制；防爬虫与复制限制仍属于后续独立阶段。
+- 公开网页无法从技术上保证绝对不可复制；Phase 11E 只增加正文复制阻力，不作内容不可复制承诺。
 - 安全规则不得破坏 SEO、RSS、Agent 接入、可访问性、正常分享、配置复制或 Currents 公开只读体验。
 
 ## Phase 11A：安全事务升级
@@ -135,7 +135,7 @@
 
 ## Phase 11C P1：边缘层请求防滥用（Vercel Firewall 限速，2026-08-12，有保留通过）
 
-> 状态边界：只新增两条 Vercel WAF Rate Limit 规则，零代码变更、零部署；不涉及服务器 P2、Cloudflare、防爬虫、复制限制、CSP nonce/Trusted Types。变更前 Firewall 自定义规则为 0，无既有规则受影响。两条规则均已 active/valid，但严格验收仍保留 OG 规则自身 429 未独立实证的缺口。
+> 状态边界：本阶段只新增两条 Vercel WAF Rate Limit 规则，零代码变更、零部署；不涉及服务器 P2、Cloudflare、防爬虫、复制限制或 CSP nonce/Trusted Types。变更前 Firewall 自定义规则为 0，无既有规则受影响。两条规则均已 active/valid，但严格验收仍保留 OG 规则自身 429 未独立实证的缺口；防爬虫与复制阻力已在后续 Phase 11D/11E 独立完成。
 
 ### 生效规则（config `waf_tbMqVg9FWDdr` version 3，2026-08-12T01:40:34Z UTC 生效）
 
@@ -191,10 +191,32 @@
 - robots.txt 与 `X-Robots-Tag` 均对不守规则的爬虫无强制力；Currents 合法格式但不存在的 ID 枚举仍无独立边缘限流，继续依靠 ISR 404 缓存、10s 超时和后端全局限流。
 - OG 规则自身 429 仍未独立实证；本阶段不再高频压测。
 
-## 后续阶段（不在 11A/11B P1/11C P1/11D P1 范围）
+## Phase 11E P1：原创正文复制阻力（2026-08-12，已完成并通过生产验收）
+
+> 状态边界：仅保护中英文博客文章的 MDX 正文；不覆盖 Currents、Agent 接入页、反馈、搜索、导航、Lab 或 Portfolio。该能力只降低直接选择、复制和右键提取的便利度，不修改正文 DOM、不影响 SEO/RSS/浏览器查找，也不限制开发者工具。
+
+### 实现与允许边界
+
+- `BlogProseGuard` 对普通正文应用 `user-select: none`，并在 document 级校验 copy Selection/Range；只有完整落在同一个允许容器内的 range 才放行，正文与允许区域的混合选择继续阻止。
+- 允许容器包括 `pre`/`code`、链接、表单元素、实际启用的 `contenteditable` 与 `[data-copy-allow]`；完整 `selectNode(element)` 选择链接、代码块或显式允许区域也可复制。
+- `contenteditable="false"` 不再因属性存在而穿透正文保护；嵌套在可编辑祖先中的关闭编辑子树恢复保护，其内部显式链接等允许区域仍保持可用。
+- 正文右键受限时显示约 2 秒的双语轻量提示，并通过 `role="status"` 与 `aria-live="polite"` 通知；代码块复制按钮的 Clipboard API 失败降级仍会选中原代码。
+
+### 验收与部署
+
+- Review 修复：补齐元素边界 Range、`contenteditable=false`、嵌套编辑区域、input/textarea/button 与代码块 Clipboard 失败降级回归；最终为 29 个测试文件、227 项测试通过，TypeScript、production build 46 页、audit 0 与 `git diff --check` 通过，lint 为 0 error / 2 个既有 warning。
+- GitHub 交付：PR #14 合并到 `main`，生产 SHA `2e732bc1e8fea4a2f1ac75b972670c8c4d01e251`；PR CI run `31585724257` 与 main CI run `31585892119` 均成功。
+- Vercel 生产部署：Actions run `31586012037` 成功，production URL `pier-blog-m491kqy8y-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`，GitHub deployment ID `5867191987`。
+- 生产低频复验：中英文博客文章、Currents、Agent 与反馈入口均返回 200；文章 HTML 已包含 `BlogProseGuard`、`prose-guarded` 与双语限制提示，安全头和既有产品入口无回归。
+
+### 回滚与残余风险
+
+- 代码回滚使用 `git revert 2e732bc1e8fea4a2f1ac75b972670c8c4d01e251` 创建可审计提交；紧急部署回滚可将 production alias 切回 Phase 11D deployment `pier-blog-8srv3r377-jia-ethans-projects.vercel.app`。
+- 客户端限制无法阻止查看源代码、禁用脚本、Reader Mode、截图、自动化抓取或通过 RSS 获取公开内容；这属于明确接受的产品边界，而不是待修漏洞。
+
+## 后续阶段（不在 11A/11B P1/11C P1/11D P1/11E P1 范围）
 
 - WAF Bot 规则/挑战/封禁与误伤监控（受 Hobby 套餐规则数限制，需套餐或架构变更后重估）。
-- 原创正文复制限制：保留代码块、Agent 配置、链接、表单和辅助功能例外。
 - 服务器 SSH、防火墙、更新、备份恢复与运行权限审计。
 - CSP nonce/hash 与 Trusted Types 属于后续增强，不影响强制基线生效。
 

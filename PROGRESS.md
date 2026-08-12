@@ -11,10 +11,20 @@
 - ✅ 最终代码与部署门禁：前端 CI `31484988819`、部署 `31485088215`、deployment `dpl_GyeRS81zD6QPxZmfYb1FwxHGZ44X`、后端/MCP CI `31484031774` 均成功；生产 alias 为 `ethanpier.com`。
 - ✅ 线上与浏览器验收：14 个路由 200；强制 CSP 与报告端点、4 个 Canvas、主题往返、Currents 数据、Agent 复制、Giscus、API/MCP、HTTP→HTTPS、HSTS 与 TLS 协议边界均通过。
 - ✅ 仓库与本地收尾：前端 `main-protection` ruleset 已启用；仓库级 Vercel Secret 已删除；6 个历史 Token 值从 4 个 Pi JSONL 原子化脱敏；Git 不可达敏感对象与任务临时环境已清理。
-- ⚠️ 已接受的残余风险：另一 Cloudflare 身份下仍有 1 枚已暴露 Token 为 active；当前登录身份无权访问该账户，本地明文已删除，云端 Token 未撤销。该既有凭据风险不阻塞 Phase 11A 闭环。
+- ℹ️ 后续状态：另一 Cloudflare 身份下的残留 Token 已由橋撤销；Phase 11B 及后续任务未复验该外部状态。
 - ✅ 闭环记录：文档提交 `5633dd2`；CI `31489111025` 成功；docs-only deploy workflow `31489223884` 的 `authorize` 成功、`deploy` 跳过，未产生额外生产部署。
 
-**后续阶段**：防爬虫、禁复制、服务器加固。
+### Phase 11E P1：原创正文复制阻力（2026-08-12，已完成并上线）
+
+- ✅ 仅保护中英文博客 MDX 正文；Currents、Agent、反馈、搜索、导航、Lab 与 Portfolio 不受影响。
+- ✅ 普通正文选择、复制与右键增加阻力；代码块、链接、表单、有效 contenteditable 与 `[data-copy-allow]` 保持可用。
+- ✅ 修复完整 `selectNode` 允许区域被误阻止、`contenteditable="false"` 穿透及嵌套编辑边界；补齐代码块 Clipboard 失败降级和表单回归。
+- ✅ 验证：29 个测试文件、227 项测试、TypeScript、46 页 production build、audit 0、`git diff --check` 通过；lint 0 error（2 个既有 warning）。
+- ✅ 交付：PR #14，merge commit `2e732bc`；PR CI `31585724257`、main CI `31585892119`、production deploy `31586012037` 均成功，deployment `pier-blog-m491kqy8y-jia-ethans-projects.vercel.app` 已 alias 到 `ethanpier.com`。
+- ✅ 生产低频复验：中英文博客文章、Currents、Agent 与反馈入口均为 200；文章 HTML 包含复制边界标记与双语提示。
+- ➖ 定位为复制阻力，不保证公开内容不可复制；SEO、RSS、浏览器查找、屏幕阅读与开发者工具边界不变。
+
+**后续阶段**：服务器 SSH/防火墙/更新/备份恢复/运行权限审计，以及 CSP nonce/hash 与 Trusted Types 增强。
 
 ---
 
