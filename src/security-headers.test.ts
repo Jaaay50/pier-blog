@@ -59,3 +59,52 @@ describe("Next.js 安全响应头", () => {
     expect(directives.get("object-src")).toBe("'none'");
   });
 });
+
+describe("防爬虫基线：X-Robots-Tag 边界（Phase 11D P1）", () => {
+  /** 无索引价值的机器端点：只阻止进搜索结果，不阻止抓取/消费 */
+  const EXPECTED_NOINDEX_SOURCES = [
+    "/api/:path*",
+    "/feed.xml",
+    "/feed-zh.xml",
+    "/sitemap.xml",
+    "/sitemaps/:path*",
+  ];
+
+  it("机器端点带 X-Robots-Tag: noindex，且仅限这些路径", async () => {
+    const rules = await nextConfig.headers?.();
+    const noindexRules = (rules ?? []).filter((rule) =>
+      rule.headers.some(({ key }) => key === "X-Robots-Tag"),
+    );
+
+    expect(noindexRules.map((rule) => rule.source).sort()).toEqual(
+      [...EXPECTED_NOINDEX_SOURCES].sort(),
+    );
+    for (const rule of noindexRules) {
+      const tag = rule.headers.find(({ key }) => key === "X-Robots-Tag");
+      expect(tag?.value, rule.source).toBe("noindex");
+    }
+  });
+
+  it("误伤检查：全局规则与页面路径绝不带 X-Robots-Tag", async () => {
+    const rules = await nextConfig.headers?.();
+    const globalRule = rules?.find((rule) => rule.source === "/:path*");
+    expect(globalRule).toBeDefined();
+    expect(globalRule?.headers.some(({ key }) => key === "X-Robots-Tag")).toBe(false);
+
+    // 页面路由（locale 前缀）不得出现在任何 noindex 规则中
+    for (const rule of rules ?? []) {
+      if (!rule.headers.some(({ key }) => key === "X-Robots-Tag")) continue;
+      expect(rule.source.startsWith("/api/") || /^\/(feed|sitemap)/.test(rule.source), rule.source).toBe(
+        true,
+      );
+    }
+  });
+
+  it("社交预览保护：/og 不得被 noindex（否则分享卡破坏）", async () => {
+    const rules = await nextConfig.headers?.();
+    for (const rule of rules ?? []) {
+      if (!rule.headers.some(({ key }) => key === "X-Robots-Tag")) continue;
+      expect(rule.source.startsWith("/og"), `规则 ${rule.source} 不得覆盖 /og`).toBe(false);
+    }
+  });
+});
