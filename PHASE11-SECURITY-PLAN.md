@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-12）：**Phase 11A 已完成并上线；Phase 11B P1 本地代码、复审与质量门禁已收口（本地分支，尚未 push/PR/部署）。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
+> 状态（2026-08-12）：**Phase 11A、Phase 11B P1 与 Phase 11D P1 已完成并通过生产验收；Phase 11C P1（Vercel Firewall 边缘限流）已生效并完成当前可行验收，结论为有保留通过：CSP 规则已完成 429 闭环，OG 规则因 Vercel Security Checkpoint 先行挑战而尚未独立观测到自身 429。复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
@@ -67,9 +67,9 @@
 
 浏览器会缓存 HSTS；仅在 Dashboard 关闭开关不会清除客户端已有状态。回滚必须先在受影响的 Cloudflare 代理主机上发送 `Strict-Transport-Security: max-age=0`，确认响应生效并等待客户端接收后，再禁用 HSTS。Always Use HTTPS 与 TLS 1.2 应分别按备份恢复，不与 HSTS 一次性混改。
 
-## Phase 11B P1：本地代码收口（2026-08-11–12，本地完成，尚未部署）
+## Phase 11B P1：生产闭环（2026-08-11–12，已完成）
 
-> 状态边界：以下全部修复仅存在于两个仓库的本地分支 `phase11b-p1-local`，未 push、未建 PR、未部署；生产环境仍运行 11A 基线。Cloudflare 残留 Token：橋已撤销，本任务未复验。
+> 状态边界：前端 PR #11 与后端 PR #13 已合入 `main`，GitHub CI、Vercel 生产部署、后端镜像切换及独立后置验收全部通过。Cloudflare 残留 Token：橋已撤销，本任务未复验；Vercel Firewall 未纳入本阶段。
 
 ### 1. Vercel Secret 作用域收窄（前端）
 
@@ -89,7 +89,7 @@
 
 - 新增 `report-guard.ts`：零依赖、内存有界的 TTL 指纹去重（同指纹 10 分钟记一次，指纹表上限 2048 条、超限淘汰最旧）+ 每实例滚动窗口日志预算（5 分钟 60 条，耗尽只停日志不改响应）；新窗口输出上一窗口抑制汇总。
 - 指纹只取已清洗字段（documentUrl/directive/blockedUrl/sourceFile），不记录 IP、query、fragment、script sample 或原始 payload；既有 204/400/403/413/415 行为与清洗边界不变，合法报告永远 204。
-- **明确边界：这是每 Serverless 实例的进程内护栏，不是 Vercel 平台级/全局限流**；平台级限速方案见下方「Vercel Firewall 路由限速（待授权，未应用）」。
+- **明确边界：这是每 Serverless 实例的进程内护栏，不是 Vercel 平台级/全局限流**；平台级限速已由下方「Vercel Firewall 路由限速（已由 Phase 11C P1 落地）」实现。
 - 新增 `report-guard.test.ts`（6 项：去重、TTL 窗口恢复、预算、窗口汇总、容量上限、过期优先淘汰）与 route 层 3 项（重复只记一次、抑制不漏条目、预算耗尽仍全部 204）。
 
 ### 4. /og 可信资源标识（前端）
@@ -113,30 +113,87 @@
 - 非 2xx 响应在抛出稳定错误码前主动取消 body，避免持续 429/5xx 占用连接与响应流；取消失败被吞并，不会覆盖原始 `rate_limited` / `unavailable` 等映射。
 - MCP 协议测试当前 17 项，新增完整 body 超时和非成功 body 取消/取消失败回归。
 
-### Vercel Firewall 路由限速（待授权，未应用）
+### Vercel Firewall 路由限速（已由 Phase 11C P1 落地）
 
-进程内护栏无法限制平台层请求量；建议在 Vercel Dashboard 配置（需橋授权，本任务未执行）：
+进程内护栏无法限制平台层请求量；平台级限速已于 2026-08-12 作为 Phase 11C P1 应用，见下方「Phase 11C P1」章节。
 
-1. Firewall → Add Rule：`path equals /api/csp-report` 且 `method equals POST` → Rate Limit，建议 `60 requests / 60s per IP`，超限动作 Deny（429）。
-2. 可选同类规则：`path starts with /og` → `120 requests / 60s per IP`，缓解图片生成的算力放大（正常爆文分享峰值由 CDN 缓存承接，不受此限）。
-3. 回滚：Firewall 规则列表内直接 Disable/Delete 对应规则即时生效，无部署依赖，不影响应用代码；规则只影响新请求，无状态残留。
+### 验收（本地、CI 与生产，2026-08-12）
 
-### 验收（本地，2026-08-12）
+- 代码与 CI：前端 PR #11 已 squash 合入 `9b3073dbc6a27ad43db9984844306b548b382de2`，main CI run `31550885348` 成功；后端 PR #13 已 squash 合入 `dfe1de4e461159d61761038077962364fc257e66`，main CI run `31549360675` 成功。
+- 本地门禁：前端在 Node `22.23.1` / npm `10.9.8` 下完成 fresh `npm ci`、完整 audit 0、27 文件 200 测试、lint 0 error（2 个既有 warning）、TypeScript 与 46 页 production build；后端完成 audit 0、typecheck、153 测试和 build，MCP 完成 audit 0、typecheck、17 测试和 build。两轮只读交叉复核均无 P1/P2 阻塞。
+- 恢复与回滚门禁：腾讯云快照 `lhsnap-cnxu5i7j` 正常，TAT 探针返回 `phase11b-tat-ok`，SSH 可用；部署前回滚包 `/opt/currents/backups/pre-phase11b-p1-20260811T165734Z` 状态 `COMPLETE`、22 个文件、SHA256 清单与 SQLite `quick_check` 均通过。
+- 后端生产：真实代理源地址核验为 `172.18.0.1`，生产配置写入 `TRUSTED_PROXY_IP=172.18.0.1`；应用目录 `/opt/currents/app-phase11b-p1-27fb414`，API 镜像 `sha256:f5ef791ae5148b1d91c6666423a8bcde775c2a9098e2bf71cf643606fa6a5044`，MCP 镜像 `sha256:4766cbaa5535ca640e8caf4b282d8ed45ac95f3ce4bfc0d0e5f3c968582f2a10`。
+- 后端独立后置验收 `POSTFLIGHT=PASS`：API/MCP healthy、restart `0`、OOM `false`；独立访客限流桶、伪造头回落、反馈限流与 MCP 鉴权初始化/五工具真实调用通过；SQLite `quick_check` / `foreign_key_check`、cron、Tunnel、SSH、x-ui、Xray、Hysteria2 及 80/443/8788/8789 监听无回归；公网 API 为 200、未授权 MCP 为 401。
+- 前端生产：初次 run `31550966375` 因旧 `VERCEL_TOKEN` 无效失败；`production` Environment 已换成新建的长期 Vercel Token（未记录明文），同一 run 重试成功。deployment `dpl_7tVq7nSSGran2dZbcDdUSz8ZutJM`（`pier-blog-hatwejen8-jia-ethans-projects.vercel.app`）为 `READY`、target 为 production、Git SHA 为 `9b3073d`，并 alias 到 `ethanpier.com`、`www.ethanpier.com` 与稳定 Vercel 域名。
+- 前端线上回归：主页、Currents 列表、资讯详情、事件详情、日报与主题页均为 200；`/og` 的 site/blog/item/event 四类请求均返回有效 PNG，旧式任意文案参数返回 400 + `no-store`，未知资源返回 404 + `no-store`。Cloudflare Token 撤销状态未复验，Vercel Firewall 未应用。
 
-- 代码提交：前端 `96c50e6` + `c80df43` + `3ab0351`；后端 `c097f2f` + `f0ee9a2` + `27fb414`。两仓库均在本地分支 `phase11b-p1-local`，`main` / `origin/main` 未变。
-- 前端（Node `22.23.1` / npm `10.9.8`）：fresh `npm ci`、完整 audit 0 漏洞；27 文件 200 测试全过；lint 0 error（2 既有 warning）；tsc 无错误；production build 46 页成功。另验证 `npm ci --ignore-scripts` 后锁定的 Vercel CLI 可启动；未使用有效 Token 执行部署。
-- 后端：fresh `npm ci` 后 audit 0 漏洞、typecheck、153 测试、build 全过；MCP fresh `npm ci` 后 audit 0 漏洞、typecheck、17 测试、build 全过。
-- 两轮只读交叉复核最终均为无 P1/P2 阻塞；两仓库 `git diff --check` 无空白错误，未引入新依赖、未写入凭据。
-- **尚未执行**：push、PR、GitHub CI、合入、Vercel/GitHub 新部署链真实运行、后端镜像部署与生产验收。生产仍为 Phase 11A；本地静态门禁不能替代这些外部证据。
+### 回滚（生产）
 
-### 回滚（本地分支）
+1. 代码回滚使用 `git revert 9b3073dbc6a27ad43db9984844306b548b382de2` 与 `git revert dfe1de4e461159d61761038077962364fc257e66` 创建可审计提交，不改写历史。
+2. 前端紧急回滚可将 production alias 恢复到 Phase 11A deployment `dpl_GyeRS81zD6QPxZmfYb1FwxHGZ44X`；同时保留当前 deployment ID 便于再次切回。
+3. 后端按 `/opt/currents/backups/pre-phase11b-p1-20260811T165734Z/ROLLBACK.txt` 恢复部署前 compose、环境与保留镜像；必要时以腾讯云快照 `lhsnap-cnxu5i7j`、TAT 或 SSH 作为独立恢复通道。本阶段无数据库 migration。
 
-两仓库均未动 `main`：丢弃即删除本地 `phase11b-p1-local` 分支；合入后按前端三提交或后端三提交执行 `git revert`，不改写历史。部署前生产不受任何影响。
+## Phase 11C P1：边缘层请求防滥用（Vercel Firewall 限速，2026-08-12，有保留通过）
 
-## 后续阶段（不在 11A/11B P1 范围）
+> 状态边界：只新增两条 Vercel WAF Rate Limit 规则，零代码变更、零部署；不涉及服务器 P2、Cloudflare、防爬虫、复制限制、CSP nonce/Trusted Types。变更前 Firewall 自定义规则为 0，无既有规则受影响。两条规则均已 active/valid，但严格验收仍保留 OG 规则自身 429 未独立实证的缺口。
 
-- Vercel Firewall 路由限速规则的实际应用（待橋授权，方案见上）。
-- 防爬虫策略：robots、WAF/Bot 规则、挑战、封禁与误伤监控。
+### 生效规则（config `waf_tbMqVg9FWDdr` version 3，2026-08-12T01:40:34Z UTC 生效）
+
+| 规则名 | 规则 ID | 条件 | 限流 | 超限 | 状态 |
+|---|---|---|---|---|---|
+| `phase11c-csp-report-rate-limit` | `rule_phase11c_csp_report_rate_limit_QMtmpG` | path eq `/api/csp-report` AND method eq `POST` | 60 req / 60s / IP，fixed window | 平台默认 429 | active / valid |
+| `phase11c-og-rate-limit` | `rule_phase11c_og_rate_limit_BTtjQi` | path starts with `/og` | 120 req / 60s / IP，fixed window | 平台默认 429 | active / valid |
+
+### 套餐能力实测（Hobby）
+
+- 官方文档：WAF Rate Limiting 全套餐可用；Hobby 限 **1 条 Rate Limit 规则/项目**、最多 3 条自定义规则、fixed window、IP/JA4 键、含 100 万请求配额。
+- API 实测行为：从 0 规则状态**一次原子 PUT 两条 RL 规则**被接受（200）；但已存在 RL 规则时再次 PUT（修改/重建）会被 `403 Rate limiting is not available for this plan` 拒绝。因此两条规则当前同时生效，但**后续任何规则修改都需先 PUT 空规则再从零重建**（重建 payload 已存备份目录），且不能排除 Vercel 未来收紧此行为到严格 1 条。
+- 过程中的中间态：首次 PUT（超限 action=`deny`）实测超限返回 403 而非 429，已整体回滚（version 2 空规则，基线复验 204/200 正常）后改用省略超限 action 字段（=平台默认 429）重建为 version 3。
+
+### 生产验证（2026-08-12，本机单 IP 有界测试）
+
+- **CSP 规则 429 实证**：同一合法无敏感信息样本，探针 1 + 脉冲 64 = 65（阈值+5，并发 4），结果精确 **60×204 → 5×429**，fixed window 以首请求锚定；窗口后恢复 204。
+- **OG 规则**：实际执行了两轮，每轮 125 次（累计 250 次，超出原验收约束的总量上限）。第一轮为 20×200 PNG + 105×403，第二轮为 19×200 PNG + 106×403；403 均带 `x-vercel-mitigated: challenge`，属于**平台级异常流量挑战**，并一度影响测试 IP 的全部路径（含 `/zh`），约 8–10 分钟后自然衰减。这不是本规则的 429 动作；**OG 规则自身的 429 行为未能直接观测**。同构造、同平台默认动作的 CSP 规则可作为间接语义证据，但不替代 OG 自身的严格验收。为避免再次触发全路径挑战，不再进行高频 OG 压测。
+- **恢复与回归**（10:15 +08）：挑战衰减后 CSP 204、OG 200 PNG（106855B）；`/zh` `/en` Currents 列表/资讯详情/事件页/日报/主题列表/主题详情/blog/portfolio/lab/about 共 13 路由全 200；API `/health` 200；MCP 未授权 401。
+- **误伤边界**：测试 IP 自身曾触发全路径平台挑战并已自行衰减；在本次单 IP、13 条核心路由的有限回归样本中未观察到其他误伤，因此当前无需禁用规则。
+
+### 备份与回滚
+
+- 变更前/后/最终配置快照、重建 payload、脉冲结果与脱敏挑战证据：`/Users/ethan/Documents/Codex/phase11c-firewall-backups/20260812-092251/`（`firewall-config-before.json` 确认变更前为空配置）。该目录仅作本地证据，已移除与验收无关的项目/账户/OIDC 元数据并收紧为目录 `700`、文件 `600`；不得直接对外分发或纳入 Git。
+- 回滚：Dashboard Firewall 规则列表直接 Disable/Delete，或 API `PUT /v1/security/firewall/config` 提交 `{"firewallEnabled":true,"ips":[],"rules":[]}`，即时生效、无部署依赖、无状态残留（本次任务中已实际演练一次并验证基线恢复）。注意回滚后重建需从零一次性 PUT（见套餐能力实测）。
+
+## Phase 11D P1：防爬虫安全基线（2026-08-12，已完成并通过生产验收）
+
+> 状态边界：纯前端仓库变更（`X-Robots-Tag` + robots.txt 政策 + 测试），零新依赖、零 Firewall 变更、零后端变更。不含 WAF Bot 规则/挑战/封禁、复制限制或公开正文不可复制承诺。
+
+### 威胁模型与边界
+
+- 搜索引擎、RSS 阅读器、社交预览和正常 Agent 入口保持可抓取/可消费；`/og` 与所有页面路由不带 `noindex`。
+- `/api/:path*`、`/feed.xml`、`/feed-zh.xml`、`/sitemap.xml`、`/sitemaps/:path*` 统一返回 `X-Robots-Tag: noindex`，阻止无索引价值的机器端点进入搜索结果，不阻止实际抓取与消费。
+- robots.txt 保持 `User-Agent: *` + `Allow: /`，不 `Disallow /api/`：搜索引擎必须能抓取 API URL，才能看到 `X-Robots-Tag: noindex`。若 robots 先禁止抓取，noindex 不可见，URL 仍可能因外部信号进入搜索结果。
+- 不使用 User-Agent 黑名单；UA 可伪造，恶意爬虫可直接绕过。AI 训练爬虫是内容授权决策，本阶段默认不封禁。
+- 高频枚举与缓存绕过的真实防护仍由 Phase 11B 参数白名单/缓存边界与 Phase 11C 边缘限流承接；robots/noindex 只是合作协议。
+
+### 实现与验收
+
+- 干净代码分支 `phase11d-p1-anticrawl` 直接基于最新 `origin/main` 建立，提交 `419e56a`，仅包含 `next.config.mjs`、`src/app/robots.ts`、`src/app/robots.test.ts`、`src/security-headers.test.ts` 的 11D 代码/测试变更；Phase 11B/11C 纯文档提交继续留在独立 docs 分支。
+- 自动化测试同时锁定 noindex 精确路径、页面/`/og` 零误伤、robots 零 Disallow 与无 UA 黑名单；robots 覆盖检查使用 `path.startsWith(entry)` 验证实际覆盖语义。
+- 本地门禁（Node `22.23.1` / npm `10.9.8`）：`npm audit` 0 漏洞、28 文件 208 测试、lint 0 error（2 个既有 warning）、`tsc --noEmit` 与 production build 46 页通过。
+- 本地 production server：6 个机器端点均带 `X-Robots-Tag: noindex` 且保留全局安全头；`/og`、中英文页面、Currents 与 Agent 页均无 `X-Robots-Tag`；robots.txt 仅放行主体并声明 sitemap。
+- 行为回归：CSP 报告 204/400/405 边界不变；RSS、sitemap、search-index 内容完整；`/og` 成功/错误边界不变。
+- GitHub 交付：PR #12 将 `419e56a` squash 合入 `main`，生产 SHA `00ebc30bc4e329945bac13d7f2929a3a4ed231e9`；PR CI `31576501657` 与 main CI `31576641608` 的 `validate` 均成功。
+- Vercel 生产部署：Actions run `31576749751` 的 `authorize` / `deploy` 均成功；production URL `pier-blog-8srv3r377-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`，GitHub deployment ID `5865506506`。
+- 生产低频复验：`/api/search-index`、双语 RSS、sitemap index 与静态分片均为 `200 + X-Robots-Tag: noindex`；CSP 报告端点保持 `204/400/405 + noindex`；`/og`、中英文页面、Currents 与 Agent 页均无 `noindex`，robots/RSS/XML/JSON 内容完整。Currents API health 为 200，MCP 未授权边界保持 401。
+
+### 回滚与残余风险
+
+- 代码回滚使用 `git revert 00ebc30bc4e329945bac13d7f2929a3a4ed231e9` 创建可审计提交；紧急部署回滚可将 Vercel production alias 切回上一 deployment `dpl_7tVq7nSSGran2dZbcDdUSz8ZutJM`。`noindex` 无状态残留。
+- robots.txt 与 `X-Robots-Tag` 均对不守规则的爬虫无强制力；Currents 合法格式但不存在的 ID 枚举仍无独立边缘限流，继续依靠 ISR 404 缓存、10s 超时和后端全局限流。
+- OG 规则自身 429 仍未独立实证；本阶段不再高频压测。
+
+## 后续阶段（不在 11A/11B P1/11C P1/11D P1 范围）
+
+- WAF Bot 规则/挑战/封禁与误伤监控（受 Hobby 套餐规则数限制，需套餐或架构变更后重估）。
 - 原创正文复制限制：保留代码块、Agent 配置、链接、表单和辅助功能例外。
 - 服务器 SSH、防火墙、更新、备份恢复与运行权限审计。
 - CSP nonce/hash 与 Trusted Types 属于后续增强，不影响强制基线生效。
