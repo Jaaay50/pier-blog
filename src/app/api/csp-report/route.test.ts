@@ -1,5 +1,6 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { POST } from "./route";
+import { resetCspReportGuardForTests } from "./report-guard";
 
 function postReport(
   payload: unknown,
@@ -14,6 +15,10 @@ function postReport(
     }),
   );
 }
+
+beforeEach(() => {
+  resetCspReportGuardForTests();
+});
 
 afterEach(() => {
   vi.restoreAllMocks();
@@ -116,5 +121,52 @@ describe("POST /api/csp-report", () => {
 
     expect(response.status).toBe(400);
     expect(info).not.toHaveBeenCalled();
+  });
+});
+
+describe("POST /api/csp-report 日志护栏（每实例去重与预算，非平台级限流）", () => {
+  function report(path: string, directive = "script-src-elem") {
+    return {
+      "csp-report": {
+        "document-uri": `https://ethanpier.com${path}`,
+        "effective-directive": directive,
+        "blocked-uri": "https://cdn.example/x.js",
+      },
+    };
+  }
+
+  it("同一指纹重复提交：日志只记一次，响应仍全部 204", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    for (let i = 0; i < 5; i++) {
+      const res = await postReport(report("/zh/blog/dup"));
+      expect(res.status).toBe(204);
+    }
+    // 五次重复只产生一条报告日志
+    expect(info).toHaveBeenCalledOnce();
+  });
+
+  it("不同指纹互不影响；去重后日志不含被抑制条目", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    await postReport(report("/zh/page-a"));
+    await postReport(report("/zh/page-a")); // duplicate，不记日志
+    await postReport(report("/zh/page-b")); // 新指纹，记日志
+
+    expect(info).toHaveBeenCalledTimes(2);
+    const secondLog = String(info.mock.calls[1][1]);
+    expect(secondLog).toContain("/zh/page-b");
+    expect(secondLog).not.toContain("/zh/page-a");
+  });
+
+  it("大量唯一报告耗尽每实例预算后：停止记日志但持续返回 204，不触发浏览器重试", async () => {
+    const info = vi.spyOn(console, "info").mockImplementation(() => undefined);
+
+    // 预算 60 条/窗口；提交 70 条各不相同的报告
+    for (let i = 0; i < 70; i++) {
+      const res = await postReport(report(`/zh/unique-${i}`));
+      expect(res.status).toBe(204); // 预算耗尽也绝不改变响应状态
+    }
+    expect(info).toHaveBeenCalledTimes(60);
   });
 });

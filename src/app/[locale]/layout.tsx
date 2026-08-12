@@ -76,7 +76,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "https://ethanpier.com/og?title=Pier%20%E2%80%94%20Frontend%20Engineer&description=Personal%20blog%20and%20portfolio%20by%20Ethan%20Pier",
+        url: "https://ethanpier.com/og?type=site",
         width: 1200,
         height: 630,
       },
@@ -88,7 +88,7 @@ export const metadata: Metadata = {
     description:
       "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",
     images: [
-      "https://ethanpier.com/og?title=Pier%20%E2%80%94%20Frontend%20Engineer&description=Personal%20blog%20and%20portfolio%20by%20Ethan%20Pier",
+      "https://ethanpier.com/og?type=site",
     ],
   },
 };

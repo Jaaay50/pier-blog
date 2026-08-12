@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
-import { serverFetchItemDetail, serverFetchSources } from "@/lib/currents/api";
+import { isValidCurrentsResourceId, serverFetchItemDetail, serverFetchSources } from "@/lib/currents/api";
 import { safeJsonLd } from "@/lib/json-ld";
 import { renderMarkdown } from "@/lib/currents/markdown";
 import { CurrentsDetailBody } from "@/components/currents/CurrentsDetailBody";
@@ -18,23 +18,26 @@ interface PageProps {
   params: Promise<{ locale: string; id: string }>;
 }
 
-function buildOgImageUrl(title: string, description: string, tags: string[]): string {
+/** /og 只接受可信资源标识（locale+id），文案由 /og 自行从 Currents API 解析。 */
+function buildOgImageUrl(locale: string, id: string): string {
   const ogUrl = new URL(`${SITE_URL}/og`);
-  ogUrl.searchParams.set("title", title);
-  if (description) ogUrl.searchParams.set("description", description);
-  if (tags.length) ogUrl.searchParams.set("tags", tags.join(","));
+  ogUrl.searchParams.set("type", "currents-item");
+  ogUrl.searchParams.set("locale", locale);
+  ogUrl.searchParams.set("id", id);
   return ogUrl.toString();
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { locale, id } = await params;
+  // 非法 id 不触发任何上游请求，直接空 metadata（页面体同步 404）。
+  if (!isValidCurrentsResourceId(id)) return {};
   // 只有 404 返回空 metadata 走 not-found；5xx/网络/非法 JSON 上抛 → error.tsx，不缓存为 404。
   const item = await serverFetchItemDetail(id, locale);
   if (!item) return {};
 
   const title = item.title ?? item.originalTitle ?? "";
   const description = item.summary ?? item.reason ?? "";
-  const ogImage = buildOgImageUrl(title, description, item.tags ?? []);
+  const ogImage = buildOgImageUrl(locale, id);
   const canonicalUrl = `${SITE_URL}/${locale}/currents/${id}`;
 
   return {
@@ -70,6 +73,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 export default async function CurrentsDetailPage({ params }: PageProps) {
   const { locale, id } = await params;
   setRequestLocale(locale);
+  // 非法 id（超长/非法字符）直接 404，不消耗上游请求
+  if (!isValidCurrentsResourceId(id)) notFound();
   const item = await serverFetchItemDetail(id, locale);
   if (!item) notFound();
   const t = await getTranslations("currents");
@@ -108,7 +113,7 @@ export default async function CurrentsDetailPage({ params }: PageProps) {
             description: item.summary ?? undefined,
             datePublished: item.publishedAt ?? undefined,
             inLanguage: locale === "zh" ? "zh-CN" : "en-US",
-            image: item.imageUrl ?? buildOgImageUrl(item.title ?? "", item.summary ?? "", item.tags ?? []),
+            image: item.imageUrl ?? buildOgImageUrl(locale, id),
             author: item.author
               ? { "@type": "Person", name: item.author }
               : { "@type": "Organization", name: item.sourceId ?? "Currents" },

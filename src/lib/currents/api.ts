@@ -54,6 +54,24 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/* ──────── 动态参数验证（generateMetadata 与页面取数前统一调用，非法输入不触发上游请求） ──────── */
+
+/** 与后端 /v1 契约一致的资源 ID 白名单（item id / event id）。 */
+const CURRENTS_RESOURCE_ID_RE = /^[a-zA-Z0-9_-]{1,64}$/;
+
+export function isValidCurrentsResourceId(id: string): boolean {
+  return CURRENTS_RESOURCE_ID_RE.test(id);
+}
+
+/** 日报日期：格式 + 真实日历日期（拒绝 2026-02-30 / 2026-13-01 这类存在性非法值）。 */
+export function isValidCurrentsDailyDate(date: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return false;
+  const [year, month, day] = date.split("-").map(Number);
+  if (month < 1 || month > 12 || day < 1) return false;
+  const daysInMonth = new Date(Date.UTC(year, month, 0)).getUTCDate();
+  return day <= daysInMonth;
+}
+
 function isNullableString(value: unknown): value is string | null {
   return value === null || typeof value === "string";
 }
@@ -267,6 +285,9 @@ export function fetchDailyByDate(
  * 5xx / 429 / 网络失败 / AbortError / 非法 JSON 一律 throw CurrentsServerFetchError，
  * 让路由 error.tsx 进入可重试错误态，绝不伪装成 404 或被 ISR 缓存为 404。
  */
+/** 服务端取数的明确上限：挂死的后端连接转化为可重试的 network 错误，而不是占住渲染。 */
+const SERVER_FETCH_TIMEOUT_MS = 10_000;
+
 async function serverFetchDetail<T>(
   path: string,
   revalidate = 300,
@@ -277,8 +298,10 @@ async function serverFetchDetail<T>(
     res = await fetch(`${CURRENTS_API_BASE}${path}`, {
       headers: { Accept: "application/json" },
       next: { revalidate },
+      signal: AbortSignal.timeout(SERVER_FETCH_TIMEOUT_MS),
     });
   } catch (err) {
+    // 超时（TimeoutError/AbortError）与网络失败同为可重试故障，绝不伪装成 404
     throw new CurrentsServerFetchError("network", null, err instanceof Error ? err.message : "network-error");
   }
   if (res.status === 404) return null;
@@ -295,12 +318,16 @@ async function serverFetchDetail<T>(
   return value as T;
 }
 
-/** 非详情页（sources 等辅助数据）：保持宽松 null 语义，失败不致命。 */
+/**
+ * 非详情页（sources 等辅助数据）：保持宽松 null 语义，失败不致命。
+ * 同样带明确超时：挂死连接快速收敛到 null，而不是长时间占住渲染。
+ */
 async function serverFetch<T>(path: string, revalidate = 300): Promise<T | null> {
   try {
     const res = await fetch(`${CURRENTS_API_BASE}${path}`, {
       headers: { Accept: "application/json" },
       next: { revalidate },
+      signal: AbortSignal.timeout(SERVER_FETCH_TIMEOUT_MS),
     });
     if (!res.ok) return null;
     return (await res.json()) as T;
@@ -316,10 +343,10 @@ export const serverFetchSources = () =>
   serverFetch<{ sources: CurrentsSource[] }>("/v1/sources", 3600);
 
 export const serverFetchDailyLatest = (locale: string) =>
-  serverFetch<CurrentsDailyReport>(`/v1/dailies/latest?locale=${encodeURIComponent(locale)}`, 300);
+  serverFetchDetail<CurrentsDailyReport>(`/v1/dailies/latest?locale=${encodeURIComponent(locale)}`, 300);
 
 export const serverFetchDailyByDate = (date: string, locale: string) =>
-  serverFetch<CurrentsDailyReport>(`/v1/dailies/${encodeURIComponent(date)}?locale=${encodeURIComponent(locale)}`, 300);
+  serverFetchDetail<CurrentsDailyReport>(`/v1/dailies/${encodeURIComponent(date)}?locale=${encodeURIComponent(locale)}`, 300);
 
 export const serverFetchDailyArchive = (locale: string, limit = 30) =>
   serverFetch<CurrentsDailyArchiveResponse>(`/v1/dailies?locale=${encodeURIComponent(locale)}&limit=${limit}`, 300);

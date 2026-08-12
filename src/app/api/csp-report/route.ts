@@ -1,6 +1,13 @@
+import { cspReportGuard } from "./report-guard";
+
 const MAX_BODY_BYTES = 16 * 1024;
 const MAX_REPORTS_PER_REQUEST = 10;
 const MAX_LOG_FIELD_LENGTH = 512;
+
+/** 指纹只取已清洗字段（无 IP/query/fragment/样本），同一违规来源收敛为同一指纹。 */
+function reportFingerprint(report: SanitizedCspReport): string {
+  return [report.documentUrl, report.directive, report.blockedUrl ?? "", report.sourceFile ?? ""].join("|");
+}
 
 const RESPONSE_HEADERS = {
   "Cache-Control": "no-store, max-age=0",
@@ -180,6 +187,23 @@ export async function POST(request: Request): Promise<Response> {
   const reports = parseReports(payload, type, new URL(request.url).origin);
   if (!reports) return emptyResponse(400);
 
-  console.info("[csp-report]", JSON.stringify({ reports }));
+  const guard = cspReportGuard();
+  const loggable: SanitizedCspReport[] = [];
+  let suppressedTotal = 0;
+  for (const report of reports) {
+    const decision = guard.decide(reportFingerprint(report));
+    if (decision.log) loggable.push(report);
+    if (decision.windowSummary) {
+      suppressedTotal += decision.windowSummary.suppressedInPreviousWindow;
+    }
+  }
+
+  if (suppressedTotal > 0) {
+    console.info("[csp-report]", JSON.stringify({ suppressedInPreviousWindow: suppressedTotal }));
+  }
+  if (loggable.length > 0) {
+    console.info("[csp-report]", JSON.stringify({ reports: loggable }));
+  }
+  // 去重/预算只影响日志；合法报告永远 204，不制造浏览器重试风暴。
   return emptyResponse(204);
 }
