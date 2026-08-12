@@ -12,6 +12,7 @@ import { safeJsonLd } from "@/lib/json-ld";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { GiscusComments } from "@/components/GiscusComments";
 import { SiteFooter } from "@/components/SiteFooter";
+import { BlogProseGuard } from "@/components/BlogProseGuard";
 import { locales } from "@/i18n/config";
 
 interface PageProps {
@@ -208,7 +209,7 @@ export default async function BlogPostPage({ params }: PageProps) {
             </header>
 
             {/* MDX Content */}
-            <div className="prose max-w-none">{content}</div>
+            <BlogProseGuard>{content}</BlogProseGuard>
           </div>
         </article>
 

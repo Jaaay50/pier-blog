@@ -209,7 +209,8 @@
     "back": "Back",
     "readMore": "Read more",
     "allTag": "All",
-    "related": "Related Reading"
+    "related": "Related Reading",
+    "copyRestricted": "Text copying is restricted here — code blocks and links still work"
   },
   "portfolio": {
     "label": "Portfolio",
