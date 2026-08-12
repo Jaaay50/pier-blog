@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-12）：**Phase 11A 已完成并上线；Phase 11B P1 本地代码、复审与质量门禁已收口（本地分支，尚未 push/PR/部署）。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
+> 状态（2026-08-12）：**Phase 11A 与 Phase 11B P1 均已完成、合入并通过生产验收。Vercel Firewall、防爬虫、复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
@@ -67,9 +67,9 @@
 
 浏览器会缓存 HSTS；仅在 Dashboard 关闭开关不会清除客户端已有状态。回滚必须先在受影响的 Cloudflare 代理主机上发送 `Strict-Transport-Security: max-age=0`，确认响应生效并等待客户端接收后，再禁用 HSTS。Always Use HTTPS 与 TLS 1.2 应分别按备份恢复，不与 HSTS 一次性混改。
 
-## Phase 11B P1：本地代码收口（2026-08-11–12，本地完成，尚未部署）
+## Phase 11B P1：生产闭环（2026-08-11–12，已完成）
 
-> 状态边界：以下全部修复仅存在于两个仓库的本地分支 `phase11b-p1-local`，未 push、未建 PR、未部署；生产环境仍运行 11A 基线。Cloudflare 残留 Token：橋已撤销，本任务未复验。
+> 状态边界：前端 PR #11 与后端 PR #13 已合入 `main`，GitHub CI、Vercel 生产部署、后端镜像切换及独立后置验收全部通过。Cloudflare 残留 Token：橋已撤销，本任务未复验；Vercel Firewall 未纳入本阶段。
 
 ### 1. Vercel Secret 作用域收窄（前端）
 
@@ -121,17 +121,21 @@
 2. 可选同类规则：`path starts with /og` → `120 requests / 60s per IP`，缓解图片生成的算力放大（正常爆文分享峰值由 CDN 缓存承接，不受此限）。
 3. 回滚：Firewall 规则列表内直接 Disable/Delete 对应规则即时生效，无部署依赖，不影响应用代码；规则只影响新请求，无状态残留。
 
-### 验收（本地，2026-08-12）
+### 验收（本地、CI 与生产，2026-08-12）
 
-- 代码提交：前端 `96c50e6` + `c80df43` + `3ab0351`；后端 `c097f2f` + `f0ee9a2` + `27fb414`。两仓库均在本地分支 `phase11b-p1-local`，`main` / `origin/main` 未变。
-- 前端（Node `22.23.1` / npm `10.9.8`）：fresh `npm ci`、完整 audit 0 漏洞；27 文件 200 测试全过；lint 0 error（2 既有 warning）；tsc 无错误；production build 46 页成功。另验证 `npm ci --ignore-scripts` 后锁定的 Vercel CLI 可启动；未使用有效 Token 执行部署。
-- 后端：fresh `npm ci` 后 audit 0 漏洞、typecheck、153 测试、build 全过；MCP fresh `npm ci` 后 audit 0 漏洞、typecheck、17 测试、build 全过。
-- 两轮只读交叉复核最终均为无 P1/P2 阻塞；两仓库 `git diff --check` 无空白错误，未引入新依赖、未写入凭据。
-- **尚未执行**：push、PR、GitHub CI、合入、Vercel/GitHub 新部署链真实运行、后端镜像部署与生产验收。生产仍为 Phase 11A；本地静态门禁不能替代这些外部证据。
+- 代码与 CI：前端 PR #11 已 squash 合入 `9b3073dbc6a27ad43db9984844306b548b382de2`，main CI run `31550885348` 成功；后端 PR #13 已 squash 合入 `dfe1de4e461159d61761038077962364fc257e66`，main CI run `31549360675` 成功。
+- 本地门禁：前端在 Node `22.23.1` / npm `10.9.8` 下完成 fresh `npm ci`、完整 audit 0、27 文件 200 测试、lint 0 error（2 个既有 warning）、TypeScript 与 46 页 production build；后端完成 audit 0、typecheck、153 测试和 build，MCP 完成 audit 0、typecheck、17 测试和 build。两轮只读交叉复核均无 P1/P2 阻塞。
+- 恢复与回滚门禁：腾讯云快照 `lhsnap-cnxu5i7j` 正常，TAT 探针返回 `phase11b-tat-ok`，SSH 可用；部署前回滚包 `/opt/currents/backups/pre-phase11b-p1-20260811T165734Z` 状态 `COMPLETE`、22 个文件、SHA256 清单与 SQLite `quick_check` 均通过。
+- 后端生产：真实代理源地址核验为 `172.18.0.1`，生产配置写入 `TRUSTED_PROXY_IP=172.18.0.1`；应用目录 `/opt/currents/app-phase11b-p1-27fb414`，API 镜像 `sha256:f5ef791ae5148b1d91c6666423a8bcde775c2a9098e2bf71cf643606fa6a5044`，MCP 镜像 `sha256:4766cbaa5535ca640e8caf4b282d8ed45ac95f3ce4bfc0d0e5f3c968582f2a10`。
+- 后端独立后置验收 `POSTFLIGHT=PASS`：API/MCP healthy、restart `0`、OOM `false`；独立访客限流桶、伪造头回落、反馈限流与 MCP 鉴权初始化/五工具真实调用通过；SQLite `quick_check` / `foreign_key_check`、cron、Tunnel、SSH、x-ui、Xray、Hysteria2 及 80/443/8788/8789 监听无回归；公网 API 为 200、未授权 MCP 为 401。
+- 前端生产：初次 run `31550966375` 因旧 `VERCEL_TOKEN` 无效失败；`production` Environment 已换成新建的长期 Vercel Token（未记录明文），同一 run 重试成功。deployment `dpl_7tVq7nSSGran2dZbcDdUSz8ZutJM`（`pier-blog-hatwejen8-jia-ethans-projects.vercel.app`）为 `READY`、target 为 production、Git SHA 为 `9b3073d`，并 alias 到 `ethanpier.com`、`www.ethanpier.com` 与稳定 Vercel 域名。
+- 前端线上回归：主页、Currents 列表、资讯详情、事件详情、日报与主题页均为 200；`/og` 的 site/blog/item/event 四类请求均返回有效 PNG，旧式任意文案参数返回 400 + `no-store`，未知资源返回 404 + `no-store`。Cloudflare Token 撤销状态未复验，Vercel Firewall 未应用。
 
-### 回滚（本地分支）
+### 回滚（生产）
 
-两仓库均未动 `main`：丢弃即删除本地 `phase11b-p1-local` 分支；合入后按前端三提交或后端三提交执行 `git revert`，不改写历史。部署前生产不受任何影响。
+1. 代码回滚使用 `git revert 9b3073dbc6a27ad43db9984844306b548b382de2` 与 `git revert dfe1de4e461159d61761038077962364fc257e66` 创建可审计提交，不改写历史。
+2. 前端紧急回滚可将 production alias 恢复到 Phase 11A deployment `dpl_GyeRS81zD6QPxZmfYb1FwxHGZ44X`；同时保留当前 deployment ID 便于再次切回。
+3. 后端按 `/opt/currents/backups/pre-phase11b-p1-20260811T165734Z/ROLLBACK.txt` 恢复部署前 compose、环境与保留镜像；必要时以腾讯云快照 `lhsnap-cnxu5i7j`、TAT 或 SSH 作为独立恢复通道。本阶段无数据库 migration。
 
 ## 后续阶段（不在 11A/11B P1 范围）
 
