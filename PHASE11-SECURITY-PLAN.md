@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-12）：**Phase 11A 与 Phase 11B P1 已完成并通过生产验收；Phase 11C P1（Vercel Firewall 边缘限流）已生效并完成当前可行验收，结论为有保留通过：CSP 规则已完成 429 闭环，OG 规则因 Vercel Security Checkpoint 先行挑战而尚未独立观测到自身 429。防爬虫、复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
+> 状态（2026-08-12）：**Phase 11A 与 Phase 11B P1 已完成并通过生产验收；Phase 11C P1（Vercel Firewall 边缘限流）已生效并完成当前可行验收，结论为有保留通过：CSP 规则已完成 429 闭环，OG 规则因 Vercel Security Checkpoint 先行挑战而尚未独立观测到自身 429。Phase 11D P1（防爬虫安全基线）已在独立分支上实现并完成本地验收，待推送部署。复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
@@ -162,9 +162,35 @@
 - 变更前/后/最终配置快照、重建 payload、脉冲结果与脱敏挑战证据：`/Users/ethan/Documents/Codex/phase11c-firewall-backups/20260812-092251/`（`firewall-config-before.json` 确认变更前为空配置）。该目录仅作本地证据，已移除与验收无关的项目/账户/OIDC 元数据并收紧为目录 `700`、文件 `600`；不得直接对外分发或纳入 Git。
 - 回滚：Dashboard Firewall 规则列表直接 Disable/Delete，或 API `PUT /v1/security/firewall/config` 提交 `{"firewallEnabled":true,"ips":[],"rules":[]}`，即时生效、无部署依赖、无状态残留（本次任务中已实际演练一次并验证基线恢复）。注意回滚后重建需从零一次性 PUT（见套餐能力实测）。
 
-## 后续阶段（不在 11A/11B P1/11C P1 范围）
+## Phase 11D P1：防爬虫安全基线（2026-08-12，已实现，待部署）
 
-- 防爬虫策略：robots、WAF/Bot 规则、挑战、封禁与误伤监控。
+> 状态边界：纯前端仓库变更（`X-Robots-Tag` + robots.txt 政策 + 测试），零新依赖、零 Firewall 变更、零后端变更。不含 WAF Bot 规则/挑战/封禁、复制限制或公开正文不可复制承诺。
+
+### 威胁模型与边界
+
+- 搜索引擎、RSS 阅读器、社交预览和正常 Agent 入口保持可抓取/可消费；`/og` 与所有页面路由不带 `noindex`。
+- `/api/:path*`、`/feed.xml`、`/feed-zh.xml`、`/sitemap.xml`、`/sitemaps/:path*` 统一返回 `X-Robots-Tag: noindex`，阻止无索引价值的机器端点进入搜索结果，不阻止实际抓取与消费。
+- robots.txt 保持 `User-Agent: *` + `Allow: /`，不 `Disallow /api/`：搜索引擎必须能抓取 API URL，才能看到 `X-Robots-Tag: noindex`。若 robots 先禁止抓取，noindex 不可见，URL 仍可能因外部信号进入搜索结果。
+- 不使用 User-Agent 黑名单；UA 可伪造，恶意爬虫可直接绕过。AI 训练爬虫是内容授权决策，本阶段默认不封禁。
+- 高频枚举与缓存绕过的真实防护仍由 Phase 11B 参数白名单/缓存边界与 Phase 11C 边缘限流承接；robots/noindex 只是合作协议。
+
+### 实现与验收
+
+- 干净代码分支 `phase11d-p1-anticrawl` 直接基于最新 `origin/main` 建立，提交 `419e56a`，仅包含 `next.config.mjs`、`src/app/robots.ts`、`src/app/robots.test.ts`、`src/security-headers.test.ts` 的 11D 代码/测试变更；Phase 11B/11C 纯文档提交继续留在独立 docs 分支。
+- 自动化测试同时锁定 noindex 精确路径、页面/`/og` 零误伤、robots 零 Disallow 与无 UA 黑名单；robots 覆盖检查使用 `path.startsWith(entry)` 验证实际覆盖语义。
+- 本地门禁（Node `22.23.1` / npm `10.9.8`）：`npm audit` 0 漏洞、28 文件 208 测试、lint 0 error（2 个既有 warning）、`tsc --noEmit` 与 production build 46 页通过。
+- 本地 production server：6 个机器端点均带 `X-Robots-Tag: noindex` 且保留全局安全头；`/og`、中英文页面、Currents 与 Agent 页均无 `X-Robots-Tag`；robots.txt 仅放行主体并声明 sitemap。
+- 行为回归：CSP 报告 204/400/405 边界不变；RSS、sitemap、search-index 内容完整；`/og` 成功/错误边界不变。
+
+### 回滚与残余风险
+
+- 代码为单提交前端变更，使用 `git revert` 即可回滚；部署后也可将 Vercel production alias 切回上一 deployment。`noindex` 无状态残留。
+- robots.txt 与 `X-Robots-Tag` 均对不守规则的爬虫无强制力；Currents 合法格式但不存在的 ID 枚举仍无独立边缘限流，继续依靠 ISR 404 缓存、10s 超时和后端全局限流。
+- OG 规则自身 429 仍未独立实证；本阶段不再高频压测。
+
+## 后续阶段（不在 11A/11B P1/11C P1/11D P1 范围）
+
+- WAF Bot 规则/挑战/封禁与误伤监控（受 Hobby 套餐规则数限制，需套餐或架构变更后重估）。
 - 原创正文复制限制：保留代码块、Agent 配置、链接、表单和辅助功能例外。
 - 服务器 SSH、防火墙、更新、备份恢复与运行权限审计。
 - CSP nonce/hash 与 Trusted Types 属于后续增强，不影响强制基线生效。
