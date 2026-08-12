@@ -21,12 +21,27 @@ const contentSecurityPolicy = [
   `report-uri ${cspReportPath}`,
 ].join("; ");
 
+/**
+ * Phase 11D P1: 无索引价值的机器端点统一 X-Robots-Tag: noindex。
+ * - 只阻止进入搜索结果，不阻止抓取与消费：RSS 阅读器 / sitemap 解析 /
+ *   SearchModal 客户端 fetch 均不读该头，行为不变。
+ * - /og 明确不在此列：Twitterbot、Slackbot 等社交预览爬虫遵守 robots 协议，
+ *   社交卡与富结果依赖 /og 可抓取；其滥用面已由参数白名单（11B P1）
+ *   与边缘限流（11C P1）收口。
+ * - 页面路由（/:locale/...）绝不 noindex，见 security-headers.test.ts 误伤检查。
+ */
+const NOINDEX_SOURCES = ["/api/:path*", "/feed.xml", "/feed-zh.xml", "/sitemap.xml", "/sitemaps/:path*"];
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["js", "jsx", "ts", "tsx"],
 
   async headers() {
     return [
+      ...NOINDEX_SOURCES.map((source) => ({
+        source,
+        headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+      })),
       {
         source: "/:path*",
         headers: [
