@@ -323,6 +323,30 @@ describe("BlogProseGuard", () => {
     expect(copyPreventDefaultSpy).toHaveBeenCalled();
   });
 
+  it("contenteditable=false 子树中的显式链接例外仍可复制", async () => {
+    renderGuarded(
+      <div contentEditable="true" suppressContentEditableWarning>
+        <span contentEditable={false}>
+          <a href="https://example.com">仍可复制的链接</a>
+        </span>
+      </div>,
+    );
+
+    const link = screen.getByRole("link", { name: "仍可复制的链接" });
+    const range = document.createRange();
+    range.selectNode(link);
+    window.getSelection()?.removeAllRanges();
+    window.getSelection()?.addRange(range);
+
+    const copyEvent = new ClipboardEvent("copy", { bubbles: true, cancelable: true });
+    const copyPreventDefaultSpy = vi.spyOn(copyEvent, "preventDefault");
+    await act(async () => {
+      link.dispatchEvent(copyEvent);
+    });
+
+    expect(copyPreventDefaultSpy).not.toHaveBeenCalled();
+  });
+
   it("允许 data-copy-allow 标记的区域复制", async () => {
     renderGuarded(
       <div>

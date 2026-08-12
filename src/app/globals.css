@@ -1393,8 +1393,7 @@ html[data-density="comfortable"] {
 }
 
 /* 显式关闭编辑的子树重新继承正文保护，避免穿透可编辑祖先。 */
-.prose-guarded [contenteditable="false" i],
-.prose-guarded [contenteditable="false" i] * {
+.prose-guarded [contenteditable="false" i] {
   user-select: none;
   -webkit-user-select: none;
 }
@@ -1419,8 +1418,7 @@ html[data-density="comfortable"] {
     -webkit-touch-callout: default;
   }
 
-  .prose-guarded [contenteditable="false" i],
-  .prose-guarded [contenteditable="false" i] * {
+  .prose-guarded [contenteditable="false" i] {
     -webkit-touch-callout: none;
   }
 }
