@@ -1351,3 +1351,74 @@ html[data-density="comfortable"] {
   padding-left: max(clamp(1rem, 2.25vw, 2.5rem), env(safe-area-inset-left));
   padding-right: max(clamp(1rem, 2.25vw, 2.5rem), env(safe-area-inset-right));
 }
+
+/* ============================================
+   博客正文复制边界（Phase 11E P1）
+   ============================================ */
+
+/**
+ * 博客原创正文复制阻力：降低直接选择、复制和右键提取的便利度。
+ * 定位为"复制阻力"，不宣称内容不可复制。
+ *
+ * 策略：
+ * - 正文区域 user-select: none（基础阻力）
+ * - 代码块、链接、表单、contenteditable、[data-copy-allow] 显式恢复 user-select: text
+ * - copy/contextmenu 事件在客户端组件 BlogProseGuard 中处理
+ *
+ * 边界：
+ * - 不影响浏览器查找、屏幕阅读、打印、SEO、RSS
+ * - 不改 DOM 正文、不删内容、不做文字转图片或混淆
+ * - 不全局拦截键盘或限制开发者工具
+ */
+
+.prose-guarded {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 允许区域：显式恢复选择能力 */
+.prose-guarded pre,
+.prose-guarded code,
+.prose-guarded a,
+.prose-guarded button,
+.prose-guarded input,
+.prose-guarded textarea,
+.prose-guarded select,
+.prose-guarded [contenteditable=""],
+.prose-guarded [contenteditable="true" i],
+.prose-guarded [contenteditable="plaintext-only" i],
+.prose-guarded [data-copy-allow] {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 显式关闭编辑的子树重新继承正文保护，避免穿透可编辑祖先。 */
+.prose-guarded [contenteditable="false" i] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* 移动 Safari touch-callout 限制（仅在受保护正文根，允许区域不继承） */
+@supports (-webkit-touch-callout: none) {
+  .prose-guarded {
+    -webkit-touch-callout: none;
+  }
+
+  .prose-guarded pre,
+  .prose-guarded code,
+  .prose-guarded a,
+  .prose-guarded button,
+  .prose-guarded input,
+  .prose-guarded textarea,
+  .prose-guarded select,
+  .prose-guarded [contenteditable=""],
+  .prose-guarded [contenteditable="true" i],
+  .prose-guarded [contenteditable="plaintext-only" i],
+  .prose-guarded [data-copy-allow] {
+    -webkit-touch-callout: default;
+  }
+
+  .prose-guarded [contenteditable="false" i] {
+    -webkit-touch-callout: none;
+  }
+}
