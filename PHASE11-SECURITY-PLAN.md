@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-12）：**Phase 11A 与 Phase 11B P1 已完成并通过生产验收；Phase 11C P1（Vercel Firewall 边缘限流）已生效并完成当前可行验收，结论为有保留通过：CSP 规则已完成 429 闭环，OG 规则因 Vercel Security Checkpoint 先行挑战而尚未独立观测到自身 429。Phase 11D P1（防爬虫安全基线）已在独立分支上实现并完成本地验收，待推送部署。复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
+> 状态（2026-08-12）：**Phase 11A、Phase 11B P1 与 Phase 11D P1 已完成并通过生产验收；Phase 11C P1（Vercel Firewall 边缘限流）已生效并完成当前可行验收，结论为有保留通过：CSP 规则已完成 429 闭环，OG 规则因 Vercel Security Checkpoint 先行挑战而尚未独立观测到自身 429。复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
@@ -162,7 +162,7 @@
 - 变更前/后/最终配置快照、重建 payload、脉冲结果与脱敏挑战证据：`/Users/ethan/Documents/Codex/phase11c-firewall-backups/20260812-092251/`（`firewall-config-before.json` 确认变更前为空配置）。该目录仅作本地证据，已移除与验收无关的项目/账户/OIDC 元数据并收紧为目录 `700`、文件 `600`；不得直接对外分发或纳入 Git。
 - 回滚：Dashboard Firewall 规则列表直接 Disable/Delete，或 API `PUT /v1/security/firewall/config` 提交 `{"firewallEnabled":true,"ips":[],"rules":[]}`，即时生效、无部署依赖、无状态残留（本次任务中已实际演练一次并验证基线恢复）。注意回滚后重建需从零一次性 PUT（见套餐能力实测）。
 
-## Phase 11D P1：防爬虫安全基线（2026-08-12，已实现，待部署）
+## Phase 11D P1：防爬虫安全基线（2026-08-12，已完成并通过生产验收）
 
 > 状态边界：纯前端仓库变更（`X-Robots-Tag` + robots.txt 政策 + 测试），零新依赖、零 Firewall 变更、零后端变更。不含 WAF Bot 规则/挑战/封禁、复制限制或公开正文不可复制承诺。
 
@@ -181,10 +181,13 @@
 - 本地门禁（Node `22.23.1` / npm `10.9.8`）：`npm audit` 0 漏洞、28 文件 208 测试、lint 0 error（2 个既有 warning）、`tsc --noEmit` 与 production build 46 页通过。
 - 本地 production server：6 个机器端点均带 `X-Robots-Tag: noindex` 且保留全局安全头；`/og`、中英文页面、Currents 与 Agent 页均无 `X-Robots-Tag`；robots.txt 仅放行主体并声明 sitemap。
 - 行为回归：CSP 报告 204/400/405 边界不变；RSS、sitemap、search-index 内容完整；`/og` 成功/错误边界不变。
+- GitHub 交付：PR #12 将 `419e56a` squash 合入 `main`，生产 SHA `00ebc30bc4e329945bac13d7f2929a3a4ed231e9`；PR CI `31576501657` 与 main CI `31576641608` 的 `validate` 均成功。
+- Vercel 生产部署：Actions run `31576749751` 的 `authorize` / `deploy` 均成功；production URL `pier-blog-8srv3r377-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`，GitHub deployment ID `5865506506`。
+- 生产低频复验：`/api/search-index`、双语 RSS、sitemap index 与静态分片均为 `200 + X-Robots-Tag: noindex`；CSP 报告端点保持 `204/400/405 + noindex`；`/og`、中英文页面、Currents 与 Agent 页均无 `noindex`，robots/RSS/XML/JSON 内容完整。Currents API health 为 200，MCP 未授权边界保持 401。
 
 ### 回滚与残余风险
 
-- 代码为单提交前端变更，使用 `git revert` 即可回滚；部署后也可将 Vercel production alias 切回上一 deployment。`noindex` 无状态残留。
+- 代码回滚使用 `git revert 00ebc30bc4e329945bac13d7f2929a3a4ed231e9` 创建可审计提交；紧急部署回滚可将 Vercel production alias 切回上一 deployment `dpl_7tVq7nSSGran2dZbcDdUSz8ZutJM`。`noindex` 无状态残留。
 - robots.txt 与 `X-Robots-Tag` 均对不守规则的爬虫无强制力；Currents 合法格式但不存在的 ID 枚举仍无独立边缘限流，继续依靠 ISR 404 缓存、10s 超时和后端全局限流。
 - OG 规则自身 429 仍未独立实证；本阶段不再高频压测。
 
