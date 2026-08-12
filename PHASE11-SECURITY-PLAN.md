@@ -1,6 +1,6 @@
 # Phase 11: 网站与服务器安全加固
 
-> 状态（2026-08-12）：**Phase 11A 与 Phase 11B P1 均已完成、合入并通过生产验收。Vercel Firewall、防爬虫、复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
+> 状态（2026-08-12）：**Phase 11A、Phase 11B P1 与 Phase 11C P1（Vercel Firewall 边缘限流）均已完成并通过生产验收。防爬虫、复制限制、服务器 SSH/防火墙专项审计及 CSP nonce/hash/Trusted Types 仍属于后续独立阶段。此前另一 Cloudflare 身份下的 1 枚残留 Token 橋已撤销，本任务未复验。**
 
 ## 目标与边界
 
@@ -113,13 +113,9 @@
 - 非 2xx 响应在抛出稳定错误码前主动取消 body，避免持续 429/5xx 占用连接与响应流；取消失败被吞并，不会覆盖原始 `rate_limited` / `unavailable` 等映射。
 - MCP 协议测试当前 17 项，新增完整 body 超时和非成功 body 取消/取消失败回归。
 
-### Vercel Firewall 路由限速（待授权，未应用）
+### Vercel Firewall 路由限速（已由 Phase 11C P1 落地）
 
-进程内护栏无法限制平台层请求量；建议在 Vercel Dashboard 配置（需橋授权，本任务未执行）：
-
-1. Firewall → Add Rule：`path equals /api/csp-report` 且 `method equals POST` → Rate Limit，建议 `60 requests / 60s per IP`，超限动作 Deny（429）。
-2. 可选同类规则：`path starts with /og` → `120 requests / 60s per IP`，缓解图片生成的算力放大（正常爆文分享峰值由 CDN 缓存承接，不受此限）。
-3. 回滚：Firewall 规则列表内直接 Disable/Delete 对应规则即时生效，无部署依赖，不影响应用代码；规则只影响新请求，无状态残留。
+进程内护栏无法限制平台层请求量；平台级限速已于 2026-08-12 作为 Phase 11C P1 应用，见下方「Phase 11C P1」章节。
 
 ### 验收（本地、CI 与生产，2026-08-12）
 
@@ -137,9 +133,37 @@
 2. 前端紧急回滚可将 production alias 恢复到 Phase 11A deployment `dpl_GyeRS81zD6QPxZmfYb1FwxHGZ44X`；同时保留当前 deployment ID 便于再次切回。
 3. 后端按 `/opt/currents/backups/pre-phase11b-p1-20260811T165734Z/ROLLBACK.txt` 恢复部署前 compose、环境与保留镜像；必要时以腾讯云快照 `lhsnap-cnxu5i7j`、TAT 或 SSH 作为独立恢复通道。本阶段无数据库 migration。
 
-## 后续阶段（不在 11A/11B P1 范围）
+## Phase 11C P1：边缘层请求防滥用（Vercel Firewall 限速，2026-08-12，已完成）
 
-- Vercel Firewall 路由限速规则的实际应用（待橋授权，方案见上）。
+> 状态边界：只新增两条 Vercel WAF Rate Limit 规则，零代码变更、零部署；不涉及服务器 P2、Cloudflare、防爬虫、复制限制、CSP nonce/Trusted Types。变更前 Firewall 自定义规则为 0，无既有规则受影响。
+
+### 生效规则（config `waf_tbMqVg9FWDdr` version 3，2026-08-12T01:40:34Z UTC 生效）
+
+| 规则名 | 规则 ID | 条件 | 限流 | 超限 | 状态 |
+|---|---|---|---|---|---|
+| `phase11c-csp-report-rate-limit` | `rule_phase11c_csp_report_rate_limit_QMtmpG` | path eq `/api/csp-report` AND method eq `POST` | 60 req / 60s / IP，fixed window | 平台默认 429 | active / valid |
+| `phase11c-og-rate-limit` | `rule_phase11c_og_rate_limit_BTtjQi` | path starts with `/og` | 120 req / 60s / IP，fixed window | 平台默认 429 | active / valid |
+
+### 套餐能力实测（Hobby）
+
+- 官方文档：WAF Rate Limiting 全套餐可用；Hobby 限 **1 条 Rate Limit 规则/项目**、最多 3 条自定义规则、fixed window、IP/JA4 键、含 100 万请求配额。
+- API 实测行为：从 0 规则状态**一次原子 PUT 两条 RL 规则**被接受（200）；但已存在 RL 规则时再次 PUT（修改/重建）会被 `403 Rate limiting is not available for this plan` 拒绝。因此两条规则当前同时生效，但**后续任何规则修改都需先 PUT 空规则再从零重建**（重建 payload 已存备份目录），且不能排除 Vercel 未来收紧此行为到严格 1 条。
+- 过程中的中间态：首次 PUT（超限 action=`deny`）实测超限返回 403 而非 429，已整体回滚（version 2 空规则，基线复验 204/200 正常）后改用省略超限 action 字段（=平台默认 429）重建为 version 3。
+
+### 生产验证（2026-08-12，本机单 IP 有界测试）
+
+- **CSP 规则 429 实证**：同一合法无敏感信息样本，探针 1 + 脉冲 64 = 65（阈值+5，并发 4），结果精确 **60×204 → 5×429**，fixed window 以首请求锚定；窗口后恢复 204。
+- **OG 规则**：125 次（阈值+5）内前 20×200 PNG 后即出现 `403 x-vercel-mitigated: challenge`（Vercel Security Checkpoint）——这是**平台级异常流量挑战**拦截了测试 IP 的全部路径（含 `/zh`），约 8–10 分钟自然衰减；非本规则动作（规则阈值 120 未达、规则超限语义为 429）。按约束检查了配置读回与 firewall events（`actions:[]`）并以并发 2 复测一轮（同样 19×200 后挑战），未继续加量。**OG 规则自身的 429 行为未能直接观测**，其 429 语义由同构造、同平台默认动作的 CSP 规则实证；单 IP 高频拉取 `/og` 在到达规则阈值前已被平台挑战层拦截，防滥用目标事实上双层覆盖。
+- **恢复与回归**（10:15 +08）：挑战衰减后 CSP 204、OG 200 PNG（106855B）；`/zh` `/en` Currents 列表/资讯详情/事件页/日报/主题列表/主题详情/blog/portfolio/lab/about 共 13 路由全 200；API `/health` 200；MCP 未授权 401。
+- **误伤**：除测试 IP 自身触发的平台挑战（预期内、自行衰减）外，无其他误伤；无需禁用规则。
+
+### 备份与回滚
+
+- 变更前/后/最终配置快照、重建 payload、脉冲结果与脱敏挑战证据：`/Users/ethan/Documents/Codex/phase11c-firewall-backups/20260812-092251/`（`firewall-config-before.json` 确认变更前为空配置）。
+- 回滚：Dashboard Firewall 规则列表直接 Disable/Delete，或 API `PUT /v1/security/firewall/config` 提交 `{"firewallEnabled":true,"ips":[],"rules":[]}`，即时生效、无部署依赖、无状态残留（本次任务中已实际演练一次并验证基线恢复）。注意回滚后重建需从零一次性 PUT（见套餐能力实测）。
+
+## 后续阶段（不在 11A/11B P1/11C P1 范围）
+
 - 防爬虫策略：robots、WAF/Bot 规则、挑战、封禁与误伤监控。
 - 原创正文复制限制：保留代码块、Agent 配置、链接、表单和辅助功能例外。
 - 服务器 SSH、防火墙、更新、备份恢复与运行权限审计。
