@@ -6,6 +6,9 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { CurrentsSource } from "@/lib/currents/types";
 import { setDensity, type Density } from "@/lib/currents/density";
 
+// 折叠滞回区：向下越过折叠线才收起，向上回到折叠线以上至少这个距离才展开。
+const COLLAPSE_HYSTERESIS_PX = 32;
+
 // 惰性初始化需要给 useState 传函数引用而非内联调用（react-hooks 规则）
 const getIsClient = () => typeof window !== "undefined";
 
@@ -126,8 +129,9 @@ export function CurrentsFilters({
   const [inputValue, setInputValue] = useState(() => (getIsClient() ? query : ""));
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // 桌面收缩状态：滚动越过筛选区后收起为单行工具栏
+  // 桌面收缩状态：滚动越过筛选区后，零占位 sticky 工具栏淡入；展开区保留在文档流中自然滚出
   const [collapsed, setCollapsed] = useState(false);
+  const collapsedRef = useRef(false);
   const sentinelRef = useRef<HTMLDivElement>(null);
 
   // 移动端底部筛选面板
@@ -150,39 +154,68 @@ export function CurrentsFilters({
     };
   }, []);
 
-  // 收缩检测以实际 Navbar 高度为基准；Navbar 尺寸变化时重建观察器。
+  // 折叠判定：以展开区外部的稳定 sentinel 为锚点（其文档位置不随折叠态变化），
+  // 以实际 Navbar 高度为基准，带 32px 滞回区：
+  //   - 向下：sentinel 顶部越过 Navbar 底部（delta < 0）才进入紧凑态；
+  //   - 向上：sentinel 回到 Navbar 底部以下至少 32px（delta >= 32）才恢复展开。
+  // 两条阈值分离，临界点小幅反向滚动落在滞回区内不会反复切换；
+  // 同一方向滚动期间状态单调，天然只切换一次。
   useEffect(() => {
     const sentinel = sentinelRef.current;
-    if (!sentinel || typeof IntersectionObserver === "undefined") return;
+    if (!sentinel) return;
 
-    let observer: IntersectionObserver | null = null;
-    const observe = () => {
-      observer?.disconnect();
+    let navbarHeight = 57;
+    const readNavbarHeight = () => {
       const rawHeight = getComputedStyle(document.documentElement)
         .getPropertyValue("--site-nav-height")
         .trim();
-      const navbarHeight = Number.parseFloat(rawHeight) || 57;
-      observer = new IntersectionObserver(
-        (entries) => {
-          const entry = entries[0];
-          if (entry) setCollapsed(!entry.isIntersecting);
-        },
-        { rootMargin: `-${navbarHeight}px 0px 0px 0px`, threshold: 0 },
-      );
-      observer.observe(sentinel);
+      navbarHeight = Number.parseFloat(rawHeight) || 57;
     };
 
-    observe();
+    let disposed = false;
+    let scheduled = false;
+    const evaluate = () => {
+      // sentinel 顶部相对 Navbar 底部的距离；负值 = 已滚过折叠线
+      const delta = sentinel.getBoundingClientRect().top - navbarHeight;
+      const next = collapsedRef.current
+        ? delta < COLLAPSE_HYSTERESIS_PX // 紧凑态：回到线上 32px 才展开
+        : delta < 0; // 展开态：越过折叠线才收起
+      if (next !== collapsedRef.current) {
+        collapsedRef.current = next;
+        setCollapsed(next);
+      }
+    };
+
+    const schedule = () => {
+      if (scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
+        if (!disposed) evaluate();
+      });
+    };
+
+    readNavbarHeight();
+    evaluate();
+
+    window.addEventListener("scroll", schedule, { passive: true });
+    window.addEventListener("resize", schedule);
+
     const navbar = document.querySelector<HTMLElement>("[data-site-navbar]");
-    if (!navbar || typeof ResizeObserver === "undefined") {
-      return () => observer?.disconnect();
+    let resizeObserver: ResizeObserver | null = null;
+    if (navbar && typeof ResizeObserver !== "undefined") {
+      resizeObserver = new ResizeObserver(() => {
+        readNavbarHeight();
+        schedule();
+      });
+      resizeObserver.observe(navbar);
     }
 
-    const resizeObserver = new ResizeObserver(observe);
-    resizeObserver.observe(navbar);
     return () => {
-      observer?.disconnect();
-      resizeObserver.disconnect();
+      disposed = true;
+      window.removeEventListener("scroll", schedule);
+      window.removeEventListener("resize", schedule);
+      resizeObserver?.disconnect();
     };
   }, []);
 
@@ -406,8 +439,111 @@ export function CurrentsFilters({
 
   return (
     <>
-      {/* 收缩哨兵：位于筛选区上方，越过即进入吸顶收缩态 */}
-      <div ref={sentinelRef} aria-hidden className="h-px" />
+      {/* ===== 桌面紧凑工具栏（≥xl）：零高度 sticky wrapper，不占文档流空间，
+          出现/消失只动 opacity/translate，永不推动时间线内容 ===== */}
+      <div className="sticky top-[var(--site-nav-height)] z-30 hidden h-0 xl:block">
+        <div className="relative">
+          <div
+            data-currents-desktop-toolbar
+            inert={!collapsed}
+            aria-hidden={!collapsed}
+            className={`currents-surface-sticky flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-4 py-2.5 shadow-[var(--currents-shadow-sticky)] transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none ${
+              collapsed
+                ? "translate-y-0 opacity-100"
+                : "pointer-events-none -translate-y-2 opacity-0"
+            }`}
+          >
+            <div role="tablist" aria-label="view" className="flex shrink-0 gap-1">
+              {VIEW_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={view === key}
+                  onClick={() => onViewChange(key)}
+                  className={`rounded-full border px-3 py-1 text-[13px] font-medium transition-colors ${
+                    view === key ? PILL_ACTIVE : PILL_IDLE
+                  } ${FOCUS_CLASS}`}
+                >
+                  {t(VIEW_LABEL_KEY[key])}
+                </button>
+              ))}
+            </div>
+            <div className="min-w-0 flex-1">{searchInput(false)}</div>
+            <button
+              type="button"
+              onClick={() => setMoreOpen((v) => !v)}
+              aria-expanded={moreOpen}
+              className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition-colors ${
+                activeFilterCount > 0 ? PILL_ACTIVE : PILL_IDLE
+              } ${FOCUS_CLASS}`}
+            >
+              <FilterGlyph />
+              {t("moreFilters")}
+              {activeFilterCount > 0 && (
+                <span className="rounded-full bg-[var(--accent-soft)] px-1.5 text-[11px] font-medium text-[var(--accent)]">
+                  {activeFilterCount}
+                </span>
+              )}
+            </button>
+            {favoritesToggle}
+          </div>
+
+          {/* 「更多筛选」：工具栏下方的 overlay popover，同样不占文档流 */}
+          <AnimatePresence>
+            {moreOpen && collapsed && (
+              <motion.div
+                data-currents-desktop-more
+                initial={reducedMotion ? false : { opacity: 0, y: -6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
+                transition={
+                  reducedMotion
+                    ? { duration: 0 }
+                    : { duration: 0.15, ease: "easeOut" }
+                }
+                className="currents-surface-sticky absolute inset-x-0 top-full mt-2 rounded-xl border border-[var(--border)] px-4 shadow-[var(--currents-shadow-sticky)]"
+              >
+                <div className="flex flex-wrap items-center gap-2.5 py-3">
+                  {view !== "papers" && (
+                    <div
+                      role="tablist"
+                      aria-label={t("categoriesLabel")}
+                      className="flex flex-wrap gap-1"
+                    >
+                      {SECONDARY_CATEGORY_KEYS.map((key) => (
+                        <button
+                          key={key}
+                          type="button"
+                          role="tab"
+                          aria-selected={category === key}
+                          onClick={() => onCategoryChange(key)}
+                          className={`${PILL_BASE} ${category === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
+                        >
+                          {t(key)}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                  {sourceSelect}
+                  {minScoreSelect}
+                  {densityGroup}
+                  <button
+                    type="button"
+                    onClick={() => setMoreOpen(false)}
+                    className={`ml-auto rounded-full px-3 py-1 text-[13px] text-[var(--accent)] ${FOCUS_CLASS}`}
+                  >
+                    {t("close")}
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+
+      {/* 折叠判定锚点：位于可变内容之外，文档位置不随折叠态变化 */}
+      <div ref={sentinelRef} data-currents-sentinel aria-hidden className="h-px" />
 
       {/* ===== 移动端吸顶极简栏（<xl）：当前视图 + 筛选状态 + 筛选按钮 ===== */}
       <div className="currents-surface-sticky sticky top-[var(--site-nav-height)] z-30 flex h-14 items-center justify-between gap-3 border-b border-[var(--border)] xl:hidden">
@@ -548,175 +684,64 @@ export function CurrentsFilters({
         )}
       </AnimatePresence>
 
-      {/* ===== 桌面筛选区（≥xl）：初始融入背景，滚动后收缩为单行工具栏 ===== */}
-      <motion.div
-        layout
-        transition={
-          reducedMotion
-            ? { duration: 0 }
-            : { type: "spring", stiffness: 320, damping: 34 }
-        }
-        className={`sticky top-[var(--site-nav-height)] z-30 hidden xl:block ${
-          collapsed
-            ? "currents-surface-sticky rounded-xl border border-[var(--border)] px-4 py-2.5 shadow-[var(--currents-shadow-sticky)]"
-            : "border-b border-transparent py-3"
+      {/* ===== 桌面展开筛选区（≥xl）：普通文档流，高度恒定，自然滚出视口 =====
+          collapsed 时：inert + aria-hidden + opacity:0，不影响文档流高度。
+          展开态不带 sticky，不与工具栏争夺相同 top 偏移。 ===== */}
+      <div
+        data-currents-desktop-expanded
+        inert={collapsed}
+        aria-hidden={collapsed}
+        className={`hidden border-b border-transparent py-3 transition-opacity duration-150 ease-out motion-reduce:transition-none xl:block ${
+          collapsed ? "pointer-events-none opacity-0" : "opacity-100"
         }`}
       >
-        <AnimatePresence mode="wait" initial={false}>
-          {collapsed ? (
-            /* 收缩态：单行工具栏（≈52–60px），低频项收进展开行 */
-            <motion.div
-              key="collapsed"
-              initial={reducedMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={reducedMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.12 }}
-              className="flex items-center gap-2.5"
+        <div role="tablist" aria-label="view" className="mb-3 flex gap-1">
+          {VIEW_KEYS.map((key) => (
+            <button
+              key={key}
+              type="button"
+              role="tab"
+              aria-selected={view === key}
+              onClick={() => onViewChange(key)}
+              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
+                view === key ? PILL_ACTIVE : PILL_IDLE
+              } ${FOCUS_CLASS}`}
             >
-              <div role="tablist" aria-label="view" className="flex shrink-0 gap-1">
-                {VIEW_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    role="tab"
-                    aria-selected={view === key}
-                    onClick={() => onViewChange(key)}
-                    className={`rounded-full border px-3 py-1 text-[13px] font-medium transition-colors ${
-                      view === key ? PILL_ACTIVE : PILL_IDLE
-                    } ${FOCUS_CLASS}`}
-                  >
-                    {t(VIEW_LABEL_KEY[key])}
-                  </button>
-                ))}
-              </div>
-              <div className="min-w-0 flex-1">{searchInput(false)}</div>
-              <button
-                type="button"
-                onClick={() => setMoreOpen((v) => !v)}
-                aria-expanded={moreOpen}
-                className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition-colors ${
-                  activeFilterCount > 0 ? PILL_ACTIVE : PILL_IDLE
-                } ${FOCUS_CLASS}`}
-              >
-                <FilterGlyph />
-                {t("moreFilters")}
-                {activeFilterCount > 0 && (
-                  <span className="rounded-full bg-[var(--accent-soft)] px-1.5 text-[11px] font-medium text-[var(--accent)]">
-                    {activeFilterCount}
-                  </span>
-                )}
-              </button>
-              {favoritesToggle}
-            </motion.div>
-          ) : (
-            /* 展开态：完整筛选，融入页面背景（无白框） */
-            <motion.div
-              key="expanded"
-              initial={reducedMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={reducedMotion ? undefined : { opacity: 0 }}
-              transition={{ duration: 0.12 }}
+              {t(VIEW_LABEL_KEY[key])}
+            </button>
+          ))}
+        </div>
+
+        <div className="flex flex-row flex-wrap items-center gap-2.5">
+          {view !== "papers" && (
+            <div
+              role="tablist"
+              aria-label={t("categoriesLabel")}
+              className="flex flex-wrap gap-1"
             >
-              <div role="tablist" aria-label="view" className="mb-3 flex gap-1">
-                {VIEW_KEYS.map((key) => (
-                  <button
-                    key={key}
-                    type="button"
-                    role="tab"
-                    aria-selected={view === key}
-                    onClick={() => onViewChange(key)}
-                    className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                      view === key ? PILL_ACTIVE : PILL_IDLE
-                    } ${FOCUS_CLASS}`}
-                  >
-                    {t(VIEW_LABEL_KEY[key])}
-                  </button>
-                ))}
-              </div>
-
-              <div className="flex flex-row flex-wrap items-center gap-2.5">
-                {view !== "papers" && (
-                  <div
-                    role="tablist"
-                    aria-label={t("categoriesLabel")}
-                    className="flex flex-wrap gap-1"
-                  >
-                    {SECONDARY_CATEGORY_KEYS.map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        role="tab"
-                        aria-selected={category === key}
-                        onClick={() => onCategoryChange(key)}
-                        className={`${PILL_BASE} ${category === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
-                      >
-                        {t(key)}
-                      </button>
-                    ))}
-                  </div>
-                )}
-                <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5">
-                  {searchInput(false)}
-                  {sourceSelect}
-                  {minScoreSelect}
-                  {densityGroup}
-                  {favoritesToggle}
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
-
-      {/* ===== 桌面收缩态「更多筛选」展开行（xl+，原位展开，非底部面板） ===== */}
-      <AnimatePresence>
-        {moreOpen && collapsed && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={
-              reducedMotion
-                ? { duration: 0 }
-                : { duration: 0.18, ease: "easeOut" }
-            }
-            className="currents-surface-sticky sticky top-[calc(var(--site-nav-height)+4.25rem)] z-20 hidden overflow-hidden rounded-xl border border-[var(--border)] px-4 xl:block"
-          >
-            <div className="flex flex-wrap items-center gap-2.5 py-3">
-              {view !== "papers" && (
-                <div
-                  role="tablist"
-                  aria-label={t("categoriesLabel")}
-                  className="flex flex-wrap gap-1"
+              {SECONDARY_CATEGORY_KEYS.map((key) => (
+                <button
+                  key={key}
+                  type="button"
+                  role="tab"
+                  aria-selected={category === key}
+                  onClick={() => onCategoryChange(key)}
+                  className={`${PILL_BASE} ${category === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
                 >
-                  {SECONDARY_CATEGORY_KEYS.map((key) => (
-                    <button
-                      key={key}
-                      type="button"
-                      role="tab"
-                      aria-selected={category === key}
-                      onClick={() => onCategoryChange(key)}
-                      className={`${PILL_BASE} ${category === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
-                    >
-                      {t(key)}
-                    </button>
-                  ))}
-                </div>
-              )}
-              {sourceSelect}
-              {minScoreSelect}
-              {densityGroup}
-              <button
-                type="button"
-                onClick={() => setMoreOpen(false)}
-                className={`ml-auto rounded-full px-3 py-1 text-[13px] text-[var(--accent)] ${FOCUS_CLASS}`}
-              >
-                {t("close")}
-              </button>
+                  {t(key)}
+                </button>
+              ))}
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          )}
+          <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2.5">
+            {searchInput(false)}
+            {sourceSelect}
+            {minScoreSelect}
+            {densityGroup}
+            {favoritesToggle}
+          </div>
+        </div>
+      </div>
     </>
   );
 }
