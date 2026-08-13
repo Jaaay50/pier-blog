@@ -1,5 +1,14 @@
 ## Phase 11: 网站与服务器安全加固
 
+### 潮汐模型榜（2026-08-13，已上线）
+
+- ✅ 产品范围：上线 `/[locale]/currents/models`、`/[locale]/currents/models/[slug]` 与 `/[locale]/currents/models/methodology`；五类榜单为综合、编程、Agent、推理、性价比，正式模型与 Preview 分开显示，能力、可信度和官方价格互不混算。
+- ✅ 数据与发现：当前后端登记 47 个正式模型、3 个 Preview 模型与 6 个独立来源；模型详情进入统一搜索索引与 `currents-models.xml` sitemap 分片，中英文榜单、方法页和详情页均已上线。
+- ✅ 交付：后端 PR #16 / merge commit `b3a195d`，前端 PR #18 / merge commit `7e6617f`；前端 main CI `31717663112`、production deploy `31717796886`、GitHub production deployment `5891367650` 均成功，Vercel `pier-blog-hb837ksgd-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`。
+- ✅ 验证：前端 32 个测试文件、264 项测试、audit 0、lint 0 error（2 个既有 warning）、TypeScript 与 50 页 production build 通过；生产 API `/health`、模型 meta/榜单，双语主榜/方法页、模型详情、搜索索引与 `/sitemaps/currents-models.xml` 均返回 200。
+- ➖ 后端 M1 暂不启用生产定时刷新；首次生产刷新为 47 released / 3 preview / 417 pending，pending 为待人工 alias 审核名称，不代表抓取失败。常规回滚保留新增 `ml_*` schema；只有确认数据完整性事故时才恢复数据库。
+- ⏳ Review 后续修正：历史曲线需按 released/preview 与 main/observing 分区；榜单、方法页及模型发现请求需加入超时；英文页不得因原始说明含中文而隐藏价格适用条件或泛化来源许可。三项均为 P2，当前无 P0/P1。
+
 ### Currents 桌面筛选栏滚动折叠修复（2026-08-13，已完成并上线）
 
 - ✅ 根因：展开筛选区与紧凑工具栏共用一个 sticky 容器，折叠时高度约 `105px → 56px`，实际滚动 22px 会让正文额外跳动约 49px；单阈值检测与被中断的布局动画进一步放大临界点抖动。
