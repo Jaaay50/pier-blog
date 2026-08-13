@@ -8,6 +8,7 @@
 - ✅ 验证：29 个测试文件、238 项测试、lint、TypeScript、46 页 production build 与 `git diff --check` 通过；浏览器复核 marker/nav 阈值与滞回符合预期，未发现新的实现级问题。
 - ✅ 交付：commits `09ae43d` / `5700daf`；main CI `31676427400`、production deploy `31676514210` 与 GitHub production deployment `5883533060` 均成功；Vercel deployment `pier-blog-egig3bfu6-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`。
 - ✅ 收尾：更新公开双语更新日志，并拆分 sitemap 的 changelog/Agent/Feedback `lastmod`，避免更新日志变化误报未改页面的更新时间。
+- ✅ 文档部署：收尾 commit `41ae3be` 已推送；main CI `31677850065`、production deploy `31677950964` 与 GitHub production deployment `5883786075` 均成功，Vercel deployment `pier-blog-61pmwewxk-jia-ethans-projects.vercel.app` Ready；正式站双语更新日志与 sitemap 已复验为 200。
 - ➖ 验收边界：正式站 `/zh/currents?view=all` 返回 200；本地真实长列表曾受数据 API 报错限制，未把单次本地数据状态当作完整业务验收。
 
 ### 依赖维护（2026-08-13，已完成并上线）
