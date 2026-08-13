@@ -1,5 +1,12 @@
 ## Phase 11: 网站与服务器安全加固
 
+### 依赖维护（2026-08-13，已完成并上线）
+
+- ✅ 将 Vitest `3.2.7 → 4.1.10` 与 next-intl `4.13.4 → 4.13.5` 合并为 PR #17，最终范围仅为 `package.json` 与 `package-lock.json`；原 Dependabot PR #9、#10 已关闭。
+- ✅ 验证：29 个测试文件、227 项测试、TypeScript、46 页 production build、audit 0、`git diff --check` 通过；lint 0 error（2 个既有 warning）。
+- ✅ 交付：merge commit `554b940`；PR CI `31658307844`、main CI `31658523093`、production deploy `31658586428` 与 GitHub production deployment `5880393475` 均成功；正式站关键路由返回 200。
+- ➖ Vitest 配置的 ESM 前瞻提示与 next-intl `setRequestLocale` 弃用迁移不阻塞当前版本，后续分别处理；主仓本地 `node_modules` 仍是升级前依赖，下一次本地开发前运行 Node `22.23.1` 下的 `npm ci` 对齐即可。
+
 ### Phase 11A：安全事务升级（2026-08-11，已完成并上线）
 
 - ✅ 应用边界：Markdown 协议边界、生产 sanitizer 依赖、强制 CSP 与同源报告端点。
