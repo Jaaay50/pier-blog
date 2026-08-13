@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { CurrentsSource } from "@/lib/currents/types";
@@ -45,7 +45,16 @@ interface CurrentsFiltersProps {
 
 function SearchIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <circle cx="11" cy="11" r="7" />
       <path d="M21 21l-4.35-4.35" />
     </svg>
@@ -54,7 +63,15 @@ function SearchIcon() {
 
 function StarIcon({ filled }: { filled: boolean }) {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill={filled ? "currentColor" : "none"}
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M12 3.6l2.5 5.1 5.6.8-4.05 3.95.96 5.58L12 16.4l-5.01 2.63.96-5.58L3.9 9.5l5.6-.8L12 3.6z" />
     </svg>
   );
@@ -62,7 +79,15 @@ function StarIcon({ filled }: { filled: boolean }) {
 
 function DensityIcon() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      aria-hidden="true"
+    >
       <path d="M4 7h16M4 12h16M4 17h16" />
     </svg>
   );
@@ -70,7 +95,16 @@ function DensityIcon() {
 
 function FilterGlyph() {
   return (
-    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <svg
+      className="h-4 w-4"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
       <path d="M4 6h16M7 12h10M10 18h4" />
     </svg>
   );
@@ -93,8 +127,7 @@ const VIEW_LABEL_KEY: Record<ViewKey, string> = {
 const FOCUS_CLASS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
 
-const PILL_BASE =
-  "rounded-full border px-3 py-1 text-[13px] transition-colors";
+const PILL_BASE = "rounded-full border px-3 py-1 text-[13px] transition-colors";
 const PILL_ACTIVE = "border-[var(--accent)]/60 text-[var(--accent)]";
 const PILL_IDLE =
   "border-[var(--border)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]";
@@ -126,13 +159,15 @@ export function CurrentsFilters({
 }: CurrentsFiltersProps) {
   const t = useTranslations("currents");
   const reducedMotion = useReducedMotion();
-  const [inputValue, setInputValue] = useState(() => (getIsClient() ? query : ""));
+  const [inputValue, setInputValue] = useState(() =>
+    getIsClient() ? query : "",
+  );
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // 桌面收缩状态：滚动越过筛选区后，零占位 sticky 工具栏淡入；展开区保留在文档流中自然滚出
   const [collapsed, setCollapsed] = useState(false);
   const collapsedRef = useRef(false);
-  const sentinelRef = useRef<HTMLDivElement>(null);
+  const collapseMarkerRef = useRef<HTMLDivElement>(null);
 
   // 移动端底部筛选面板
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -141,6 +176,27 @@ export function CurrentsFilters({
   const sheetRef = useRef<HTMLDivElement>(null);
   // 桌面收缩态「更多筛选」展开行
   const [moreOpen, setMoreOpen] = useState(false);
+  const moreButtonRef = useRef<HTMLButtonElement>(null);
+  const moreLayerRef = useRef<HTMLDivElement>(null);
+  const morePanelRef = useRef<HTMLDivElement>(null);
+
+  const beginMoreExit = useCallback(() => {
+    const trigger = moreButtonRef.current;
+    if (trigger?.isConnected) trigger.focus();
+
+    // AnimatePresence 会暂时保留退出节点；先同步隔离，避免动画期间仍可聚焦。
+    const layer = moreLayerRef.current;
+    if (layer) {
+      layer.inert = true;
+      layer.setAttribute("aria-hidden", "true");
+    }
+    const panel = morePanelRef.current;
+    if (panel) {
+      panel.inert = true;
+      panel.setAttribute("aria-hidden", "true");
+    }
+    setMoreOpen(false);
+  }, []);
 
   const [prevQuery, setPrevQuery] = useState(query);
   if (prevQuery !== query) {
@@ -154,15 +210,15 @@ export function CurrentsFilters({
     };
   }, []);
 
-  // 折叠判定：以展开区外部的稳定 sentinel 为锚点（其文档位置不随折叠态变化），
+  // 折叠判定：marker 位于展开筛选区之后，只有整块筛选真正滚过 Navbar 才收起。
   // 以实际 Navbar 高度为基准，带 32px 滞回区：
-  //   - 向下：sentinel 顶部越过 Navbar 底部（delta < 0）才进入紧凑态；
-  //   - 向上：sentinel 回到 Navbar 底部以下至少 32px（delta >= 32）才恢复展开。
+  //   - 向下：marker 顶部越过 Navbar 底部（delta < 0）才进入紧凑态；
+  //   - 向上：marker 回到 Navbar 底部以下至少 32px（delta >= 32）才恢复展开。
   // 两条阈值分离，临界点小幅反向滚动落在滞回区内不会反复切换；
   // 同一方向滚动期间状态单调，天然只切换一次。
   useEffect(() => {
-    const sentinel = sentinelRef.current;
-    if (!sentinel) return;
+    const marker = collapseMarkerRef.current;
+    if (!marker) return;
 
     let navbarHeight = 57;
     const readNavbarHeight = () => {
@@ -175,12 +231,13 @@ export function CurrentsFilters({
     let disposed = false;
     let scheduled = false;
     const evaluate = () => {
-      // sentinel 顶部相对 Navbar 底部的距离；负值 = 已滚过折叠线
-      const delta = sentinel.getBoundingClientRect().top - navbarHeight;
+      // marker 顶部相对 Navbar 底部的距离；负值 = 展开筛选区已完整滚出。
+      const delta = marker.getBoundingClientRect().top - navbarHeight;
       const next = collapsedRef.current
         ? delta < COLLAPSE_HYSTERESIS_PX // 紧凑态：回到线上 32px 才展开
         : delta < 0; // 展开态：越过折叠线才收起
       if (next !== collapsedRef.current) {
+        if (!next) beginMoreExit();
         collapsedRef.current = next;
         setCollapsed(next);
       }
@@ -217,7 +274,7 @@ export function CurrentsFilters({
       window.removeEventListener("resize", schedule);
       resizeObserver?.disconnect();
     };
-  }, []);
+  }, [beginMoreExit]);
 
   // 底部面板是完整模态：锁滚动、隔离背景、圈住焦点，并在关闭后恢复触发点。
   useEffect(() => {
@@ -229,8 +286,11 @@ export function CurrentsFilters({
     if (!layer || !sheet) return;
 
     const focusable = () =>
-      Array.from(sheet.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR)).filter(
-        (element) => !element.hidden && element.getAttribute("aria-hidden") !== "true",
+      Array.from(
+        sheet.querySelectorAll<HTMLElement>(FOCUSABLE_SELECTOR),
+      ).filter(
+        (element) =>
+          !element.hidden && element.getAttribute("aria-hidden") !== "true",
       );
 
     // 先把焦点移入面板，再隔离触发按钮所在背景，避免 aria-hidden 拒绝生效。
@@ -259,7 +319,8 @@ export function CurrentsFilters({
 
     const previousOverflow = document.body.style.overflow;
     const previousPaddingRight = document.body.style.paddingRight;
-    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    const scrollbarWidth =
+      window.innerWidth - document.documentElement.clientWidth;
     document.body.style.overflow = "hidden";
     if (scrollbarWidth > 0) {
       document.body.style.paddingRight = `${scrollbarWidth}px`;
@@ -320,12 +381,41 @@ export function CurrentsFilters({
     };
   }, [sheetOpen]);
 
-  // 回到展开态（回到顶部）时自动收起「更多筛选」行（渲染期调整，避免 effect 瀑布）
-  const [prevCollapsed, setPrevCollapsed] = useState(collapsed);
-  if (prevCollapsed !== collapsed) {
-    setPrevCollapsed(collapsed);
-    if (!collapsed) setMoreOpen(false);
-  }
+  // 桌面「更多筛选」是非模态 popover：支持 Escape、外部点击、焦点进出与断点退出。
+  useEffect(() => {
+    if (!moreOpen) return;
+
+    const trigger = moreButtonRef.current;
+    const panel = morePanelRef.current;
+    if (!trigger || !panel) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      beginMoreExit();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (!panel.contains(target) && !trigger.contains(target)) beginMoreExit();
+    };
+    const desktopQuery = window.matchMedia("(min-width: 1280px)");
+    const onDesktopChange = (event: MediaQueryListEvent) => {
+      if (!event.matches) beginMoreExit();
+    };
+
+    const first = panel.querySelector<HTMLElement>(FOCUSABLE_SELECTOR);
+    (first ?? panel).focus();
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    desktopQuery.addEventListener("change", onDesktopChange);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+      desktopQuery.removeEventListener("change", onDesktopChange);
+      if (trigger.isConnected) trigger.focus();
+    };
+  }, [beginMoreExit, moreOpen]);
 
   const handleInput = (value: string) => {
     setInputValue(value);
@@ -453,7 +543,11 @@ export function CurrentsFilters({
                 : "pointer-events-none -translate-y-2 opacity-0"
             }`}
           >
-            <div role="tablist" aria-label="view" className="flex shrink-0 gap-1">
+            <div
+              role="tablist"
+              aria-label="view"
+              className="flex shrink-0 gap-1"
+            >
               {VIEW_KEYS.map((key) => (
                 <button
                   key={key}
@@ -471,9 +565,14 @@ export function CurrentsFilters({
             </div>
             <div className="min-w-0 flex-1">{searchInput(false)}</div>
             <button
+              ref={moreButtonRef}
               type="button"
-              onClick={() => setMoreOpen((v) => !v)}
+              onClick={() => {
+                if (moreOpen) beginMoreExit();
+                else setMoreOpen(true);
+              }}
               aria-expanded={moreOpen}
+              aria-controls="currents-desktop-more-filters"
               className={`flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1 text-[13px] transition-colors ${
                 activeFilterCount > 0 ? PILL_ACTIVE : PILL_IDLE
               } ${FOCUS_CLASS}`}
@@ -490,60 +589,74 @@ export function CurrentsFilters({
           </div>
 
           {/* 「更多筛选」：工具栏下方的 overlay popover，同样不占文档流 */}
-          <AnimatePresence>
-            {moreOpen && collapsed && (
-              <motion.div
-                data-currents-desktop-more
-                initial={reducedMotion ? false : { opacity: 0, y: -6 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
-                transition={
-                  reducedMotion
-                    ? { duration: 0 }
-                    : { duration: 0.15, ease: "easeOut" }
-                }
-                className="currents-surface-sticky absolute inset-x-0 top-full mt-2 rounded-xl border border-[var(--border)] px-4 shadow-[var(--currents-shadow-sticky)]"
-              >
-                <div className="flex flex-wrap items-center gap-2.5 py-3">
-                  {view !== "papers" && (
-                    <div
-                      role="tablist"
-                      aria-label={t("categoriesLabel")}
-                      className="flex flex-wrap gap-1"
+          <div
+            ref={moreLayerRef}
+            data-currents-desktop-more-layer
+            inert={!moreOpen || !collapsed}
+            aria-hidden={!moreOpen || !collapsed}
+            className={`absolute inset-x-0 top-full mt-2 ${
+              moreOpen && collapsed ? "" : "pointer-events-none"
+            }`}
+          >
+            <AnimatePresence initial={false}>
+              {moreOpen && collapsed && (
+                <motion.div
+                  key="desktop-more-filters"
+                  ref={morePanelRef}
+                  id="currents-desktop-more-filters"
+                  data-currents-desktop-more
+                  role="dialog"
+                  aria-modal="false"
+                  aria-label={t("moreFilters")}
+                  tabIndex={-1}
+                  initial={reducedMotion ? false : { opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={reducedMotion ? undefined : { opacity: 0, y: -6 }}
+                  transition={
+                    reducedMotion
+                      ? { duration: 0 }
+                      : { duration: 0.15, ease: "easeOut" }
+                  }
+                  className="currents-surface-sticky rounded-xl border border-[var(--border)] px-4 shadow-[var(--currents-shadow-sticky)]"
+                >
+                  <div className="flex flex-wrap items-center gap-2.5 py-3">
+                    {view !== "papers" && (
+                      <div
+                        role="tablist"
+                        aria-label={t("categoriesLabel")}
+                        className="flex flex-wrap gap-1"
+                      >
+                        {SECONDARY_CATEGORY_KEYS.map((key) => (
+                          <button
+                            key={key}
+                            type="button"
+                            role="tab"
+                            aria-selected={category === key}
+                            onClick={() => onCategoryChange(key)}
+                            className={`${PILL_BASE} ${category === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
+                          >
+                            {t(key)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {sourceSelect}
+                    {minScoreSelect}
+                    {densityGroup}
+                    <button
+                      type="button"
+                      onClick={beginMoreExit}
+                      className={`ml-auto rounded-full px-3 py-1 text-[13px] text-[var(--accent)] ${FOCUS_CLASS}`}
                     >
-                      {SECONDARY_CATEGORY_KEYS.map((key) => (
-                        <button
-                          key={key}
-                          type="button"
-                          role="tab"
-                          aria-selected={category === key}
-                          onClick={() => onCategoryChange(key)}
-                          className={`${PILL_BASE} ${category === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
-                        >
-                          {t(key)}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                  {sourceSelect}
-                  {minScoreSelect}
-                  {densityGroup}
-                  <button
-                    type="button"
-                    onClick={() => setMoreOpen(false)}
-                    className={`ml-auto rounded-full px-3 py-1 text-[13px] text-[var(--accent)] ${FOCUS_CLASS}`}
-                  >
-                    {t("close")}
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                      {t("close")}
+                    </button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
-
-      {/* 折叠判定锚点：位于可变内容之外，文档位置不随折叠态变化 */}
-      <div ref={sentinelRef} data-currents-sentinel aria-hidden className="h-px" />
 
       {/* ===== 移动端吸顶极简栏（<xl）：当前视图 + 筛选状态 + 筛选按钮 ===== */}
       <div className="currents-surface-sticky sticky top-[var(--site-nav-height)] z-30 flex h-14 items-center justify-between gap-3 border-b border-[var(--border)] xl:hidden">
@@ -598,7 +711,10 @@ export function CurrentsFilters({
               }
               className="currents-surface-sticky absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-2xl border-t border-[var(--border)] px-5 pb-8 pt-4"
             >
-              <div className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--border-hover)]" aria-hidden />
+              <div
+                className="mx-auto mb-4 h-1 w-10 rounded-full bg-[var(--border-hover)]"
+                aria-hidden
+              />
               <div className="mb-4 flex items-center justify-between">
                 <p className="text-sm font-semibold">{t("filtersOpen")}</p>
                 <button
@@ -616,7 +732,11 @@ export function CurrentsFilters({
                   <p className="mb-2 text-xs font-medium text-[var(--text-muted)]">
                     {t("categoriesLabel")}
                   </p>
-                  <div role="tablist" aria-label="view" className="flex flex-wrap gap-1.5">
+                  <div
+                    role="tablist"
+                    aria-label="view"
+                    className="flex flex-wrap gap-1.5"
+                  >
                     {VIEW_KEYS.map((key) => (
                       <button
                         key={key}
@@ -685,15 +805,13 @@ export function CurrentsFilters({
       </AnimatePresence>
 
       {/* ===== 桌面展开筛选区（≥xl）：普通文档流，高度恒定，自然滚出视口 =====
-          collapsed 时：inert + aria-hidden + opacity:0，不影响文档流高度。
+          collapsed 时仅退出交互树，不改变可见性或文档流高度。
           展开态不带 sticky，不与工具栏争夺相同 top 偏移。 ===== */}
       <div
         data-currents-desktop-expanded
         inert={collapsed}
         aria-hidden={collapsed}
-        className={`hidden border-b border-transparent py-3 transition-opacity duration-150 ease-out motion-reduce:transition-none xl:block ${
-          collapsed ? "pointer-events-none opacity-0" : "opacity-100"
-        }`}
+        className="hidden border-b border-transparent py-3 xl:block"
       >
         <div role="tablist" aria-label="view" className="mb-3 flex gap-1">
           {VIEW_KEYS.map((key) => (
@@ -742,6 +860,14 @@ export function CurrentsFilters({
           </div>
         </div>
       </div>
+
+      {/* marker 跟在展开区之后；折叠不会改动 marker 前方的文档流高度。 */}
+      <div
+        ref={collapseMarkerRef}
+        data-currents-collapse-marker
+        aria-hidden
+        className="hidden h-px xl:block"
+      />
     </>
   );
 }
