@@ -28,6 +28,7 @@ const MAIN_NAV: NavItem[] = [
   { key: "featured", href: "/currents" },
   { key: "all", href: "/currents?view=all" },
   { key: "hot", href: "/currents/hot" },
+  { key: "models", href: "/currents/models" },
   { key: "daily", href: "/currents/daily" },
   { key: "topics", href: "/currents/topics" },
   { key: "favorites", href: "/currents?view=all&favorites=1" },
@@ -69,6 +70,7 @@ function useCurrentKey(): string {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   if (pathname.startsWith("/currents/hot")) return "hot";
+  if (pathname.startsWith("/currents/models")) return "models";
   if (pathname.startsWith("/currents/daily")) return "daily";
   if (pathname.startsWith("/currents/topics")) return "topics";
   if (pathname.startsWith("/currents/changelog")) return "changelog";

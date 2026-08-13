@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   buildFeatureDocs,
+  buildModelDocs,
   buildSearchIndex,
   rankResults,
   type SearchDoc,
@@ -72,6 +73,7 @@ describe("buildFeatureDocs", () => {
     "/currents",
     "/currents?view=all",
     "/currents/hot",
+    "/currents/models",
     "/currents/daily",
     "/currents/topics",
     "/currents/changelog",
@@ -79,11 +81,11 @@ describe("buildFeatureDocs", () => {
     "/feedback",
   ];
 
-  it.each(["zh", "en"] as const)("%s：8 个功能页 + 全部主题页", (locale) => {
+  it.each(["zh", "en"] as const)("%s：9 个功能页 + 全部主题页", (locale) => {
     const docs = buildFeatureDocs(locale);
     const pages = docs.filter((d) => d.type === "page");
     const topics = docs.filter((d) => d.type === "topic");
-    expect(pages).toHaveLength(8);
+    expect(pages).toHaveLength(9);
     expect(pages.map((d) => d.href)).toEqual(FEATURE_HREFS);
     expect(topics).toHaveLength(CURRENTS_TOPIC_IDS.length);
     for (const id of CURRENTS_TOPIC_IDS) {
@@ -115,6 +117,27 @@ describe("buildFeatureDocs", () => {
     expect(docOf(en, "/currents/topics/mcp").description).toBe(
       "Topic feed and archive"
     );
+  });
+});
+
+describe("buildModelDocs", () => {
+  const models = [{
+    slug: "claude-opus-5",
+    name: "Claude Opus 5",
+    vendor: "Anthropic",
+    vendorId: "anthropic",
+    status: "released" as const,
+    releaseDate: "2026-07-24",
+  }];
+
+  it("为每个注册模型生成可搜索的双语详情文档", () => {
+    for (const locale of ["zh", "en"] as const) {
+      const [doc] = buildModelDocs(locale, models);
+      expect(doc.href).toBe("/currents/models/claude-opus-5");
+      expect(doc.title).toBe("Claude Opus 5");
+      expect(doc.keywords).toContain("anthropic");
+      expect(doc.description).toContain("Anthropic");
+    }
   });
 });
 

@@ -37,6 +37,7 @@ const messages = {
     featured: "精选",
     all: "全部动态",
     hot: "热点榜",
+    models: "模型榜",
     daily: "AI 日报",
     topics: "主题",
     favorites: "收藏",
@@ -49,7 +50,7 @@ const messages = {
   },
 };
 
-const MAIN_LABELS = ["精选", "全部动态", "热点榜", "AI 日报", "主题", "收藏", "Agent 接入"];
+const MAIN_LABELS = ["精选", "全部动态", "热点榜", "模型榜", "AI 日报", "主题", "收藏", "Agent 接入"];
 const AUX_LABELS = ["搜索", "更新日志", "反馈"];
 
 function renderShell() {
@@ -75,11 +76,11 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("CurrentsShell", () => {
-  it("渲染 7 个主导航项与 3 个辅助项", () => {
+  it("渲染 8 个主导航项与 3 个辅助项", () => {
     renderShell();
     const nav = getSideNav();
     const links = nav.querySelectorAll("a");
-    expect(links).toHaveLength(9); // 7 主导航 + 更新日志/反馈（搜索是 button）
+    expect(links).toHaveLength(10); // 8 主导航 + 更新日志/反馈（搜索是 button）
     const texts = Array.from(nav.querySelectorAll("a, button")).map((el) => el.textContent);
     for (const label of [...MAIN_LABELS, ...AUX_LABELS]) {
       expect(texts).toContain(label);
@@ -87,6 +88,13 @@ describe("CurrentsShell", () => {
     // 收藏入口落在首页收藏视图
     const favorites = screen.getByRole("link", { name: "收藏" });
     expect(favorites.getAttribute("href")).toBe("/currents?view=all&favorites=1");
+  });
+
+  it("模型榜路径高亮 models 项（含详情/方法子路径）", () => {
+    mockPathname.mockReturnValue("/currents/models/methodology");
+    renderShell();
+    expect(screen.getByRole("link", { name: "模型榜" }).getAttribute("aria-current")).toBe("page");
+    expect(screen.getByRole("link", { name: "热点榜" }).getAttribute("aria-current")).toBeNull();
   });
 
   it("当前路径高亮 aria-current", () => {

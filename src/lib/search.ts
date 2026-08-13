@@ -1,5 +1,6 @@
 import { BlogPost } from "./posts";
 import { CURRENTS_TOPIC_IDS, CURRENTS_TOPIC_NAMES } from "./currents/topics";
+import type { DiscoverableModel } from "./currents/models-discovery";
 
 export interface SearchablePost {
   slug: string;
@@ -147,6 +148,13 @@ const FEATURE_PAGE_DEFS: Record<
       href: "/currents/hot",
     },
     {
+      id: "currents-models",
+      title: "模型榜",
+      description: "跨六个独立公开评测的基础模型共识榜：综合、编程、Agent、推理与性价比",
+      keywords: ["模型榜", "models", "leaderboard", "模型", "排行", "评测", "benchmark"],
+      href: "/currents/models",
+    },
+    {
       id: "currents-daily",
       title: "AI 日报",
       description: "每日 AI 行业动态摘要与归档",
@@ -203,6 +211,13 @@ const FEATURE_PAGE_DEFS: Record<
       description: "The most-discussed AI events and topics right now",
       keywords: ["hot", "hot board", "trending", "popular", "currents_hot", "热点"],
       href: "/currents/hot",
+    },
+    {
+      id: "currents-models",
+      title: "Model Leaderboard",
+      description: "Consensus foundation-model leaderboard across six independent public evaluations: overall, coding, agent, reasoning, and value",
+      keywords: ["models", "model leaderboard", "leaderboard", "benchmark", "ranking", "模型榜"],
+      href: "/currents/models",
     },
     {
       id: "currents-daily",
@@ -278,6 +293,23 @@ export function buildFeatureDocs(locale: Locale): SearchDoc[] {
   });
 
   return [...pages, ...topics];
+}
+
+/** Runtime model documents appended by /api/search-index after registry discovery. */
+export function buildModelDocs(locale: Locale, models: DiscoverableModel[]): SearchDoc[] {
+  return models.map((model) => ({
+    type: "page",
+    id: `model-${model.slug}`,
+    title: model.name,
+    description:
+      locale === "zh"
+        ? `${model.vendor} 的${model.status === "preview" ? "预览" : "正式"}模型详情、榜单排名、可信度与官方价格`
+        : `${model.vendor} ${model.status === "preview" ? "preview" : "released"} model details, rankings, confidence, and official pricing`,
+    tags: [],
+    keywords: [model.slug, model.name, model.vendor, model.vendorId, "model", "模型"],
+    excerpt: "",
+    href: `/currents/models/${model.slug}`,
+  }));
 }
 
 /* ─────────────── 召回后重排 ─────────────── */

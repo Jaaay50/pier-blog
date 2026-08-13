@@ -1,6 +1,7 @@
 import {
   buildEventsShardEntries,
   buildItemsShardEntries,
+  buildModelsShardEntries,
   buildUrlsetXml,
   EVENT_SHARD_PREFIXES,
   type EventShardPrefix,
@@ -70,6 +71,14 @@ export async function GET(
   if (shard === "currents-items.xml") {
     try {
       return xmlResponse(buildUrlsetXml(await buildItemsShardEntries(fetchWithTimeout)));
+    } catch {
+      return unavailableResponse();
+    }
+  }
+
+  if (shard === "currents-models.xml") {
+    try {
+      return xmlResponse(buildUrlsetXml(await buildModelsShardEntries(fetchWithTimeout)));
     } catch {
       return unavailableResponse();
     }

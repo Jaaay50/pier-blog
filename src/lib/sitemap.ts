@@ -13,12 +13,15 @@ import { locales } from "@/i18n/config";
 import { CURRENTS_API_BASE } from "@/lib/currents/api";
 import { CHANGELOG_LAST_UPDATED } from "@/lib/currents/changelog";
 import { CURRENTS_TOPIC_IDS } from "@/lib/currents/topics";
+import { fetchDiscoverableModels } from "@/lib/currents/models-discovery";
 
 export const SITE_URL = "https://ethanpier.com";
 
 // These pages do not change whenever the Currents changelog gains an entry.
 const CURRENTS_AGENT_LAST_UPDATED = "2026-08-11";
 const FEEDBACK_LAST_UPDATED = "2026-08-11";
+/** 模型榜上线日（榜单数据岛客户端自取，静态壳变更才更新此日期） */
+const CURRENTS_MODELS_LAST_UPDATED = "2026-08-13";
 
 /* ─────────────── 分片清单（index 与 dispatcher 共享，编译期常量） ─────────────── */
 
@@ -30,6 +33,7 @@ export type EventShardPrefix = (typeof EVENT_SHARD_PREFIXES)[number];
 export const SITEMAP_SHARD_NAMES = [
   "static.xml",
   "currents-items.xml",
+  "currents-models.xml",
   ...EVENT_SHARD_PREFIXES.map((p) => `currents-events-${p}.xml`),
 ] as const;
 
@@ -137,6 +141,16 @@ export function buildStaticShardEntries(): SitemapUrlEntry[] {
     ...bilingualEntries("/currents", { lastmod: newestPostDate, changefreq: "daily", priority: 0.8 }),
     ...bilingualEntries("/currents/daily", { lastmod: newestPostDate, changefreq: "daily", priority: 0.7 }),
     ...bilingualEntries("/currents/hot", { lastmod: newestPostDate, changefreq: "hourly", priority: 0.7 }),
+    ...bilingualEntries("/currents/models", {
+      lastmod: new Date(CURRENTS_MODELS_LAST_UPDATED).toISOString(),
+      changefreq: "daily",
+      priority: 0.7,
+    }),
+    ...bilingualEntries("/currents/models/methodology", {
+      lastmod: new Date(CURRENTS_MODELS_LAST_UPDATED).toISOString(),
+      changefreq: "monthly",
+      priority: 0.5,
+    }),
     ...bilingualEntries("/currents/topics", { lastmod: newestPostDate, changefreq: "daily", priority: 0.7 }),
     ...bilingualEntries("/currents/changelog", {
       lastmod: new Date(CHANGELOG_LAST_UPDATED).toISOString(),
@@ -224,6 +238,25 @@ export async function buildItemsShardEntries(
     );
   }
   return entries;
+}
+
+/* ─────────────── currents-models 分片（后端注册表中的全部模型详情页） ─────────────── */
+
+export async function buildModelsShardEntries(
+  fetchImpl: typeof fetch = fetch,
+): Promise<SitemapUrlEntry[]> {
+  let models;
+  try {
+    models = await fetchDiscoverableModels(fetchImpl);
+  } catch (error) {
+    throw new SitemapShardError(error instanceof Error ? error.message : "models discovery failed");
+  }
+  return models.flatMap((model) =>
+    bilingualEntries(`/currents/models/${model.slug}`, {
+      changefreq: "weekly",
+      priority: 0.6,
+    }),
+  );
 }
 
 /* ─────────────── currents-events 分片（全量、确定、无重复） ─────────────── */

@@ -17,10 +17,20 @@ import type {
   CurrentsTopicItemsResponse,
   CurrentsTopicsResponse,
 } from "./types";
+import {
+  isModelsDetailResponse,
+  isModelsLeaderboardResponse,
+  isModelsMetaResponse,
+  type ModelsCategory,
+  type ModelsDetailResponse,
+  type ModelsLeaderboardResponse,
+  type ModelsMetaResponse,
+  type ModelsView,
+} from "./models-types";
 
 export const CURRENTS_API_BASE = process.env.NEXT_PUBLIC_CURRENTS_API_BASE ?? "https://currents-api.ethanpier.com";
 
-/** 客户端运行时读取：生产走构建内联常量；本地 QA 可用 window.__CURRENTS_API_BASE 覆盖。 */
+/** Local QA can switch to a same-machine fixture without rebuilding the frontend. */
 function clientApiBase(): string {
   if (typeof window !== "undefined") {
     const override = (window as unknown as Record<string, unknown>).__CURRENTS_API_BASE;
@@ -168,7 +178,11 @@ function isCurrentsEventTimelineEntry(value: unknown): boolean {
   return true;
 }
 
-async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
+async function fetchJson<T>(
+  path: string,
+  signal?: AbortSignal,
+  validator?: (value: unknown) => value is T,
+): Promise<T> {
   let res: Response;
   try {
     res = await fetch(`${clientApiBase()}${path}`, {
@@ -181,11 +195,16 @@ async function fetchJson<T>(path: string, signal?: AbortSignal): Promise<T> {
   if (!res.ok) {
     throw new CurrentsApiError(`http-${res.status}`, res.status);
   }
+  let value: unknown;
   try {
-    return (await res.json()) as T;
+    value = await res.json();
   } catch {
     throw new CurrentsApiError("invalid-json", res.status);
   }
+  if (validator && !validator(value)) {
+    throw new CurrentsApiError("contract-error", res.status);
+  }
+  return value as T;
 }
 
 export interface FetchItemsParams {
@@ -357,6 +376,31 @@ export const serverFetchEventDetail = (id: string, locale: string) =>
     300,
     isCurrentsEventDetail,
   );
+
+/* ──────── 模型榜（/currents/models） ──────── */
+
+export const serverFetchModelDetail = (slug: string) =>
+  serverFetchDetail<ModelsDetailResponse>(
+    `/v1/models/${encodeURIComponent(slug)}`,
+    300,
+    isModelsDetailResponse,
+  );
+
+export function fetchModelsLeaderboard(
+  category: ModelsCategory,
+  view: ModelsView,
+  signal?: AbortSignal,
+): Promise<ModelsLeaderboardResponse> {
+  return fetchJson<ModelsLeaderboardResponse>(
+    `/v1/models/leaderboard?category=${encodeURIComponent(category)}&view=${encodeURIComponent(view)}`,
+    signal,
+    (value): value is ModelsLeaderboardResponse => isModelsLeaderboardResponse(value, category, view),
+  );
+}
+
+export function fetchModelsMeta(signal?: AbortSignal): Promise<ModelsMetaResponse> {
+  return fetchJson<ModelsMetaResponse>(`/v1/models/meta`, signal, isModelsMetaResponse);
+}
 
 export function fetchHot(
   locale: string,
