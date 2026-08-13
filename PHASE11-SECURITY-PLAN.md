@@ -211,7 +211,7 @@
 
 ### 回滚与残余风险
 
-- 代码回滚使用 `git revert 2e732bc1e8fea4a2f1ac75b972670c8c4d01e251` 创建可审计提交；紧急部署回滚可将 production alias 切回 Phase 11D deployment `pier-blog-8srv3r377-jia-ethans-projects.vercel.app`。
+- 代码回滚使用 `git revert -m 1 2e732bc1e8fea4a2f1ac75b972670c8c4d01e251` 创建可审计提交；紧急部署回滚可将 production alias 切回 Phase 11D deployment `pier-blog-8srv3r377-jia-ethans-projects.vercel.app`。
 - 客户端限制无法阻止查看源代码、禁用脚本、Reader Mode、截图、自动化抓取或通过 RSS 获取公开内容；这属于明确接受的产品边界，而不是待修漏洞。
 
 ## 后续阶段（不在 11A/11B P1/11C P1/11D P1/11E P1 范围）
