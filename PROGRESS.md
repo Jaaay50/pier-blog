@@ -1,5 +1,15 @@
 ## Phase 11: 网站与服务器安全加固
 
+### Currents 桌面筛选栏滚动折叠修复（2026-08-13，已完成并上线）
+
+- ✅ 根因：展开筛选区与紧凑工具栏共用一个 sticky 容器，折叠时高度约 `105px → 56px`，实际滚动 22px 会让正文额外跳动约 49px；单阈值检测与被中断的布局动画进一步放大临界点抖动。
+- ✅ 修复：展开区保留普通文档流并自然滚出，紧凑栏改为零高度 sticky overlay；折叠 marker 移到完整展开区之后，并加入 32px 滞回，切换不再改变正文布局高度。
+- ✅ 交互：桌面「更多筛选」补齐 Escape、点击外部、跨 1280px 断点与恢复展开态关闭，退出期同步 `inert` / `aria-hidden` 并恢复触发按钮焦点。
+- ✅ 验证：29 个测试文件、238 项测试、lint、TypeScript、46 页 production build 与 `git diff --check` 通过；浏览器复核 marker/nav 阈值与滞回符合预期，未发现新的实现级问题。
+- ✅ 交付：commits `09ae43d` / `5700daf`；main CI `31676427400`、production deploy `31676514210` 与 GitHub production deployment `5883533060` 均成功；Vercel deployment `pier-blog-egig3bfu6-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`。
+- ✅ 收尾：更新公开双语更新日志，并拆分 sitemap 的 changelog/Agent/Feedback `lastmod`，避免更新日志变化误报未改页面的更新时间。
+- ➖ 验收边界：正式站 `/zh/currents?view=all` 返回 200；本地真实长列表曾受数据 API 报错限制，未把单次本地数据状态当作完整业务验收。
+
 ### 依赖维护（2026-08-13，已完成并上线）
 
 - ✅ 将 Vitest `3.2.7 → 4.1.10` 与 next-intl `4.13.4 → 4.13.5` 合并为 PR #17，最终范围仅为 `package.json` 与 `package-lock.json`；原 Dependabot PR #9、#10 已关闭。

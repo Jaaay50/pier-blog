@@ -31,9 +31,31 @@ export interface ChangelogEntry {
   items: ChangelogItem[];
 }
 
-export const CHANGELOG_LAST_UPDATED = "2026-08-11";
+export const CHANGELOG_LAST_UPDATED = "2026-08-13";
 
 export const changelogEntries: ChangelogEntry[] = [
+  {
+    phase: "filters-scroll-fix",
+    date: "2026-08-13",
+    phaseLabelZh: "体验修复",
+    phaseLabelEn: "Experience Fix",
+    items: [
+      {
+        type: "fixed",
+        titleZh: "桌面筛选栏滚动更平稳",
+        titleEn: "Smoother Desktop Filter Scrolling",
+        descZh: "修复桌面端筛选栏在展开与紧凑状态切换时推动内容跳动的问题，并减少临界位置反复切换。",
+        descEn: "Fixed content jumping when the desktop filters switch between expanded and compact modes, with steadier behavior near the transition point.",
+      },
+      {
+        type: "improved",
+        titleZh: "「更多筛选」交互完善",
+        titleEn: "Improved More Filters Interaction",
+        descZh: "支持 Escape、点击外部和窗口宽度切换时自动关闭，并在关闭后恢复键盘焦点。",
+        descEn: "The More Filters panel now closes with Escape, outside clicks, and breakpoint changes, then restores keyboard focus.",
+      },
+    ],
+  },
   {
     phase: "phase3",
     date: "2026-08-11",

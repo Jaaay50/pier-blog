@@ -16,6 +16,10 @@ import { CURRENTS_TOPIC_IDS } from "@/lib/currents/topics";
 
 export const SITE_URL = "https://ethanpier.com";
 
+// These pages do not change whenever the Currents changelog gains an entry.
+const CURRENTS_AGENT_LAST_UPDATED = "2026-08-11";
+const FEEDBACK_LAST_UPDATED = "2026-08-11";
+
 /* ─────────────── 分片清单（index 与 dispatcher 共享，编译期常量） ─────────────── */
 
 export const EVENT_SHARD_PREFIXES = [
@@ -140,12 +144,12 @@ export function buildStaticShardEntries(): SitemapUrlEntry[] {
       priority: 0.5,
     }),
     ...bilingualEntries("/currents/agent", {
-      lastmod: new Date(CHANGELOG_LAST_UPDATED).toISOString(),
+      lastmod: new Date(CURRENTS_AGENT_LAST_UPDATED).toISOString(),
       changefreq: "monthly",
       priority: 0.6,
     }),
     ...bilingualEntries("/feedback", {
-      lastmod: new Date(CHANGELOG_LAST_UPDATED).toISOString(),
+      lastmod: new Date(FEEDBACK_LAST_UPDATED).toISOString(),
       changefreq: "monthly",
       priority: 0.5,
     }),

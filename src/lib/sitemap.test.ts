@@ -76,6 +76,16 @@ describe("static 分片", () => {
     const enCount = locs.filter((l) => l.startsWith(`${SITE_URL}/en`)).length;
     const zhCount = locs.filter((l) => l.startsWith(`${SITE_URL}/zh`)).length;
     expect(enCount).toBe(zhCount);
+
+    const entry = (path: string) =>
+      entries.find((item) => item.loc === `${SITE_URL}/en${path}`);
+    expect(entry("/currents/changelog")?.lastmod).toBe(
+      "2026-08-13T00:00:00.000Z",
+    );
+    expect(entry("/currents/agent")?.lastmod).toBe(
+      "2026-08-11T00:00:00.000Z",
+    );
+    expect(entry("/feedback")?.lastmod).toBe("2026-08-11T00:00:00.000Z");
   });
 });
 
