@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useId, useState, type KeyboardEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { TransitionLink } from "@/components/TransitionLink";
 import { fetchModelsLeaderboard } from "@/lib/currents/api";
@@ -142,6 +142,15 @@ function LeaderboardCards({
                       Preview
                     </span>
                   )}
+                  {row.staleSources.length > 0 && (
+                    <span
+                      data-mobile-stale={row.model.slug}
+                      className="rounded-full border border-[var(--border)] px-1.5 py-px text-[10px] text-[var(--text-muted)]"
+                      title={t("modelsStaleTooltip", { sources: row.staleSources.join(", ") })}
+                    >
+                      {t("modelsStale")}
+                    </span>
+                  )}
                 </div>
                 <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{row.model.vendor}</div>
               </div>
@@ -276,6 +285,9 @@ export function ModelsLeaderboardClient() {
   const [data, setData] = useState<ModelsLeaderboardResponse | null>(null);
   const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
   const [retryCount, setRetryCount] = useState(0);
+  const panelId = useId();
+  const categoryTabId = (cat: ModelsCategory) => `${panelId}-category-${cat}`;
+  const viewTabId = (value: ModelsView) => `${panelId}-view-${value}`;
 
   useEffect(() => {
     const controller = new AbortController();
@@ -294,20 +306,58 @@ export function ModelsLeaderboardClient() {
   const loading = status === "loading";
   const error = status === "error";
   const selectCategory = useCallback((cat: ModelsCategory) => {
+    if (cat === category) return;
     setCategory(cat);
+    setData(null);
     setStatus("loading");
-  }, []);
+  }, [category]);
   const selectView = useCallback((v: ModelsView) => {
+    if (v === view) return;
     setView(v);
+    setData(null);
     setStatus("loading");
-  }, []);
+  }, [view]);
   const retry = useCallback(() => {
     setStatus("loading");
     setRetryCount((c) => c + 1);
   }, []);
 
-  const staleSources = (data?.meta.sources ?? []).filter((s) => s.stale);
-  const computedAt = formatTime(data?.meta.computedAt ?? null, locale);
+  const currentData = status === "ok" && data?.category === category && data.view === view ? data : null;
+  const staleSources = (currentData?.meta.sources ?? []).filter((s) => s.stale);
+  const computedAt = formatTime(currentData?.meta.computedAt ?? null, locale);
+
+  const focusTab = <T extends string>(values: readonly T[], nextIndex: number, idFor: (value: T) => string) => {
+    const value = values[(nextIndex + values.length) % values.length];
+    document.getElementById(idFor(value))?.focus();
+    return value;
+  };
+
+  const onCategoryKeyDown = (event: KeyboardEvent<HTMLButtonElement>, cat: ModelsCategory) => {
+    const index = MODELS_CATEGORIES.indexOf(cat);
+    let next: ModelsCategory | null = null;
+    if (event.key === "ArrowRight") next = focusTab(MODELS_CATEGORIES, index + 1, categoryTabId);
+    else if (event.key === "ArrowLeft") next = focusTab(MODELS_CATEGORIES, index - 1, categoryTabId);
+    else if (event.key === "Home") next = focusTab(MODELS_CATEGORIES, 0, categoryTabId);
+    else if (event.key === "End") next = focusTab(MODELS_CATEGORIES, MODELS_CATEGORIES.length - 1, categoryTabId);
+    if (next) {
+      event.preventDefault();
+      selectCategory(next);
+    }
+  };
+
+  const viewValues = ["released", "preview"] as const;
+  const onViewKeyDown = (event: KeyboardEvent<HTMLButtonElement>, current: ModelsView) => {
+    const index = viewValues.indexOf(current);
+    let next: ModelsView | null = null;
+    if (event.key === "ArrowRight") next = focusTab(viewValues, index + 1, viewTabId);
+    else if (event.key === "ArrowLeft") next = focusTab(viewValues, index - 1, viewTabId);
+    else if (event.key === "Home") next = focusTab(viewValues, 0, viewTabId);
+    else if (event.key === "End") next = focusTab(viewValues, viewValues.length - 1, viewTabId);
+    if (next) {
+      event.preventDefault();
+      selectView(next);
+    }
+  };
 
   return (
     <div>
@@ -316,9 +366,13 @@ export function ModelsLeaderboardClient() {
         {MODELS_CATEGORIES.map((cat) => (
           <button
             key={cat}
+            id={categoryTabId(cat)}
             role="tab"
             aria-selected={category === cat}
+            aria-controls={panelId}
+            tabIndex={category === cat ? 0 : -1}
             onClick={() => selectCategory(cat)}
+            onKeyDown={(event) => onCategoryKeyDown(event, cat)}
             className={`rounded-full border px-3.5 py-1.5 text-[13px] transition-colors ${FOCUS_CLASS} ${
               category === cat
                 ? "border-[var(--accent)] bg-[var(--accent)] font-medium text-white"
@@ -333,12 +387,16 @@ export function ModelsLeaderboardClient() {
       {/* 正式 / Preview 视图 + 数据时间 */}
       <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
         <div role="tablist" aria-label={t("modelsViewLabel")} className="flex gap-1 rounded-full border border-[var(--border)] p-0.5">
-          {(["released", "preview"] as const).map((v) => (
+          {viewValues.map((v) => (
             <button
               key={v}
+              id={viewTabId(v)}
               role="tab"
               aria-selected={view === v}
+              aria-controls={panelId}
+              tabIndex={view === v ? 0 : -1}
               onClick={() => selectView(v)}
+              onKeyDown={(event) => onViewKeyDown(event, v)}
               className={`rounded-full px-3 py-1 text-[12px] transition-colors ${FOCUS_CLASS} ${
                 view === v
                   ? "bg-[var(--bg-elevated)] font-medium text-[var(--text-primary)] shadow-sm"
@@ -362,53 +420,62 @@ export function ModelsLeaderboardClient() {
         </div>
       </div>
 
-      {loading && (
-        <div className="space-y-2" aria-hidden="true">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--currents-surface-list)]" />
-          ))}
-        </div>
-      )}
+      <div
+        id={panelId}
+        role="tabpanel"
+        aria-labelledby={`${categoryTabId(category)} ${viewTabId(view)}`}
+      >
+        {loading && (
+          <div role="status" aria-live="polite">
+            <span className="sr-only">{t("loading")}</span>
+            <div className="space-y-2" aria-hidden="true">
+              {Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="h-14 animate-pulse rounded-xl bg-[var(--currents-surface-list)]" />
+              ))}
+            </div>
+          </div>
+        )}
 
-      {!loading && error && <CurrentsError onRetry={retry} />}
+        {!loading && error && <CurrentsError onRetry={retry} />}
 
-      {!loading && !error && data && (
-        <>
-          {data.items.length === 0 && data.observing.length === 0 ? (
-            <p className="rounded-xl border border-[var(--border)] px-4 py-10 text-center text-sm text-[var(--text-muted)]">
-              {data.meta.empty ? t("modelsEmptyPreparing") : t("modelsEmptyView")}
+        {!loading && !error && currentData && (
+          <>
+            {currentData.items.length === 0 && currentData.observing.length === 0 ? (
+              <p className="rounded-xl border border-[var(--border)] px-4 py-10 text-center text-sm text-[var(--text-muted)]">
+                {currentData.meta.empty ? t("modelsEmptyPreparing") : t("modelsEmptyView")}
+              </p>
+            ) : (
+              <>
+                {currentData.items.length > 0 && (
+                  <>
+                    <LeaderboardTable rows={currentData.items} category={category} t={t} />
+                    <LeaderboardCards rows={currentData.items} category={category} t={t} />
+                  </>
+                )}
+                {currentData.observing.length > 0 && (
+                  <section className="mt-8">
+                    <h2 className="mb-1 text-base font-semibold text-[var(--text-primary)]">
+                      {t("modelsObserving")}
+                    </h2>
+                    <p className="mb-3 text-[12px] text-[var(--text-muted)]">{t("modelsObservingNote")}</p>
+                    <LeaderboardTable rows={currentData.observing} category={category} watching t={t} />
+                    <LeaderboardCards rows={currentData.observing} category={category} watching t={t} />
+                  </section>
+                )}
+              </>
+            )}
+            <p className="mt-6 text-[12px] leading-relaxed text-[var(--text-muted)]">
+              {t("modelsFooterNote")}{" "}
+              <TransitionLink
+                href="/currents/models/methodology"
+                className={`text-[var(--accent)] hover:underline ${FOCUS_CLASS}`}
+              >
+                {t("modelsMethodologyLink")}
+              </TransitionLink>
             </p>
-          ) : (
-            <>
-              {data.items.length > 0 && (
-                <>
-                  <LeaderboardTable rows={data.items} category={category} t={t} />
-                  <LeaderboardCards rows={data.items} category={category} t={t} />
-                </>
-              )}
-              {data.observing.length > 0 && (
-                <section className="mt-8">
-                  <h2 className="mb-1 text-base font-semibold text-[var(--text-primary)]">
-                    {t("modelsObserving")}
-                  </h2>
-                  <p className="mb-3 text-[12px] text-[var(--text-muted)]">{t("modelsObservingNote")}</p>
-                  <LeaderboardTable rows={data.observing} category={category} watching t={t} />
-                  <LeaderboardCards rows={data.observing} category={category} watching t={t} />
-                </section>
-              )}
-            </>
-          )}
-          <p className="mt-6 text-[12px] leading-relaxed text-[var(--text-muted)]">
-            {t("modelsFooterNote")}{" "}
-            <TransitionLink
-              href="/currents/models/methodology"
-              className={`text-[var(--accent)] hover:underline ${FOCUS_CLASS}`}
-            >
-              {t("modelsMethodologyLink")}
-            </TransitionLink>
-          </p>
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 }

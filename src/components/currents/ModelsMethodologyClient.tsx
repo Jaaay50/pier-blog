@@ -6,6 +6,25 @@ import { fetchModelsMeta } from "@/lib/currents/api";
 import type { ModelsMetaResponse } from "@/lib/currents/models-types";
 import { CurrentsError } from "./CurrentsError";
 
+const CATEGORY_KEY: Record<string, string> = {
+  overall: "modelsCatOverall",
+  coding: "modelsCatCoding",
+  agent: "modelsCatAgent",
+  reasoning: "modelsCatReasoning",
+  value: "modelsCatValue",
+};
+
+const SOURCE_METHOD_KEY: Record<string, string> = {
+  lmarena: "modelsMethMethodLmarena",
+  livebench: "modelsMethMethodLivebench",
+  epoch: "modelsMethMethodEpoch",
+  swebench: "modelsMethMethodSwebench",
+  deepswe: "modelsMethMethodDeepswe",
+  ale: "modelsMethMethodAle",
+};
+
+const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
+
 /**
  * 方法页动态部分：来源运行状态（最近成功更新时间、陈旧标记）、评分参数、
  * 模型计数与 pending 数。静态收录规则与公式说明由页面服务端渲染。
@@ -96,11 +115,21 @@ export function ModelsMethodologyClient() {
                     >
                       {s.name}
                     </a>
-                    <div className="mt-0.5 max-w-[320px] text-[11px] leading-relaxed text-[var(--text-muted)]">{s.method}</div>
+                    {locale === "zh" || SOURCE_METHOD_KEY[s.id] ? (
+                      <div className="mt-0.5 max-w-[320px] text-[11px] leading-relaxed text-[var(--text-muted)]">
+                        {locale === "zh" ? s.method : t(SOURCE_METHOD_KEY[s.id])}
+                      </div>
+                    ) : null}
                   </td>
-                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">{s.operatorName}</td>
-                  <td className="px-3 py-2.5 text-[12px] text-[var(--text-secondary)]">{s.categories.join(" / ")}</td>
-                  <td className="px-3 py-2.5 text-[12px] text-[var(--text-muted)]">{s.license}</td>
+                  <td className="px-3 py-2.5 text-[var(--text-secondary)]">
+                    {locale === "en" && CJK_RE.test(s.operatorName) ? s.name : s.operatorName}
+                  </td>
+                  <td className="px-3 py-2.5 text-[12px] text-[var(--text-secondary)]">
+                    {s.categories.map((category) => CATEGORY_KEY[category] ? t(CATEGORY_KEY[category]) : category).join(" / ")}
+                  </td>
+                  <td className="px-3 py-2.5 text-[12px] text-[var(--text-muted)]">
+                    {locale === "en" && CJK_RE.test(s.license) ? "Public source" : s.license}
+                  </td>
                   <td className="px-3 py-2.5 text-right">
                     {s.lastSuccessAt ? (
                       <span className="tabular-nums text-[var(--text-secondary)]">{formatTime(s.lastSuccessAt)}</span>
@@ -158,7 +187,10 @@ export function ModelsMethodologyClient() {
           <div className="flex justify-between gap-3">
             <dt className="text-[var(--text-muted)]">{t("modelsMethModelCount")}</dt>
             <dd className="tabular-nums text-[var(--text-primary)]">
-              {data.modelCounts.released ?? 0} released · {data.modelCounts.preview ?? 0} preview
+              {t("modelsMethModelCountValue", {
+                released: data.modelCounts.released ?? 0,
+                preview: data.modelCounts.preview ?? 0,
+              })}
             </dd>
           </div>
           <div className="flex justify-between gap-3">

@@ -4,6 +4,7 @@ import { ModelsLeaderboardClient } from "@/components/currents/ModelsLeaderboard
 import { locales } from "@/i18n/config";
 
 const SITE_URL = "https://ethanpier.com";
+const OG_IMAGE = `${SITE_URL}/og?type=site`;
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -33,6 +34,13 @@ export async function generateMetadata({
       description: t("modelsSubtitle"),
       type: "website",
       url: `${SITE_URL}/${locale}/currents/models`,
+      images: [{ url: OG_IMAGE, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("modelsTitle"),
+      description: t("modelsSubtitle"),
+      images: [OG_IMAGE],
     },
   };
 }

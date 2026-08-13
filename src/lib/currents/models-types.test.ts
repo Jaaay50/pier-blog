@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   confidenceTier,
   isModelsDetailResponse,
+  isModelsLeaderboardResponse,
+  isModelsMetaResponse,
   isValidModelSlug,
 } from "./models-types";
 
@@ -41,6 +43,87 @@ const validDetail = {
   meta: { scoringVersion: "mlv1", generatedAt: "2026-08-13T10:00:00.000Z" },
 };
 
+const validSource = {
+  id: "livebench",
+  name: "LiveBench",
+  operatorId: "livebench",
+  operatorName: "LiveBench",
+  url: "https://livebench.ai",
+  method: "Official CSV",
+  license: "Public",
+  categories: ["overall", "coding"],
+  cadenceDays: 7,
+  stalenessDays: 30,
+  lastSuccessAt: null,
+  lastStatus: "ok",
+  stale: false,
+};
+
+const validLeaderboard = {
+  schemaVersion: 1,
+  category: "overall",
+  view: "released",
+  items: [{
+    rank: 1,
+    prevRank: null,
+    model: { slug: "claude-opus-5", name: "Claude Opus 5", vendor: "Anthropic", vendorId: "anthropic", status: "released", releaseDate: null },
+    abilityScore: 90,
+    confidence: 0.9,
+    confidenceParts: { coverage: 1, freshness: 1, agreement: 0.8, identity: 1 },
+    valueScore: null,
+    coverageCount: 3,
+    staleSources: [],
+    price: validDetail.price,
+    computedAt: "2026-08-13T10:00:00.000Z",
+  }],
+  observing: [],
+  meta: {
+    scoringVersion: "mlv1",
+    computedAt: "2026-08-13T10:00:00.000Z",
+    empty: false,
+    mainCount: 1,
+    observingCount: 0,
+    sources: [validSource],
+    generatedAt: "2026-08-13T10:00:00.000Z",
+  },
+};
+
+const validMeta = {
+  schemaVersion: 1,
+  scoringVersion: "mlv1",
+  scoringParams: {
+    confidenceWeights: { coverage: 0.45, freshness: 0.25, agreement: 0.25, identity: 0.05 },
+    agreementSigmaCap: 30,
+    singleSourceAgreement: 0.5,
+    medianFoldIdentity: 0.85,
+    minCoverage: { overall: 3, coding: 2, agent: 2, reasoning: 2 },
+    valueCost: { inputMtok: 1, outputMtok: 0.25 },
+    valueMinConfidence: 0.5,
+  },
+  sources: [validSource],
+  models: [validLeaderboard.items[0].model],
+  modelCounts: { released: 1, preview: 0 },
+  pendingCount: 0,
+  computedAt: null,
+  generatedAt: "2026-08-13T10:00:00.000Z",
+};
+
+describe("模型列表与 meta 运行时守卫", () => {
+  it("接受完整契约，并拒绝请求维度错配与嵌套缺失", () => {
+    expect(isModelsLeaderboardResponse(validLeaderboard, "overall", "released")).toBe(true);
+    expect(isModelsLeaderboardResponse(validLeaderboard, "coding", "released")).toBe(false);
+    expect(isModelsLeaderboardResponse({ ...validLeaderboard, items: [{ ...validLeaderboard.items[0], price: { kind: "bogus" } }] })).toBe(false);
+    expect(isModelsLeaderboardResponse({ ...validLeaderboard, meta: { ...validLeaderboard.meta, mainCount: 2 } })).toBe(false);
+  });
+
+  it("meta 必须含完整评分参数与可发现模型列表", () => {
+    expect(isModelsMetaResponse(validMeta)).toBe(true);
+    expect(isModelsMetaResponse({ ...validMeta, models: undefined })).toBe(false);
+    expect(isModelsMetaResponse({ ...validMeta, models: [{ ...validMeta.models[0], status: "rumored" }] })).toBe(false);
+    expect(isModelsMetaResponse({ ...validMeta, scoringParams: { ...validMeta.scoringParams, valueCost: null } })).toBe(false);
+  });
+});
+
 describe("isModelsDetailResponse", () => {
   it("接受合法契约", () => {
     expect(isModelsDetailResponse(validDetail)).toBe(true);
@@ -71,6 +154,13 @@ describe("isModelsDetailResponse", () => {
     const withoutAliases: Record<string, unknown> = { ...validDetail };
     delete withoutAliases.aliases;
     expect(isModelsDetailResponse(withoutAliases)).toBe(false);
+  });
+
+  it("拒绝危险 URL 与损坏的来源/历史/别名嵌套字段", () => {
+    expect(isModelsDetailResponse({ ...validDetail, model: { ...validDetail.model, officialUrl: "javascript:alert(1)" } })).toBe(false);
+    expect(isModelsDetailResponse({ ...validDetail, rankings: [{ ...validDetail.rankings[0], sources: [{ sourceId: "x", percentile: 90, boards: null, fetchedAt: "x", stale: false }] }] })).toBe(false);
+    expect(isModelsDetailResponse({ ...validDetail, history: [{ category: "overall" }] })).toBe(false);
+    expect(isModelsDetailResponse({ ...validDetail, aliases: [{ alias: "x", sourceId: null, configLabel: null }] })).toBe(false);
   });
 });
 

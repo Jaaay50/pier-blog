@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import nextConfig from "../next.config.mjs";
+import nextConfig, { currentsApiOrigin, scriptSources } from "../next.config.mjs";
 
 function parseDirectives(policy: string): Map<string, string> {
   return new Map(
@@ -50,13 +50,27 @@ describe("Next.js 安全响应头", () => {
     const directives = parseDirectives(policy);
 
     expect(policy).not.toContain("unpkg.com");
-    expect(directives.get("script-src")).toBe("'self' 'unsafe-inline' https://giscus.app");
+    expect(directives.get("script-src")).toBe(
+      process.env.NODE_ENV === "development"
+        ? "'self' 'unsafe-inline' 'unsafe-eval' https://giscus.app"
+        : "'self' 'unsafe-inline' https://giscus.app",
+    );
     expect(directives.get("script-src-attr")).toBe("'none'");
     expect(directives.get("img-src")).toBe("'self' data: blob:");
     expect(directives.get("connect-src")).toBe("'self' https://currents-api.ethanpier.com");
     expect(directives.get("frame-src")).toBe("https://giscus.app");
     expect(directives.get("form-action")).toBe("'self'");
     expect(directives.get("object-src")).toBe("'none'");
+  });
+
+  it("本地 QA API 覆盖会同步进入 connect-src", async () => {
+    expect(currentsApiOrigin("http://127.0.0.1:18788/v1")).toBe("http://127.0.0.1:18788");
+    expect(currentsApiOrigin("not a URL")).toBeNull();
+  });
+
+  it("仅开发环境允许 React 调试所需的 unsafe-eval", () => {
+    expect(scriptSources("development")).toContain("'unsafe-eval'");
+    expect(scriptSources("production")).not.toContain("'unsafe-eval'");
   });
 });
 

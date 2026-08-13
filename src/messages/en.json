@@ -245,7 +245,14 @@
     "modelsMethValueCost": "Value standard cost",
     "modelsMethModelCount": "Models included",
     "modelsMethPending": "Pending names",
-    "modelsMethComputedAt": "Last computed"
+    "modelsMethComputedAt": "Last computed",
+    "modelsMethModelCountValue": "{released} released · {preview} preview",
+    "modelsMethMethodLmarena": "Official dataset via the Hugging Face datasets-server JSON API (text, webdev, and agent boards)",
+    "modelsMethMethodLivebench": "Official static CSV/JSON releases (table_[release].csv and categories_[release].json)",
+    "modelsMethMethodEpoch": "CSV data from the official benchmark_data.zip (ECI composite plus an independent GPQA Diamond run)",
+    "modelsMethMethodSwebench": "Official GitHub data/leaderboards.json (Verified board)",
+    "modelsMethMethodDeepswe": "Official artifacts/v1.1/leaderboard-live.json",
+    "modelsMethMethodAle": "Static HTML table from the official mirror (Overall section)"
   },
   "currentsNav": {
     "brand": "Currents",
@@ -378,11 +385,11 @@
   },
   "search": {
     "open": "Search",
-    "title": "Search articles",
-    "placeholder": "Search articles...",
+    "title": "Search Pier",
+    "placeholder": "Search articles, models, topics...",
     "noResults": "No results. Try a popular tag:",
     "recent": "Recent searches",
-    "hint": "Type to search titles, tags, and content",
+    "hint": "Type to search pages, models, topics, and articles",
     "typeBlog": "Blog",
     "typePage": "Page",
     "typeTopic": "Topic",

@@ -7,6 +7,8 @@ import {
   serverFetchSources,
   CurrentsApiError,
   CurrentsServerFetchError,
+  fetchModelsLeaderboard,
+  fetchModelsMeta,
   isValidCurrentsDailyDate,
   isValidCurrentsResourceId,
   submitFeedback,
@@ -157,6 +159,20 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
     await expect(
       submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" }),
     ).rejects.toMatchObject({ message: "invalid-json", status: 200 });
+  });
+});
+
+describe("模型榜客户端 API 运行时契约", () => {
+  it("200 但 leaderboard 维度错配或 meta 缺 models → contract-error", async () => {
+    mockFetch(() => jsonResponse(200, { schemaVersion: 1, category: "coding", view: "released", items: [], observing: [], meta: {} }));
+    await expect(fetchModelsLeaderboard("overall", "released")).rejects.toMatchObject({
+      name: "CurrentsApiError",
+      message: "contract-error",
+      status: 200,
+    });
+
+    mockFetch(() => jsonResponse(200, { schemaVersion: 1, scoringVersion: "mlv1", sources: [] }));
+    await expect(fetchModelsMeta()).rejects.toMatchObject({ message: "contract-error", status: 200 });
   });
 });
 

@@ -2,6 +2,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   buildEventsShardEntries,
   buildItemsShardEntries,
+  buildModelsShardEntries,
   buildStaticShardEntries,
   buildSitemapIndexXml,
   buildUrlsetXml,
@@ -50,11 +51,48 @@ describe("XML 构造", () => {
   it("sitemap index 输出全部分片且 XML 合法", () => {
     const xml = buildSitemapIndexXml(SITEMAP_SHARD_NAMES.map((n) => `${SITE_URL}/sitemaps/${n}`));
     expect(xml).toContain("<sitemapindex");
-    // 2 个基础分片 + 17 个事件分片
-    expect(SITEMAP_SHARD_NAMES.length).toBe(19);
+    // 3 个基础/模型分片 + 17 个事件分片
+    expect(SITEMAP_SHARD_NAMES.length).toBe(20);
     for (const name of SITEMAP_SHARD_NAMES) {
       expect(xml).toContain(`<loc>${SITE_URL}/sitemaps/${name}</loc>`);
     }
+  });
+});
+
+describe("models 分片", () => {
+  const meta = {
+    schemaVersion: 1,
+    scoringVersion: "mlv1",
+    scoringParams: {
+      confidenceWeights: { coverage: 0.45, freshness: 0.25, agreement: 0.25, identity: 0.05 },
+      agreementSigmaCap: 30,
+      singleSourceAgreement: 0.5,
+      medianFoldIdentity: 0.85,
+      minCoverage: { overall: 3, coding: 2, agent: 2, reasoning: 2 },
+      valueCost: { inputMtok: 1, outputMtok: 0.25 },
+      valueMinConfidence: 0.5,
+    },
+    sources: [],
+    models: [
+      { slug: "gpt-5-6-sol", name: "GPT-5.6 Sol", vendor: "OpenAI", vendorId: "openai", status: "released", releaseDate: "2026-07-09" },
+      { slug: "gpt-5-6-sol", name: "duplicate", vendor: "OpenAI", vendorId: "openai", status: "released", releaseDate: "2026-07-09" },
+      { slug: "gemini-3-1-pro", name: "Gemini 3.1 Pro", vendor: "Google", vendorId: "google", status: "preview", releaseDate: null },
+    ],
+    modelCounts: { released: 1, preview: 1 },
+    pendingCount: 0,
+    computedAt: null,
+    generatedAt: "2026-08-13T00:00:00.000Z",
+  };
+
+  it("从 meta 注册表去重并生成双语详情 URL；故障整片失败", async () => {
+    const ok = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(200, meta));
+    const entries = await buildModelsShardEntries(ok);
+    expect(entries).toHaveLength(4);
+    expect(entries.map((entry) => entry.loc)).toContain(`${SITE_URL}/en/currents/models/gpt-5-6-sol`);
+    expect(entries.map((entry) => entry.loc)).toContain(`${SITE_URL}/zh/currents/models/gemini-3-1-pro`);
+
+    const bad = vi.fn<typeof fetch>().mockResolvedValue(jsonResponse(200, { ...meta, models: undefined }));
+    await expect(buildModelsShardEntries(bad)).rejects.toThrow(SitemapShardError);
   });
 });
 

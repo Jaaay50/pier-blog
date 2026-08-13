@@ -35,7 +35,7 @@ describe("GET /sitemaps/[shard]", () => {
 
   it("上游故障 → 503 + no-store + Retry-After，故障不进 CDN 缓存", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => new Response("err", { status: 502 })));
-    for (const shard of ["currents-items.xml", "currents-events-0.xml", "currents-events-other.xml"]) {
+    for (const shard of ["currents-items.xml", "currents-models.xml", "currents-events-0.xml", "currents-events-other.xml"]) {
       const res = await call(shard);
       expect(res.status, shard).toBe(503);
       expect(res.headers.get("cache-control"), shard).toBe("no-store");

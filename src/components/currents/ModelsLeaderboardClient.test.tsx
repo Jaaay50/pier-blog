@@ -64,6 +64,7 @@ const messages = {
     modelsMethodologyLink: "评分方法与数据来源",
     errorLoad: "加载失败",
     retry: "重试",
+    loading: "加载中…",
     loadMoreError: "加载更多失败",
   },
 };
@@ -186,6 +187,39 @@ describe("ModelsLeaderboardClient", () => {
     await waitFor(() => expect(mockFetchLeaderboard).toHaveBeenLastCalledWith("overall", "preview", expect.anything()));
   });
 
+  it("重复点击当前 tab 不进入永久 loading，也不重复请求", async () => {
+    mockFetchLeaderboard.mockResolvedValue(response());
+    renderClient();
+    await screen.findAllByText("Claude Opus 5");
+    const calls = mockFetchLeaderboard.mock.calls.length;
+    fireEvent.click(screen.getByRole("tab", { name: "综合" }));
+    fireEvent.click(screen.getByRole("tab", { name: "正式发布" }));
+    expect(mockFetchLeaderboard).toHaveBeenCalledTimes(calls);
+    expect(screen.getAllByText("Claude Opus 5").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("tabs 使用 roving tabindex、tabpanel 关联与方向键/Home/End 操作", async () => {
+    mockFetchLeaderboard.mockImplementation(async (category: string, view: string) => response({ category, view } as Partial<ModelsLeaderboardResponse>));
+    renderClient();
+    await screen.findAllByText("Claude Opus 5");
+    const overall = screen.getByRole("tab", { name: "综合" });
+    const coding = screen.getByRole("tab", { name: "编程" });
+    expect(overall.tabIndex).toBe(0);
+    expect(coding.tabIndex).toBe(-1);
+    const panel = screen.getByRole("tabpanel");
+    expect(overall.getAttribute("aria-controls")).toBe(panel.id);
+
+    fireEvent.keyDown(overall, { key: "ArrowRight" });
+    await waitFor(() => expect(coding.getAttribute("aria-selected")).toBe("true"));
+    expect(document.activeElement).toBe(coding);
+    fireEvent.keyDown(coding, { key: "End" });
+    await waitFor(() => expect(screen.getByRole("tab", { name: "性价比" }).getAttribute("aria-selected")).toBe("true"));
+
+    const released = screen.getByRole("tab", { name: "正式发布" });
+    fireEvent.keyDown(released, { key: "ArrowLeft" });
+    await waitFor(() => expect(screen.getByRole("tab", { name: "Preview" }).getAttribute("aria-selected")).toBe("true"));
+  });
+
   it("value 榜显示性价比分列", async () => {
     mockFetchLeaderboard.mockResolvedValue(
       response({
@@ -207,6 +241,13 @@ describe("ModelsLeaderboardClient", () => {
     const retry = await screen.findByRole("button", { name: "重试" });
     fireEvent.click(retry);
     await waitFor(() => expect(screen.getAllByText("Claude Opus 5").length).toBeGreaterThanOrEqual(1));
+  });
+
+  it("初始加载骨架向辅助技术暴露状态", () => {
+    mockFetchLeaderboard.mockReturnValue(new Promise(() => undefined));
+    renderClient();
+    expect(screen.getByRole("status")).toBeTruthy();
+    expect(screen.getByText("加载中…")).toBeTruthy();
   });
 
   it("空数据显示准备中空态", async () => {
@@ -253,5 +294,25 @@ describe("ModelsLeaderboardClient", () => {
     expect(previewBadges.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText("1 个来源数据陈旧")).toBeTruthy();
     expect(screen.getAllByText("数据陈旧").length).toBeGreaterThanOrEqual(1);
+    expect(document.querySelector('[data-mobile-stale="hy3"]')).not.toBeNull();
+  });
+
+  it("切换后的 loading/error 不展示上一榜的更新时间与 stale 元数据", async () => {
+    const staleSource = {
+      id: "livebench", name: "LiveBench", operatorId: "x", operatorName: "x", url: "https://livebench.ai",
+      method: "csv", license: "public", categories: ["overall"], cadenceDays: 7, stalenessDays: 30,
+      lastSuccessAt: null, lastStatus: "failed", stale: true,
+    };
+    mockFetchLeaderboard.mockResolvedValueOnce(response({
+      meta: { ...response().meta, sources: [staleSource] },
+    }));
+    mockFetchLeaderboard.mockRejectedValueOnce(new Error("network"));
+    renderClient();
+    await screen.findByText("1 个来源数据陈旧");
+    fireEvent.click(screen.getByRole("tab", { name: "编程" }));
+    expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
+    expect(screen.queryByText(/数据更新于/)).toBeNull();
+    await screen.findByRole("button", { name: "重试" });
+    expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
   });
 });

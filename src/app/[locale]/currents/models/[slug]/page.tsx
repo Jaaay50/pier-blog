@@ -19,6 +19,8 @@ export function generateStaticParams() {
 }
 
 const SITE_URL = "https://ethanpier.com";
+const OG_IMAGE = `${SITE_URL}/og?type=site`;
+const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
@@ -49,7 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         "x-default": `${SITE_URL}${modelPath("en", slug)}`,
       },
     },
-    openGraph: { title, description, type: "website", url: canonicalUrl },
+    openGraph: { title, description, type: "website", url: canonicalUrl, images: [{ url: OG_IMAGE, width: 1200, height: 630 }] },
+    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE] },
   };
 }
 
@@ -208,6 +211,8 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
   const releaseDate = formatDate(model.releaseDate, locale);
   const verifiedAt = formatDate(model.verifiedAt, locale);
   const priceVerifiedAt = formatDate(price.verifiedAt, locale);
+  const modelNotes = locale === "en" && model.notes && CJK_RE.test(model.notes) ? null : model.notes;
+  const priceNotes = locale === "en" && price.notes && CJK_RE.test(price.notes) ? null : price.notes;
 
   return (
     <article className="pb-16 pt-14">
@@ -273,7 +278,11 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
                       : t("modelsPriceUnavailable")}
                 </span>
               )}
-              {price.notes && <span className="ml-1.5 text-[11px] text-[var(--text-muted)]">（{price.notes}）</span>}
+              {priceNotes && (
+                <span className="ml-1.5 text-[11px] text-[var(--text-muted)]">
+                  {locale === "zh" ? `（${priceNotes}）` : `(${priceNotes})`}
+                </span>
+              )}
             </dd>
           </div>
         </dl>
@@ -302,7 +311,7 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
             </>
           )}
         </p>
-        {model.notes && <p className="mt-2 text-[12px] text-[var(--text-muted)]">{model.notes}</p>}
+        {modelNotes && <p className="mt-2 text-[12px] text-[var(--text-muted)]">{modelNotes}</p>}
       </section>
 
       {/* 各类别排名 + 来源分项 */}
@@ -366,10 +375,12 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
               <li
                 key={`${a.alias}-${a.sourceId ?? ""}`}
                 className="rounded-full border border-[var(--border)] px-2.5 py-1 font-mono text-[11px] text-[var(--text-secondary)]"
-                title={a.configLabel ?? undefined}
+                title={locale === "en" && a.configLabel && CJK_RE.test(a.configLabel) ? undefined : a.configLabel ?? undefined}
               >
                 {a.alias}
-                {a.configLabel && <span className="ml-1 text-[var(--text-muted)]">· {a.configLabel}</span>}
+                {a.configLabel && !(locale === "en" && CJK_RE.test(a.configLabel)) && (
+                  <span className="ml-1 text-[var(--text-muted)]">· {a.configLabel}</span>
+                )}
               </li>
             ))}
           </ul>

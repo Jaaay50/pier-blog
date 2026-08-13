@@ -1,5 +1,6 @@
 import { BlogPost } from "./posts";
 import { CURRENTS_TOPIC_IDS, CURRENTS_TOPIC_NAMES } from "./currents/topics";
+import type { DiscoverableModel } from "./currents/models-discovery";
 
 export interface SearchablePost {
   slug: string;
@@ -292,6 +293,23 @@ export function buildFeatureDocs(locale: Locale): SearchDoc[] {
   });
 
   return [...pages, ...topics];
+}
+
+/** Runtime model documents appended by /api/search-index after registry discovery. */
+export function buildModelDocs(locale: Locale, models: DiscoverableModel[]): SearchDoc[] {
+  return models.map((model) => ({
+    type: "page",
+    id: `model-${model.slug}`,
+    title: model.name,
+    description:
+      locale === "zh"
+        ? `${model.vendor} 的${model.status === "preview" ? "预览" : "正式"}模型详情、榜单排名、可信度与官方价格`
+        : `${model.vendor} ${model.status === "preview" ? "preview" : "released"} model details, rankings, confidence, and official pricing`,
+    tags: [],
+    keywords: [model.slug, model.name, model.vendor, model.vendorId, "model", "模型"],
+    excerpt: "",
+    href: `/currents/models/${model.slug}`,
+  }));
 }
 
 /* ─────────────── 召回后重排 ─────────────── */

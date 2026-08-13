@@ -13,6 +13,7 @@ import { locales } from "@/i18n/config";
 import { CURRENTS_API_BASE } from "@/lib/currents/api";
 import { CHANGELOG_LAST_UPDATED } from "@/lib/currents/changelog";
 import { CURRENTS_TOPIC_IDS } from "@/lib/currents/topics";
+import { fetchDiscoverableModels } from "@/lib/currents/models-discovery";
 
 export const SITE_URL = "https://ethanpier.com";
 
@@ -32,6 +33,7 @@ export type EventShardPrefix = (typeof EVENT_SHARD_PREFIXES)[number];
 export const SITEMAP_SHARD_NAMES = [
   "static.xml",
   "currents-items.xml",
+  "currents-models.xml",
   ...EVENT_SHARD_PREFIXES.map((p) => `currents-events-${p}.xml`),
 ] as const;
 
@@ -236,6 +238,25 @@ export async function buildItemsShardEntries(
     );
   }
   return entries;
+}
+
+/* ─────────────── currents-models 分片（后端注册表中的全部模型详情页） ─────────────── */
+
+export async function buildModelsShardEntries(
+  fetchImpl: typeof fetch = fetch,
+): Promise<SitemapUrlEntry[]> {
+  let models;
+  try {
+    models = await fetchDiscoverableModels(fetchImpl);
+  } catch (error) {
+    throw new SitemapShardError(error instanceof Error ? error.message : "models discovery failed");
+  }
+  return models.flatMap((model) =>
+    bilingualEntries(`/currents/models/${model.slug}`, {
+      changefreq: "weekly",
+      priority: 0.6,
+    }),
+  );
 }
 
 /* ─────────────── currents-events 分片（全量、确定、无重复） ─────────────── */

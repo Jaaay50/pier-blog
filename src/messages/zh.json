@@ -245,7 +245,14 @@
     "modelsMethValueCost": "性价比标准成本",
     "modelsMethModelCount": "收录模型",
     "modelsMethPending": "待审核名称",
-    "modelsMethComputedAt": "最近计算"
+    "modelsMethComputedAt": "最近计算",
+    "modelsMethModelCountValue": "正式发布 {released} · Preview {preview}",
+    "modelsMethMethodLmarena": "HF datasets-server JSON API（官方数据集，text/webdev/agent 三张榜）",
+    "modelsMethMethodLivebench": "官方站静态 CSV/JSON（table_{release}.csv + categories_{release}.json）",
+    "modelsMethMethodEpoch": "官方 benchmark_data.zip 内 CSV（ECI 综合指数 + GPQA Diamond 独立复测）",
+    "modelsMethMethodSwebench": "官方 GitHub 仓库 data/leaderboards.json（Verified 榜）",
+    "modelsMethMethodDeepswe": "官方 artifacts/v1.1/leaderboard-live.json",
+    "modelsMethMethodAle": "官方镜像页静态 HTML 表格（服务端直出，Overall 分区）"
   },
   "currentsNav": {
     "brand": "潮汐",
@@ -378,11 +385,11 @@
   },
   "search": {
     "open": "搜索",
-    "title": "搜索文章",
-    "placeholder": "搜索文章…",
+    "title": "搜索 Pier",
+    "placeholder": "搜索文章、模型、主题…",
     "noResults": "没有找到结果，试试热门标签：",
     "recent": "最近搜索",
-    "hint": "输入以搜索标题、标签与正文",
+    "hint": "输入以搜索页面、模型、主题与文章",
     "typeBlog": "博客",
     "typePage": "页面",
     "typeTopic": "主题",
