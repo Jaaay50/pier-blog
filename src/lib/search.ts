@@ -147,6 +147,13 @@ const FEATURE_PAGE_DEFS: Record<
       href: "/currents/hot",
     },
     {
+      id: "currents-models",
+      title: "模型榜",
+      description: "跨六个独立公开评测的基础模型共识榜：综合、编程、Agent、推理与性价比",
+      keywords: ["模型榜", "models", "leaderboard", "模型", "排行", "评测", "benchmark"],
+      href: "/currents/models",
+    },
+    {
       id: "currents-daily",
       title: "AI 日报",
       description: "每日 AI 行业动态摘要与归档",
@@ -203,6 +210,13 @@ const FEATURE_PAGE_DEFS: Record<
       description: "The most-discussed AI events and topics right now",
       keywords: ["hot", "hot board", "trending", "popular", "currents_hot", "热点"],
       href: "/currents/hot",
+    },
+    {
+      id: "currents-models",
+      title: "Model Leaderboard",
+      description: "Consensus foundation-model leaderboard across six independent public evaluations: overall, coding, agent, reasoning, and value",
+      keywords: ["models", "model leaderboard", "leaderboard", "benchmark", "ranking", "模型榜"],
+      href: "/currents/models",
     },
     {
       id: "currents-daily",

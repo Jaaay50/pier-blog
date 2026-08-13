@@ -72,6 +72,7 @@ describe("buildFeatureDocs", () => {
     "/currents",
     "/currents?view=all",
     "/currents/hot",
+    "/currents/models",
     "/currents/daily",
     "/currents/topics",
     "/currents/changelog",
@@ -79,11 +80,11 @@ describe("buildFeatureDocs", () => {
     "/feedback",
   ];
 
-  it.each(["zh", "en"] as const)("%s：8 个功能页 + 全部主题页", (locale) => {
+  it.each(["zh", "en"] as const)("%s：9 个功能页 + 全部主题页", (locale) => {
     const docs = buildFeatureDocs(locale);
     const pages = docs.filter((d) => d.type === "page");
     const topics = docs.filter((d) => d.type === "topic");
-    expect(pages).toHaveLength(8);
+    expect(pages).toHaveLength(9);
     expect(pages.map((d) => d.href)).toEqual(FEATURE_HREFS);
     expect(topics).toHaveLength(CURRENTS_TOPIC_IDS.length);
     for (const id of CURRENTS_TOPIC_IDS) {

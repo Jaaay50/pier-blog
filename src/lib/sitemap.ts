@@ -19,6 +19,8 @@ export const SITE_URL = "https://ethanpier.com";
 // These pages do not change whenever the Currents changelog gains an entry.
 const CURRENTS_AGENT_LAST_UPDATED = "2026-08-11";
 const FEEDBACK_LAST_UPDATED = "2026-08-11";
+/** 模型榜上线日（榜单数据岛客户端自取，静态壳变更才更新此日期） */
+const CURRENTS_MODELS_LAST_UPDATED = "2026-08-13";
 
 /* ─────────────── 分片清单（index 与 dispatcher 共享，编译期常量） ─────────────── */
 
@@ -137,6 +139,16 @@ export function buildStaticShardEntries(): SitemapUrlEntry[] {
     ...bilingualEntries("/currents", { lastmod: newestPostDate, changefreq: "daily", priority: 0.8 }),
     ...bilingualEntries("/currents/daily", { lastmod: newestPostDate, changefreq: "daily", priority: 0.7 }),
     ...bilingualEntries("/currents/hot", { lastmod: newestPostDate, changefreq: "hourly", priority: 0.7 }),
+    ...bilingualEntries("/currents/models", {
+      lastmod: new Date(CURRENTS_MODELS_LAST_UPDATED).toISOString(),
+      changefreq: "daily",
+      priority: 0.7,
+    }),
+    ...bilingualEntries("/currents/models/methodology", {
+      lastmod: new Date(CURRENTS_MODELS_LAST_UPDATED).toISOString(),
+      changefreq: "monthly",
+      priority: 0.5,
+    }),
     ...bilingualEntries("/currents/topics", { lastmod: newestPostDate, changefreq: "daily", priority: 0.7 }),
     ...bilingualEntries("/currents/changelog", {
       lastmod: new Date(CHANGELOG_LAST_UPDATED).toISOString(),

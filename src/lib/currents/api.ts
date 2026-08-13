@@ -17,6 +17,14 @@ import type {
   CurrentsTopicItemsResponse,
   CurrentsTopicsResponse,
 } from "./types";
+import {
+  isModelsDetailResponse,
+  type ModelsCategory,
+  type ModelsDetailResponse,
+  type ModelsLeaderboardResponse,
+  type ModelsMetaResponse,
+  type ModelsView,
+} from "./models-types";
 
 export const CURRENTS_API_BASE = process.env.NEXT_PUBLIC_CURRENTS_API_BASE ?? "https://currents-api.ethanpier.com";
 
@@ -357,6 +365,30 @@ export const serverFetchEventDetail = (id: string, locale: string) =>
     300,
     isCurrentsEventDetail,
   );
+
+/* ──────── 模型榜（/currents/models） ──────── */
+
+export const serverFetchModelDetail = (slug: string) =>
+  serverFetchDetail<ModelsDetailResponse>(
+    `/v1/models/${encodeURIComponent(slug)}`,
+    300,
+    isModelsDetailResponse,
+  );
+
+export function fetchModelsLeaderboard(
+  category: ModelsCategory,
+  view: ModelsView,
+  signal?: AbortSignal,
+): Promise<ModelsLeaderboardResponse> {
+  return fetchJson<ModelsLeaderboardResponse>(
+    `/v1/models/leaderboard?category=${encodeURIComponent(category)}&view=${encodeURIComponent(view)}`,
+    signal,
+  );
+}
+
+export function fetchModelsMeta(signal?: AbortSignal): Promise<ModelsMetaResponse> {
+  return fetchJson<ModelsMetaResponse>(`/v1/models/meta`, signal);
+}
 
 export function fetchHot(
   locale: string,
