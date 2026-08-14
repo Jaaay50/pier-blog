@@ -1,5 +1,14 @@
 ## Phase 11: 网站与服务器安全加固
 
+### 潮汐模型榜（2026-08-13，已完成并上线）
+
+- ✅ 五类榜单：综合/编程/Agent/推理/性价比，正式发布与 Preview 独立视图；双语 `/currents/models`（SSG 壳 + 客户端数据岛）。
+- ✅ 模型详情页 `/currents/models/[slug]`：ISR 300s + 运行时契约守卫 + 404/可重试错误边界；官方信息、各类别名次与历史迷你曲线、来源分项、价格说明、别名清单。
+- ✅ 方法页 `/currents/models/methodology`：收录规则、评分/可信度/性价比公式（与后端 mlv1 冻结参数一致）、六来源登记、当前参数与待审核计数。
+- ✅ 接入面：CurrentsShell 主导航「模型榜」、搜索索引、静态 sitemap（双语）、canonical/hreflang/metadata、i18n 新增 97 组中英文案。
+- ✅ 验证：测试 +13（32 个测试文件 264 项）、lint 0 error、TypeScript、50 页 production build 通过。
+- ✅ 交付：PR #18，merge commit `7e6617f`；PR CI `31715972710`、main CI `31717663112`、production deploy `31717796886` 均成功；正式站 `/zh/currents/models` 返回 200，sitemap 已含 models 条目。
+
 ### Currents 桌面筛选栏滚动折叠修复（2026-08-13，已完成并上线）
 
 - ✅ 根因：展开筛选区与紧凑工具栏共用一个 sticky 容器，折叠时高度约 `105px → 56px`，实际滚动 22px 会让正文额外跳动约 49px；单阈值检测与被中断的布局动画进一步放大临界点抖动。
@@ -16,7 +25,7 @@
 - ✅ 将 Vitest `3.2.7 → 4.1.10` 与 next-intl `4.13.4 → 4.13.5` 合并为 PR #17，最终范围仅为 `package.json` 与 `package-lock.json`；原 Dependabot PR #9、#10 已关闭。
 - ✅ 验证：29 个测试文件、227 项测试、TypeScript、46 页 production build、audit 0、`git diff --check` 通过；lint 0 error（2 个既有 warning）。
 - ✅ 交付：merge commit `554b940`；PR CI `31658307844`、main CI `31658523093`、production deploy `31658586428` 与 GitHub production deployment `5880393475` 均成功；正式站关键路由返回 200。
-- ➖ Vitest 配置的 ESM 前瞻提示与 next-intl `setRequestLocale` 弃用迁移不阻塞当前版本，后续分别处理；主仓本地 `node_modules` 仍是升级前依赖，下一次本地开发前运行 Node `22.23.1` 下的 `npm ci` 对齐即可。
+- ➖ Vitest 配置的 ESM 前瞻提示与 next-intl `setRequestLocale` 弃用迁移不阻塞当前版本，后续分别处理；主仓本地环境已于 2026-08-14 对齐：Node `22.23.2`（brew keg-only `node@22`，全局 Node 25 不动）下完成 `npm ci`，audit 0 漏洞；FluidSim 未使用导入清理后 lint 0 error / 0 warning，264/264 测试与 production build 通过。
 
 ### Phase 11A：安全事务升级（2026-08-11，已完成并上线）
 
