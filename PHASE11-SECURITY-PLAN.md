@@ -169,7 +169,7 @@
 ### 威胁模型与边界
 
 - 搜索引擎、RSS 阅读器、社交预览和正常 Agent 入口保持可抓取/可消费；`/og` 与所有页面路由不带 `noindex`。
-- `/api/:path*`、`/feed.xml`、`/feed-zh.xml`、`/sitemap.xml`、`/sitemaps/:path*` 统一返回 `X-Robots-Tag: noindex`，阻止无索引价值的机器端点进入搜索结果，不阻止实际抓取与消费。
+- `/.well-known/webfinger`、`/api/:path*`、`/feed.xml`、`/feed-zh.xml`、`/sitemap.xml`、`/sitemaps/:path*` 统一返回 `X-Robots-Tag: noindex`，阻止无索引价值的机器端点进入搜索结果，不阻止实际抓取与消费。
 - robots.txt 保持 `User-Agent: *` + `Allow: /`，不 `Disallow /api/`：搜索引擎必须能抓取 API URL，才能看到 `X-Robots-Tag: noindex`。若 robots 先禁止抓取，noindex 不可见，URL 仍可能因外部信号进入搜索结果。
 - 不使用 User-Agent 黑名单；UA 可伪造，恶意爬虫可直接绕过。AI 训练爬虫是内容授权决策，本阶段默认不封禁。
 - 高频枚举与缓存绕过的真实防护仍由 Phase 11B 参数白名单/缓存边界与 Phase 11C 边缘限流承接；robots/noindex 只是合作协议。
@@ -190,6 +190,13 @@
 - 代码回滚使用 `git revert 00ebc30bc4e329945bac13d7f2929a3a4ed231e9` 创建可审计提交；紧急部署回滚可将 Vercel production alias 切回上一 deployment `dpl_7tVq7nSSGran2dZbcDdUSz8ZutJM`。`noindex` 无状态残留。
 - robots.txt 与 `X-Robots-Tag` 均对不守规则的爬虫无强制力；Currents 合法格式但不存在的 ID 枚举仍无独立边缘限流，继续依靠 ISR 404 缓存、10s 超时和后端全局限流。
 - OG 规则自身 429 仍未独立实证；本阶段不再高频压测。
+
+### 后续增量：Tailscale OIDC WebFinger（2026-08-17）
+
+- 新增 `/.well-known/webfinger` 固定 JRD，用于证明 `ethanpier.com` 域名控制并发现 Auth0 issuer；端点不接受输入、不读取 Cookie，也不发布 Client ID、Client Secret 或其他可用凭据。
+- 响应为 `application/jrd+json`，允许跨域读取并缓存 5 分钟；`X-Robots-Tag: noindex` 只阻止搜索索引，不阻止 Tailscale 获取。
+- 本地与 CI 验证覆盖 JRD 内容、缓存/CORS、noindex 精确边界和页面零误伤；正式端点已返回 200，Auth0/Tailscale OIDC 登录完成。
+- 若以后切换 OIDC provider 或管理员邮箱，必须同步修改 route 与测试，并先核对 issuer 与 provider discovery 文档完全一致；Client 凭据继续只保留在身份提供方与 Tailscale 配置面。
 
 ## Phase 11E P1：原创正文复制阻力（2026-08-12，已完成并通过生产验收）
 

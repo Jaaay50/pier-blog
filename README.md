@@ -46,9 +46,15 @@ npm run build      # 生产构建
 
 文章写在 `src/content/blog/*.{en,zh}.mdx`，frontmatter 需要 `title` / `date` / `description` / `tags`。
 
+## Identity Discovery
+
+`https://ethanpier.com/.well-known/webfinger` provides the fixed JRD used to discover the Auth0 issuer for the `ethanpier.com` Tailscale OIDC tailnet. The endpoint is public, cacheable for five minutes, CORS-readable, and marked `X-Robots-Tag: noindex`; it contains no client credentials.
+
+When changing the OIDC provider or administrator email, update `src/app/.well-known/webfinger/route.ts` and its colocated test together. The issuer must exactly match the provider's `/.well-known/openid-configuration` value. Client IDs, client secrets, passwords, and tokens remain outside this repository. See [docs/tailscale-oidc.md](./docs/tailscale-oidc.md) for the contract, verification, and rollback procedure.
+
 ## Project Log
 
-Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署；Phase 11A、11B P1、11D P1 与 11E P1 已完成生产闭环，Phase 11C P1 为有保留通过；2026-08-13 潮汐模型榜（PR #18）上线。本地验证基线（2026-08-14，Node 22.23.2）：264/264 测试、lint 0 error / 0 warning、50 页 production build、audit 0。当前剩余项包括 Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收、服务器安全审计及 CSP nonce/hash 与 Trusted Types 增强。完整记录见 [PROGRESS.md](./PROGRESS.md)，安全阶段见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。
+Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署；Phase 11A、11B P1、11D P1 与 11E P1 已完成生产闭环，Phase 11C P1 为有保留通过；2026-08-13 潮汐模型榜（PR #18）上线；2026-08-17 Tailscale OIDC WebFinger discovery 上线。本地验证基线（2026-08-17，Node 22.23.1 / npm 10.9.8）：33 个测试文件、265 项测试、51 页 production build；GitHub `validate` / production deploy 成功，WebFinger 正式端点返回有效 JRD。当前剩余项包括新 Tailnet 首台设备接入、Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收、服务器安全审计及 CSP nonce/hash 与 Trusted Types 增强。完整记录见 [PROGRESS.md](./PROGRESS.md)，安全阶段见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。
 
 Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-11：阶段 A 详情页「报告内容问题」入口、阶段 B MCP Server + Agent Skill（服务端）、阶段 C 产品闭环（Currents 统一产品外壳、`/currents/agent` Agent 接入页、`/feedback` 全局反馈页、统一全站搜索）均已上线并完成生产验收；同日完成 Currents 响应式与动效统一修复（PR #3、merge commit `5361594`、生产部署 `pier-blog-9eixpss8u`）：外壳扩至 1760px 自适应编辑工作台，移动端改为「潮汐 · 当前页」文字产品导航 + 底部筛选面板，浅色表面统一暖纸语义层级，已读态改为局部标记（不再整卡降 opacity），今日要闻改为主故事 + 2×2 次要卡，内部导航恢复 TransitionLink/View Transitions。Review 后续修正已通过 commit `ff5beef` 与 Actions run `31459121708` 部署：侧栏改为 ≥1536px 显示，1280–1535px 渐进预留侧栏空间，日期标题取消白色渐变与吸顶层，并补齐导航、筛选面板和卡片状态问题；同日的 Agent/日报排版工作已完成多视口浏览器验收（见下）。注意区分：服务端部署 ≠ 客户端真实接入——具体客户端仍需逐一核验工具发现、五工具调用、凭据隔离与重启持久性。
 

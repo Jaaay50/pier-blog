@@ -1,5 +1,14 @@
 ## Phase 11: 网站与服务器安全加固
 
+### Tailscale 自定义 OIDC WebFinger（2026-08-17，已完成并上线）
+
+- ✅ 新增固定 JRD 端点 `/.well-known/webfinger`，将 `acct:ethan@ethanpier.com` 映射到 Auth0 issuer；Issuer 与 Auth0 `/.well-known/openid-configuration` 精确一致。
+- ✅ 端点使用 `application/jrd+json`、5 分钟公开缓存与 CORS，只发布发现元数据；Client ID、Client Secret、密码和 Token 均不进入仓库或项目文档。
+- ✅ 防索引边界同步扩展到 WebFinger：正式端点返回 `X-Robots-Tag: noindex`，不影响 Tailscale 读取。
+- ✅ 验证：33 个测试文件、265 项测试与 51 页 production build 通过；GitHub Actions `validate`、`authorize`、`deploy` 均成功；最终自动部署 `pier-blog-134t3vk2v-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`。
+- ✅ 生产验收：`https://ethanpier.com/.well-known/webfinger` 返回 200 与有效 JRD；Auth0 回调和 Tailscale OIDC 登录已打通，新 Tailnet `ethanpier.com` 创建成功。
+- ➖ 2026-08-17 注册后显示 Enterprise trial；这是可漂移的计费状态，不影响账号或域名持续存在。Tailnet 尚未接入设备，后续可按个人非商业用途另行选择 Personal 方案。
+
 ### 潮汐模型榜（2026-08-13，已完成并上线）
 
 - ✅ 五类榜单：综合/编程/Agent/推理/性价比，正式发布与 Preview 独立视图；双语 `/currents/models`（SSG 壳 + 客户端数据岛）。
@@ -51,7 +60,7 @@
 - ✅ 生产低频复验：中英文博客文章、Currents、Agent 与反馈入口均为 200；文章 HTML 包含复制边界标记与双语提示。
 - ➖ 定位为复制阻力，不保证公开内容不可复制；SEO、RSS、浏览器查找、屏幕阅读与开发者工具边界不变。
 
-**后续阶段**：服务器 SSH/防火墙/更新/备份恢复/运行权限审计，以及 CSP nonce/hash 与 Trusted Types 增强。
+**后续阶段**：Tailscale 新 Tailnet 首台设备接入；服务器 SSH/防火墙/更新/备份恢复/运行权限审计；CSP nonce/hash 与 Trusted Types 增强。
 
 ---
 
