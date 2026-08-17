@@ -77,6 +77,7 @@ describe("Next.js 安全响应头", () => {
 describe("防爬虫基线：X-Robots-Tag 边界（Phase 11D P1）", () => {
   /** 无索引价值的机器端点：只阻止进搜索结果，不阻止抓取/消费 */
   const EXPECTED_NOINDEX_SOURCES = [
+    "/.well-known/webfinger",
     "/api/:path*",
     "/feed.xml",
     "/feed-zh.xml",
@@ -108,9 +109,12 @@ describe("防爬虫基线：X-Robots-Tag 边界（Phase 11D P1）", () => {
     // 页面路由（locale 前缀）不得出现在任何 noindex 规则中
     for (const rule of rules ?? []) {
       if (!rule.headers.some(({ key }) => key === "X-Robots-Tag")) continue;
-      expect(rule.source.startsWith("/api/") || /^\/(feed|sitemap)/.test(rule.source), rule.source).toBe(
-        true,
-      );
+      expect(
+        rule.source === "/.well-known/webfinger" ||
+          rule.source.startsWith("/api/") ||
+          /^\/(feed|sitemap)/.test(rule.source),
+        rule.source,
+      ).toBe(true);
     }
   });
 

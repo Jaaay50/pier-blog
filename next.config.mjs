@@ -52,7 +52,14 @@ const contentSecurityPolicy = [
  *   与边缘限流（11C P1）收口。
  * - 页面路由（/:locale/...）绝不 noindex，见 security-headers.test.ts 误伤检查。
  */
-const NOINDEX_SOURCES = ["/api/:path*", "/feed.xml", "/feed-zh.xml", "/sitemap.xml", "/sitemaps/:path*"];
+const NOINDEX_SOURCES = [
+  "/.well-known/webfinger",
+  "/api/:path*",
+  "/feed.xml",
+  "/feed-zh.xml",
+  "/sitemap.xml",
+  "/sitemaps/:path*",
+];
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
