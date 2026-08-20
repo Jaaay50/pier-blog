@@ -1,4 +1,5 @@
 import type { MDXComponents } from "mdx/types";
+import Image from "next/image";
 
 export function useMDXComponents(components: MDXComponents): MDXComponents {
   return {
@@ -75,10 +76,13 @@ export function useMDXComponents(components: MDXComponents): MDXComponents {
     ),
     hr: () => <hr className="my-8 border-[var(--border)]" />,
     img: ({ src, alt }) => (
-      <img
-        src={src}
+      <Image
+        src={src || ""}
         alt={alt || ""}
+        width={800}
+        height={450}
         className="mb-6 rounded-lg border border-[var(--border)]"
+        style={{ width: '100%', height: 'auto' }}
       />
     ),
     ...components,

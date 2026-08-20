@@ -8,6 +8,7 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 import { AnimationProvider } from "@/components/AnimationProvider";
 import { CustomCursor } from "@/components/CustomCursor";
 import { PerformanceMonitor } from "@/components/PerformanceMonitor";
+import { WebVitals } from "@/components/WebVitals";
 import { SpeculationRules } from "@/components/SpeculationRules";
 import { ParticleGateScript } from "@/components/ParticleGate";
 import { locales, type Locale } from "@/i18n/config";
@@ -149,6 +150,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
             <AnimationProvider>
               <CustomCursor />
               <PerformanceMonitor />
+              <WebVitals />
               <div className="relative">{children}</div>
             </AnimationProvider>
           </ThemeProvider>
