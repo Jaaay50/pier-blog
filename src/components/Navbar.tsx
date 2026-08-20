@@ -21,7 +21,7 @@ export function Navbar() {
   const t = useTranslations("nav");
   const [menuOpen, setMenuOpen] = useState(false);
   // Currents 产品面使用与 CurrentsShell 同一轴线（--currents-shell-max，1760px）；
-  // 其他博客页面保持 max-w-6xl 不变
+  // 其他页面使用 site-shell（1440px）
   const isCurrentsProduct =
     pathname.startsWith("/currents") || pathname === "/feedback";
 
@@ -91,7 +91,7 @@ export function Navbar() {
     >
       <div
         className={`mx-auto py-4 ${
-          isCurrentsProduct ? "currents-shell-container" : "max-w-6xl px-6"
+          isCurrentsProduct ? "currents-shell-container" : "site-shell"
         }`}
       >
         <div className="flex items-center justify-between">

@@ -150,9 +150,9 @@ export default async function BlogPostPage({ params }: PageProps) {
       />
 
       {/* Article + TOC 双栏布局 */}
-      <div className="mx-auto flex max-w-6xl gap-8 px-6 py-16">
+      <div className="site-content flex gap-8 py-16">
         <article className="min-w-0 flex-1">
-          <div className="mx-auto max-w-3xl">
+          <div className="reading-column-no-px">
 
             {/* ── Header ── */}
             <header className="mb-16">
@@ -228,8 +228,8 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       {/* 相关阅读 */}
       {related.length > 0 && (
-        <section className="px-6 py-16">
-          <div className="mx-auto max-w-4xl">
+        <section className="py-16">
+          <div className="site-content">
             <h2 className="mb-8 text-2xl font-bold tracking-tight">
               {t("related")}
             </h2>

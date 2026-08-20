@@ -85,9 +85,9 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
   return (
     <section
       ref={sectionRef}
-      className="relative flex min-h-screen items-center px-6 py-24"
+      className="relative flex min-h-screen items-center py-24"
     >
-      <div className="mx-auto w-full max-w-6xl">
+      <div className="site-content w-full">
         {/* 标题 */}
         <div className="mb-16 text-center">
           <h2 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">

@@ -18,10 +18,11 @@ interface BlogStatsFilterProps {
 }
 
 /**
- * Phase 6：tag 条形图 + 客户端文章过滤。
- * - 按 tag 聚合文章数，横向条形弹性伸长入场（stagger）
- * - 点击条形过滤文章列表；再点当前 tag 恢复显示全部
- * - 列表切换用 AnimatePresence 淡入淡出 + layout 平滑重排
+ * 标签筛选 + 客户端文章过滤。
+ * - 按 tag 聚合文章数，渲染为可换行、易点击的标签 chip（含数量）
+ * - 点击 chip 过滤文章列表；再点当前 tag 恢复显示全部
+ * - aria-pressed 表达选中态；键盘可操作，focus-visible 清晰
+ * - 文章列表桌面两列 / 移动单列，AnimatePresence 淡入淡出 + layout 平滑重排
  */
 export function BlogStatsFilter({ posts }: BlogStatsFilterProps) {
   const [activeTag, setActiveTag] = useState<string | null>(null);
@@ -34,51 +35,34 @@ export function BlogStatsFilter({ posts }: BlogStatsFilterProps) {
     return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
   }, [posts]);
 
-  const maxCount = tagCounts[0]?.[1] ?? 1;
-
   const filtered = activeTag
     ? posts.filter((p) => p.tags.includes(activeTag))
     : posts;
 
   return (
     <div>
-      {/* Tag 条形图 */}
-      <div className="mb-10 space-y-2">
-        {tagCounts.map(([tag, count], i) => {
+      {/* Tag chip 筛选 */}
+      <div className="mb-12 flex flex-wrap gap-3" role="group">
+        {tagCounts.map(([tag, count]) => {
           const active = activeTag === tag;
           return (
             <button
               key={tag}
+              type="button"
               onClick={() => setActiveTag(active ? null : tag)}
-              data-no-ripple
               aria-pressed={active}
-              className="group flex w-full items-center gap-3 text-left"
+              className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+                active
+                  ? "border-[var(--accent)] bg-[var(--accent-soft)] font-medium text-[var(--text-primary)]"
+                  : "border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+              }`}
             >
+              {tag}
               <span
-                className={`w-32 shrink-0 truncate text-sm transition-colors ${
-                  active
-                    ? "font-semibold text-[var(--accent)]"
-                    : "text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
+                className={`text-xs tabular-nums ${
+                  active ? "text-[var(--accent)]" : "text-[var(--text-muted)]"
                 }`}
               >
-                {tag}
-              </span>
-              <span className="relative h-6 flex-1 overflow-hidden rounded-md bg-[var(--bg-card)]">
-                <motion.span
-                  className={`absolute inset-y-0 left-0 rounded-md ${
-                    active ? "bg-[var(--accent)]" : "bg-[var(--accent)]/35"
-                  } transition-colors group-hover:bg-[var(--accent)]/60`}
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(count / maxCount) * 100}%` }}
-                  transition={{
-                    type: "spring",
-                    stiffness: 140,
-                    damping: 20,
-                    delay: i * 0.08,
-                  }}
-                />
-              </span>
-              <span className="w-6 shrink-0 text-right text-xs tabular-nums text-[var(--text-muted)]">
                 {count}
               </span>
             </button>
@@ -86,8 +70,8 @@ export function BlogStatsFilter({ posts }: BlogStatsFilterProps) {
         })}
       </div>
 
-      {/* 文章列表（过滤 + 平滑重排） */}
-      <motion.div layout className="space-y-6">
+      {/* 文章列表：桌面两列 / 移动单列（过滤 + 平滑重排） */}
+      <motion.div layout className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <AnimatePresence mode="popLayout">
           {filtered.map((post) => (
             <motion.div
@@ -97,6 +81,7 @@ export function BlogStatsFilter({ posts }: BlogStatsFilterProps) {
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -16 }}
               transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+              className="h-full"
             >
               <BlogCard post={post} />
             </motion.div>

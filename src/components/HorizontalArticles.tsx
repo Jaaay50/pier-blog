@@ -48,7 +48,7 @@ export function HorizontalArticles({
 
   return (
     <section className="relative overflow-hidden py-24">
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="site-content">
         {/* 标题 */}
         <div ref={titleRef} className="mb-12">
           <h2 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">
