@@ -79,7 +79,6 @@ export default async function BlogPage({
               tags,
               readMinutes,
             }))}
-            allLabel={t("allTag")}
           />
         </div>
       </section>

@@ -15,16 +15,15 @@ interface BlogPost {
 
 interface BlogStatsFilterProps {
   posts: BlogPost[];
-  allLabel: string;
 }
 
 /**
  * Phase 6：tag 条形图 + 客户端文章过滤。
  * - 按 tag 聚合文章数，横向条形弹性伸长入场（stagger）
- * - 点击条形过滤文章列表；再点或点 All 取消
+ * - 点击条形过滤文章列表；再点当前 tag 恢复显示全部
  * - 列表切换用 AnimatePresence 淡入淡出 + layout 平滑重排
  */
-export function BlogStatsFilter({ posts, allLabel }: BlogStatsFilterProps) {
+export function BlogStatsFilter({ posts }: BlogStatsFilterProps) {
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const tagCounts = useMemo(() => {
@@ -45,17 +44,6 @@ export function BlogStatsFilter({ posts, allLabel }: BlogStatsFilterProps) {
     <div>
       {/* Tag 条形图 */}
       <div className="mb-10 space-y-2">
-        <button
-          onClick={() => setActiveTag(null)}
-          data-no-ripple
-          className={`mb-1 rounded-md px-2 py-0.5 text-xs font-medium transition-colors ${
-            activeTag === null
-              ? "bg-[var(--accent)] text-white"
-              : "bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)]"
-          }`}
-        >
-          {allLabel} ({posts.length})
-        </button>
         {tagCounts.map(([tag, count], i) => {
           const active = activeTag === tag;
           return (
