@@ -67,18 +67,20 @@ export default async function AboutPage({
           speed={0.5}
         />
         <div className="site-content relative">
-          <div className="mb-4">
-            <DecryptedText
-              text={t("label")}
-              className="text-sm font-medium text-[var(--text-muted)]"
-            />
+          <div className="reading-column-no-px">
+            <div className="mb-4">
+              <DecryptedText
+                text={t("label")}
+                className="text-sm font-medium text-[var(--text-muted)]"
+              />
+            </div>
+            <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl">
+              <ThemedGradientText>{t("title")}</ThemedGradientText>
+            </h1>
+            <p className="text-lg leading-relaxed text-[var(--text-secondary)]">
+              {t("intro")}
+            </p>
           </div>
-          <h1 className="mb-6 text-4xl font-bold tracking-tight md:text-5xl">
-            <ThemedGradientText>{t("title")}</ThemedGradientText>
-          </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)]">
-            {t("intro")}
-          </p>
         </div>
       </section>
 
@@ -149,27 +151,29 @@ export default async function AboutPage({
       {/* Contact */}
       <section className="py-16">
         <div className="site-content">
-          <h2 className="mb-4 text-2xl font-bold tracking-tight">
-            {t("getInTouch")}
-          </h2>
-          <p className="mb-6 text-[var(--text-secondary)]">
-            {t("contactPrompt")}
-          </p>
-          <div className="flex gap-4">
-            <a
-              href="mailto:ethan_pier@icloud.com"
-              className="rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)]"
-            >
-              {t("sendEmail")}
-            </a>
-            <a
-              href="https://github.com/Jia-Ethan"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-lg border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
-            >
-              GitHub
-            </a>
+          <div className="reading-column-no-px">
+            <h2 className="mb-4 text-2xl font-bold tracking-tight">
+              {t("getInTouch")}
+            </h2>
+            <p className="mb-6 text-[var(--text-secondary)]">
+              {t("contactPrompt")}
+            </p>
+            <div className="flex gap-4">
+              <a
+                href="mailto:ethan_pier@icloud.com"
+                className="rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)]"
+              >
+                {t("sendEmail")}
+              </a>
+              <a
+                href="https://github.com/Jia-Ethan"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="rounded-lg border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
+              >
+                GitHub
+              </a>
+            </div>
           </div>
         </div>
       </section>

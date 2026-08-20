@@ -19,7 +19,7 @@ interface BlogStatsFilterProps {
 
 /**
  * 标签筛选 + 客户端文章过滤。
- * - 按 tag 聚合文章数，渲染为紧凑、可换行的标签 chip（含数量）
+ * - 按 tag 聚合文章数，渲染为可换行、易点击的标签 chip（含数量）
  * - 点击 chip 过滤文章列表；再点当前 tag 恢复显示全部
  * - aria-pressed 表达选中态；键盘可操作，focus-visible 清晰
  * - 文章列表桌面两列 / 移动单列，AnimatePresence 淡入淡出 + layout 平滑重排
@@ -42,7 +42,7 @@ export function BlogStatsFilter({ posts }: BlogStatsFilterProps) {
   return (
     <div>
       {/* Tag chip 筛选 */}
-      <div className="mb-10 flex flex-wrap gap-2" role="group">
+      <div className="mb-12 flex flex-wrap gap-3" role="group">
         {tagCounts.map(([tag, count]) => {
           const active = activeTag === tag;
           return (
@@ -51,7 +51,7 @@ export function BlogStatsFilter({ posts }: BlogStatsFilterProps) {
               type="button"
               onClick={() => setActiveTag(active ? null : tag)}
               aria-pressed={active}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3.5 py-1.5 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+              className={`inline-flex min-h-11 max-w-full items-center gap-2 rounded-full border px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                 active
                   ? "border-[var(--accent)] bg-[var(--accent-soft)] font-medium text-[var(--text-primary)]"
                   : "border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"

@@ -283,6 +283,14 @@ html.custom-cursor-on body {
   margin-right: auto;
 }
 
+/* 超宽屏为结构型内容释放更多横向空间，阅读列仍保持 760px 行长。 */
+@media (min-width: 1920px) {
+  .site-content,
+  .site-content-no-px {
+    max-width: 1440px;
+  }
+}
+
 .reading-column-no-px {
   width: 100%;
   max-width: 760px;
@@ -762,8 +770,12 @@ html[data-gpu-tier="low"].dark .card-glass {
   color: var(--accent-hover);
 }
 
-/* Code blocks from rehype-pretty-code */
-[data-rehype-pretty-code-figure] pre {
+/* Code blocks: typed fences use rehype-pretty-code, plain fences only get the
+   client wrapper. Both must own their horizontal scrolling on narrow screens. */
+[data-rehype-pretty-code-figure] pre,
+.codeblock-wrapper > pre {
+  max-width: 100%;
+  min-width: 0;
   overflow-x: auto;
   border-radius: 12px;
   border: 1px solid var(--border);

@@ -85,14 +85,7 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
   return (
     <section
       ref={ref}
-      className="relative my-12 h-[420px] overflow-hidden rounded-2xl border-[1.5px] border-[var(--border-hover)] md:h-[480px]"
-      style={{
-        maxWidth: '1280px',
-        marginLeft: 'auto',
-        marginRight: 'auto',
-        paddingLeft: 'max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-left))',
-        paddingRight: 'max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-right))'
-      }}
+      className="site-content-no-px relative my-12 h-[420px] overflow-hidden rounded-2xl border-[1.5px] border-[var(--border-hover)] md:h-[480px]"
     >
       {/* 背景：ShaderMixer 铺满整个 section */}
       <div ref={bgRef} className="absolute inset-0">
@@ -113,7 +106,7 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
           避免 Tailwind translate class 与 motion 动画值互相覆盖 */}
       <motion.div
         ref={glassRef}
-        className="glass-card group absolute right-6 top-1/2 z-10 w-[calc(100%-3rem)] max-w-sm rounded-2xl p-8 md:right-12"
+        className="glass-card group absolute left-[max(1.5rem,env(safe-area-inset-left))] right-[max(1.5rem,env(safe-area-inset-right))] top-1/2 z-10 w-auto max-w-sm rounded-2xl p-8 md:left-auto md:right-[max(3rem,env(safe-area-inset-right))] md:w-full"
         initial={{ opacity: 0, x: 32, y: "-50%" }}
         animate={inView ? { opacity: 1, x: 0, y: "-50%" } : {}}
         whileHover={{ y: "calc(-50% - 3px)", transition: { duration: 0.25, ease: "easeOut" } }}

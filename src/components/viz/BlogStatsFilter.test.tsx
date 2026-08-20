@@ -72,6 +72,22 @@ describe("BlogStatsFilter", () => {
     expect(screen.getAllByTestId("blog-card")).toHaveLength(3);
   });
 
+  it("使用宽松且可换行的筛选布局和触摸点击区", () => {
+    render(<BlogStatsFilter posts={posts} />);
+
+    const filterGroup = screen.getByRole("group");
+    const nextBtn = screen.getByRole("button", { name: /Next\.js/ });
+
+    expect(filterGroup.className).toContain("flex-wrap");
+    expect(filterGroup.className).toContain("gap-3");
+    expect(filterGroup.className).toContain("mb-12");
+    expect(nextBtn.className).toContain("min-h-11");
+    expect(nextBtn.className).toContain("max-w-full");
+    expect(nextBtn.className).toContain("px-4");
+    expect(nextBtn.className).toContain("py-2");
+    expect(nextBtn.className).toContain("gap-2");
+  });
+
   it("点击标签后只显示对应文章", () => {
     render(<BlogStatsFilter posts={posts} />);
 
