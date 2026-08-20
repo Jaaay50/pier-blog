@@ -92,13 +92,13 @@ export default async function PortfolioPage({
       <Navbar />
 
       {/* Header：灯塔式的静谧开场 */}
-      <section className="relative overflow-hidden px-6 py-24">
+      <section className="relative overflow-hidden py-24">
         <FluidBackground
           className="pointer-events-none absolute inset-0 opacity-30"
           intensity={0.5}
           speed={0.5}
         />
-        <div className="relative mx-auto max-w-6xl">
+        <div className="site-content relative">
           <div className="mb-5">
             <DecryptedText
               text={t("label")}
@@ -118,8 +118,8 @@ export default async function PortfolioPage({
       {/* 磷光互动作品已下线 */}
 
       {/* 精选作品：大卡片，一盏一盏的灯 */}
-      <section className="px-6 py-12">
-        <div className="mx-auto max-w-6xl">
+      <section className="py-12">
+        <div className="site-content">
           <h2 className="mb-10 text-2xl font-bold tracking-wide">
             {t("featured")}
           </h2>
@@ -187,8 +187,8 @@ export default async function PortfolioPage({
       </section>
 
       {/* 其余项目：紧凑列表 */}
-      <section className="px-6 py-12">
-        <div className="mx-auto max-w-6xl">
+      <section className="py-12">
+        <div className="site-content">
           <h2 className="mb-10 text-2xl font-bold tracking-wide">
             {t("allProjects")}
           </h2>
@@ -231,7 +231,7 @@ export default async function PortfolioPage({
         </div>
       </section>
 
-      <SiteFooter maxWidth="max-w-6xl" />
+      <SiteFooter />
     </main>
   );
 }

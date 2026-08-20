@@ -20,7 +20,7 @@ export default async function LabPage({
   return (
     <main className="relative min-h-screen">
       <Navbar />
-      <div className="mx-auto max-w-6xl px-6 py-16">
+      <div className="site-content py-16">
         <header className="mb-12 text-center">
           <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
             {t("title")}

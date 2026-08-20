@@ -100,7 +100,7 @@ function HorizontalJourney({ title, experiences }: ExperienceJourneyProps) {
       style={{ height: `${100 + experiences.length * 90}vh` }}
     >
       <div className="sticky top-0 flex h-screen flex-col justify-center overflow-hidden">
-        <div className="mx-auto mb-10 w-full max-w-4xl px-6">
+        <div className="site-content mb-10">
           <h2 className="mb-6 text-2xl font-bold tracking-tight">{title}</h2>
           {/* 进度指示点 */}
           <div className="flex items-center gap-2" role="presentation">
@@ -197,8 +197,8 @@ function JourneyCard({ exp, active }: { exp: Experience; active: boolean }) {
 
 function VerticalTimeline({ title, experiences }: ExperienceJourneyProps) {
   return (
-    <section className="px-6 py-16">
-      <div className="mx-auto max-w-4xl">
+    <section className="py-16">
+      <div className="site-content">
         <h2 className="mb-8 text-2xl font-bold tracking-tight">{title}</h2>
         <div className="space-y-8">
           {experiences.map((exp, i) => (

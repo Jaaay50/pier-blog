@@ -85,7 +85,14 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
   return (
     <section
       ref={ref}
-      className="relative mx-6 my-12 h-[420px] overflow-hidden rounded-2xl border-[1.5px] border-[var(--border-hover)] md:mx-auto md:h-[480px] md:max-w-6xl"
+      className="relative my-12 h-[420px] overflow-hidden rounded-2xl border-[1.5px] border-[var(--border-hover)] md:h-[480px]"
+      style={{
+        maxWidth: '1280px',
+        marginLeft: 'auto',
+        marginRight: 'auto',
+        paddingLeft: 'max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-left))',
+        paddingRight: 'max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-right))'
+      }}
     >
       {/* 背景：ShaderMixer 铺满整个 section */}
       <div ref={bgRef} className="absolute inset-0">

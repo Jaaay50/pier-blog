@@ -38,8 +38,8 @@ export function ProjectsBento({ title, projects }: ProjectsBentoProps) {
   ];
 
   return (
-    <section ref={sectionRef} className="relative px-6 py-24">
-      <div className="mx-auto max-w-6xl">
+    <section ref={sectionRef} className="relative py-24">
+      <div className="site-content">
         {/* 标题 */}
         <div className="mb-16">
           <h2 className="font-display text-4xl font-semibold tracking-tight md:text-5xl">

@@ -50,8 +50,8 @@ export function GiscusComments({ term }: { term: string }) {
   }, [resolvedTheme, locale, term]);
 
   return (
-    <section className="px-6 py-16">
-      <div className="mx-auto max-w-3xl">
+    <section className="py-16">
+      <div className="reading-column">
         {/* 分隔線 */}
         <div className="mb-10 h-px bg-[var(--border)]" />
 

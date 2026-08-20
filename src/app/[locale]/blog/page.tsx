@@ -46,14 +46,15 @@ export default async function BlogPage({
     <main className="min-h-screen">
       <Navbar />
 
-      {/* Header（带流体 Shader 背景，低端设备自动降级为静态渐变） */}
-      <section className="relative overflow-hidden px-6 py-20">
+      {/* Header（带流体 Shader 背景，低端设备自动降级为静态渐变）
+          背景全宽流体；内容走 site-content 轴线；文本自身限制行长 */}
+      <section className="relative overflow-hidden py-20">
         <FluidBackground
           className="pointer-events-none absolute inset-0 opacity-40"
           intensity={0.6}
           speed={0.6}
         />
-        <div className="relative mx-auto max-w-4xl">
+        <div className="site-content relative">
           <div className="mb-4">
             <DecryptedText
               text={t("label")}
@@ -61,15 +62,15 @@ export default async function BlogPage({
             />
           </div>
           <h1 className="mb-4 text-4xl font-bold tracking-tight">{t("title")}</h1>
-          <p className="text-lg text-[var(--text-secondary)]">
+          <p className="max-w-2xl text-lg text-[var(--text-secondary)]">
             {t("subtitle")}
           </p>
         </div>
       </section>
 
-      {/* Tag 统计条形图 + 可过滤文章列表（Phase 6） */}
-      <section className="px-6 pb-20">
-        <div className="mx-auto max-w-4xl">
+      {/* Tag 标签筛选 + 可过滤文章列表（Hero 与筛选区之间保持 64px 明确间距） */}
+      <section className="pb-20 pt-16">
+        <div className="site-content">
           <BlogStatsFilter
             posts={posts.map(({ slug, title, description, date, tags, readMinutes }) => ({
               slug,

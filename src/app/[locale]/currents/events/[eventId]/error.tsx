@@ -29,7 +29,7 @@ export default function CurrentsEventError({ error, reset }: { error: Error & { 
           {t("retry")}
         </button>
       </div>
-      <SiteFooter maxWidth="max-w-6xl" />
+      <SiteFooter currentsWidth />
     </main>
   );
 }

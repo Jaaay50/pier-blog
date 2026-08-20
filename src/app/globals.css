@@ -235,6 +235,62 @@ html.custom-cursor-on body {
 }
 
 /* ============================================
+   布局系统：三层容器（Phase 10.10）
+   ============================================ */
+
+/* site-shell：最大宽度 1440px，供 Navbar、Footer 和页面外壳使用 */
+.site-shell {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-left));
+  padding-right: max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-right));
+}
+
+/* site-content：最大宽度 1280px，供列表、卡片、图表和实验网格使用 */
+.site-content {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-left));
+  padding-right: max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-right));
+}
+
+/* reading-column：最大宽度 760px，供文章正文和长文本使用 */
+.reading-column {
+  width: 100%;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-left));
+  padding-right: max(clamp(1.5rem, 3vw, 2.5rem), env(safe-area-inset-right));
+}
+
+/* 无内边距变体：用于已有外层容器时避免重复 padding */
+.site-shell-no-px {
+  width: 100%;
+  max-width: 1440px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.site-content-no-px {
+  width: 100%;
+  max-width: 1280px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.reading-column-no-px {
+  width: 100%;
+  max-width: 760px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* ============================================
    ScrollProgress：文章页顶部进度线
    ============================================ */
 .scroll-progress {
