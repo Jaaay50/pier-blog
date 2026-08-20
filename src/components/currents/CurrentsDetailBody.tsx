@@ -53,8 +53,39 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
   type TabKey = "translation" | "summary" | "deepRead";
   const [tab, setTab] = useState<TabKey>(translationHtml ? "translation" : "summary");
 
+  // 已讀標記：預渲染（Speculation Rules prerender）頁面不得寫入，
+  // 否則滑鼠懸停未點擊就會被記為已讀。等頁面真正激活後再標記。
   useEffect(() => {
-    markRead(item.id);
+    if (typeof document === "undefined") return;
+
+    // cancelled：卸載後阻斷殘留回調寫入；done：同一 item 只寫一次
+    let cancelled = false;
+    let done = false;
+
+    const mark = () => {
+      if (cancelled || done) return;
+      done = true;
+      markRead(item.id);
+    };
+
+    // document.prerendering === true 表示當前在預渲染中（尚未被用戶激活）
+    // TypeScript 內建類型尚未涵蓋，強制斷言存在性檢查
+    const prerendering = (document as Document & { prerendering?: boolean }).prerendering;
+    if (prerendering !== true) {
+      mark();
+      return;
+    }
+
+    const handleActivation = () => {
+      if (cancelled) return;
+      mark();
+    };
+
+    document.addEventListener("prerenderingchange", handleActivation, { once: true });
+    return () => {
+      cancelled = true;
+      document.removeEventListener("prerenderingchange", handleActivation);
+    };
   }, [item.id]);
 
   const published = item.publishedAt ? new Date(item.publishedAt) : null;
