@@ -1,3 +1,14 @@
+## 全站响应式布局系统（2026-08-21，已完成并上线）
+
+- ✅ 统一三层容器：站点外壳 1440px、结构内容 1280px、阅读列 760px；视口达到 1920px 后，结构内容扩至 1440px，阅读行长保持不变。
+- ✅ Blog 保持桌面双列、移动单列，标签筛选改为最小 44px 点击高度的 chip；About 的数据与图表使用宽布局，Hero 与 Contact 保持窄阅读列。
+- ✅ LabTeaser 使用无内边距完整画布，玻璃卡保留 safe-area gutter；普通与 typed fenced code 在移动端均改为代码块内部横向滚动，不再撑宽页面。
+- ✅ 验证：37 个测试文件、279 项测试、audit、lint、TypeScript、51 页 production build 与 `git diff --check` 通过；390/768/1440/2560px 下 `/zh`、Blog、About 与文章页无页面级横向溢出，控制台无应用或 hydration 错误。
+- ✅ 交付：PR #24，merge commit `ef83e1098ae3d30e77d78e5f75d78d47635d01c6`；main CI `32426937554`、production deploy `32427047589` success；Vercel `pier-blog-p9o70mryl-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`。
+- ➖ 验收边界：上述为合并、CI、部署与生产技术验证，不替代橋的主观视觉或业务验收；远端功能分支按要求保留。
+
+---
+
 ## Phase 11: 网站与服务器安全加固
 
 ### Tailscale 自定义 OIDC WebFinger（2026-08-17，已完成并上线）
@@ -307,9 +318,9 @@ Performance 97 / A11y 95 / BP 100 / SEO 100；LCP 0.9s / CLS 0.014 / TBT 120ms /
 - hover 顶点显示 tooltip；颜色全走 CSS 变量自动适配双主题
 - reduced-motion 无动画直接显示；接入 /about
 
-### 2. BlogStatsFilter tag 条形图 + 过滤（viz/BlogStatsFilter.tsx）
-- 按 tag 聚合文章数，横向条形弹性伸长入场（stagger）
-- 点击条形客户端过滤文章；AnimatePresence popLayout 平滑重排
+### 2. BlogStatsFilter tag chip + 过滤（viz/BlogStatsFilter.tsx）
+- 按 tag 聚合文章数，使用可换行 chip 呈现；点击区最小高度 44px
+- 点击 chip 客户端过滤文章，再次点击当前 tag 恢复全部；文章列表桌面双列、移动单列
 - 替换 /blog 原静态列表；传入前裁剪 content 字段（不把全文送到客户端）
 
 ### 3. ActivityHeatmap 活动热力图（viz/ActivityHeatmap.tsx）
