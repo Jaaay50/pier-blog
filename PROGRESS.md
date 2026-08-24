@@ -1,3 +1,15 @@
+### 首页 Hero 与第二屏背景过渡（2026-08-24，已完成并上线）
+
+- ✅ 根因：Hero 在 `100vh` 边界裁切独立光场，并用不透明的站点底色渐变收尾；进入使用 fixed ambient background 的第二屏时，两套背景在同一水平线硬切。
+- ✅ 实现：将 Hero 光场拆为锁定 `100vh` 的画布与约 `30vh` 的共享尾段，通过 CSS `mask-image` 做 alpha 渐隐；静态降级背景移除实色底，过渡层不增加页面高度、不拦截交互。
+- ✅ 回归修复：Hero 仅开放纵向溢出，横向继续使用 `overflow-x: clip`；`prefers-reduced-motion` 下停止滚动关联的背景缩放，避免移动端横向滚动和减弱动效回归。
+- ✅ 验证：本地 37 个测试文件、281 项测试、lint、TypeScript、51 页 production build、audit 0 与 `git diff --check` 通过；PR CI `32711828818` 与 main CI `32712020216` 成功。
+- ✅ 交付：PR #27，功能 commit `9dc724ca332e2f478397fc3f54673da27b94b730`，merge commit `1445fc61a88ef49b6cd9df99ad4c71938cdaeef8`；deploy run `32712116429` 成功，Vercel deployment `pier-blog-9wxd1v2ux-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`。
+- ✅ 生产技术验收：`/zh`、`/en` 返回 200，`www.ethanpier.com/zh` 与 `pier-blog.vercel.app/zh` 正确 308 到 canonical；Chrome 390x844 实测 `clientWidth=384`、`scrollWidth=384`、`scrollX=0`，Hero、过渡层与第二屏样式均已上线。
+- ➖ 验收边界：本轮完成 Chrome 桌面/移动技术验证，不等于橋的主观视觉验收；Safari 真机、真实设备帧率与完整 Lighthouse 仍按既有 Phase 9 清单独立保留。
+
+---
+
 ## Phase 11: 网站与服务器安全加固
 
 ### Tailscale 自定义 OIDC WebFinger（2026-08-17，已完成并上线）
