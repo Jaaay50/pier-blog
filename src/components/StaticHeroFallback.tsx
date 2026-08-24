@@ -14,7 +14,7 @@ export function StaticHeroFallback({ isDark }: { isDark: boolean }) {
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(ellipse 80% 60% at 50% 35%, rgba(106, 155, 204, 0.14) 0%, rgba(139, 127, 204, 0.07) 45%, transparent 75%), #0f0f0f",
+              "radial-gradient(ellipse 80% 60% at 50% 35%, rgba(106, 155, 204, 0.14) 0%, rgba(139, 127, 204, 0.07) 45%, transparent 75%)",
           }}
         />
         {/* 静态星点（box-shadow 单元素多星） */}
@@ -45,7 +45,7 @@ export function StaticHeroFallback({ isDark }: { isDark: boolean }) {
         style={{
           background:
             "radial-gradient(ellipse 90% 70% at 50% 20%, rgba(217, 119, 87, 0.16) 0%, rgba(232, 196, 160, 0.12) 40%, transparent 75%), " +
-            "radial-gradient(ellipse 60% 50% at 80% 70%, rgba(212, 162, 127, 0.1) 0%, transparent 70%), #faf9f5",
+            "radial-gradient(ellipse 60% 50% at 80% 70%, rgba(212, 162, 127, 0.1) 0%, transparent 70%)",
         }}
       />
     </div>

@@ -85,7 +85,7 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
   return (
     <section
       ref={sectionRef}
-      className="relative flex min-h-screen items-center py-24"
+      className="skills-showcase relative flex min-h-screen items-center py-24"
     >
       <div className="site-content w-full">
         {/* 标题 */}

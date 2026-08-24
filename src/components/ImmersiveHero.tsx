@@ -63,45 +63,45 @@ export function ImmersiveHero({
   const particleMode = !!canUseParticles && !particleFailed;
 
   return (
-    <section className="relative h-screen w-full overflow-hidden">
-      {/* 全屏背景 */}
-      <motion.div className="absolute inset-0" style={{ scale: bgScale }}>
-        {!mounted || !quality ? (
-          <div className="absolute inset-0 bg-[var(--bg-primary)]" />
-        ) : !quality.enabled ? (
-          <StaticHeroFallback isDark={isDark} />
-        ) : isDark ? (
-          <div className="absolute inset-0 opacity-[0.22]">
-            <Galaxy
-              mouseInteraction={quality.mouseInteraction}
-              mouseRepulsion={quality.mouseInteraction}
-              repulsionStrength={2.5}
-              density={2 * quality.particleMultiplier}
-              starSpeed={0.4}
-              glowIntensity={0.5}
-              twinkleIntensity={0.5}
-              hueShift={220}
-              saturation={0.4}
-              rotationSpeed={0.05}
-              dpr={quality.dpr}
-            />
-          </div>
-        ) : (
-          <div className="absolute inset-0 opacity-[0.18]">
-            <Aurora
-              colorStops={["#d97757", "#e8c4a0", "#c6613f"]}
-              amplitude={1.2}
-              blend={0.65}
-            />
-          </div>
-        )}
-      </motion.div>
+    <section className="hero-immersive relative h-screen w-full">
+      {/* 光场：100vh 画布 + 向下延伸的 CSS 尾段，统一 mask 融入 ambient */}
+      <div className="hero-atmosphere" aria-hidden="true">
+        <motion.div className="hero-atmosphere-field" style={{ scale: bgScale }}>
+          {!mounted || !quality ? null : !quality.enabled ? (
+            <StaticHeroFallback isDark={isDark} />
+          ) : isDark ? (
+            <div className="absolute inset-0 opacity-[0.22]">
+              <Galaxy
+                mouseInteraction={quality.mouseInteraction}
+                mouseRepulsion={quality.mouseInteraction}
+                repulsionStrength={2.5}
+                density={2 * quality.particleMultiplier}
+                starSpeed={0.4}
+                glowIntensity={0.5}
+                twinkleIntensity={0.5}
+                hueShift={220}
+                saturation={0.4}
+                rotationSpeed={0.05}
+                dpr={quality.dpr}
+              />
+            </div>
+          ) : (
+            <div className="absolute inset-0 opacity-[0.18]">
+              <Aurora
+                colorStops={["#d97757", "#e8c4a0", "#c6613f"]}
+                amplitude={1.2}
+                blend={0.65}
+              />
+            </div>
+          )}
+        </motion.div>
+        <div className="hero-atmosphere-tail" />
+      </div>
 
-      {/* 前景浮动几何层 */}
-      {mounted && <FloatingShapes />}
-
-      {/* 底部渐隐 */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-[var(--bg-primary)] to-transparent" />
+      {/* 前景浮动几何层：裁在首屏内，不进入过渡带 */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        {mounted && <FloatingShapes />}
+      </div>
 
       {/* 内容 */}
       <motion.div
