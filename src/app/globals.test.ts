@@ -17,6 +17,30 @@ describe("site layout widths", () => {
   });
 });
 
+describe("hero ambient seam", () => {
+  it("extends the hero light field with mask-image instead of an opaque band", () => {
+    expect(css).toMatch(/--hero-seam-overlap:\s*30vh/);
+    expect(css).toMatch(
+      /\.hero-atmosphere-field\s*\{[^}]*-webkit-mask-image:\s*linear-gradient/,
+    );
+    expect(css).toMatch(
+      /\.hero-atmosphere-tail\s*\{[^}]*-webkit-mask-image:\s*linear-gradient/,
+    );
+    expect(css).toMatch(
+      /\.hero-immersive\s*\{[^}]*overflow-x:\s*clip;[^}]*overflow-y:\s*visible;/,
+    );
+    expect(css).not.toMatch(
+      /hero-atmosphere[\s\S]{0,400}from-\[var\(--bg-primary\)\]/,
+    );
+  });
+
+  it("stops the scroll-linked background scale for reduced motion", () => {
+    expect(css).toMatch(
+      /@media\s*\(prefers-reduced-motion:\s*reduce\)\s*\{\s*\.hero-atmosphere-field\s*\{[^}]*transform:\s*none\s*!important;/,
+    );
+  });
+});
+
 describe("article code block layout", () => {
   it("keeps plain fenced code scrolling inside its wrapper", () => {
     expect(css).toMatch(

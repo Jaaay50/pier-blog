@@ -218,7 +218,114 @@ html.custom-cursor-on body {
   }
 }
 
+/* ===== Hero → ambient 共享过渡带 =====
+   问题：ImmersiveHero 在 100vh 处 overflow 裁切，底部再叠一层
+   from-[var(--bg-primary)] 的不透明横带，把 fixed ambient-bg 挡住，
+   滚过首屏边界时出现直线分界。
+   做法：光场向下延伸 --hero-seam-overlap（约 30vh），用 mask-image
+   做 alpha 渐隐融入全站环境光；不增加页面高度、不拦截交互。
+   WebGL 画布仍锁在 100vh，避免 shader UV 被拉长。 */
+.hero-immersive {
+  --hero-seam-overlap: 30vh;
+  /* 只允许过渡带向下延伸；继续裁掉缩放光场和粒子标题的横向越界。 */
+  overflow-x: clip;
+  overflow-y: visible;
+  -webkit-clip-path: inset(0 0 calc(-1 * var(--hero-seam-overlap)) 0);
+  clip-path: inset(0 0 calc(-1 * var(--hero-seam-overlap)) 0);
+}
 
+.hero-atmosphere {
+  position: absolute;
+  inset: 0;
+  bottom: calc(-1 * var(--hero-seam-overlap));
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.hero-atmosphere-field {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 100vh;
+  /* 画布下沿单独收光，避免 100vh 处 WebGL/降级层硬切 */
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    #fff 0%,
+    #fff 70%,
+    rgba(255, 255, 255, 0.55) 88%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    #fff 0%,
+    #fff 70%,
+    rgba(255, 255, 255, 0.55) 88%,
+    transparent 100%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.hero-atmosphere-tail {
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  /* 与首屏最后约 8vh 叠化，再延伸 overlap 进入第二屏 */
+  height: calc(var(--hero-seam-overlap) + 8vh);
+  pointer-events: none;
+  /* 延续 Hero 色温，不铺实色、不用大面积 blur */
+  background:
+    radial-gradient(
+      ellipse 92% 86% at 50% 0%,
+      color-mix(in srgb, var(--accent) 11%, transparent) 0%,
+      color-mix(in srgb, var(--gradient-text-3) 7%, transparent) 38%,
+      transparent 74%
+    ),
+    radial-gradient(
+      ellipse 48% 70% at 78% 12%,
+      var(--accent-soft) 0%,
+      transparent 72%
+    );
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 18%,
+    rgba(255, 255, 255, 0.55) 32%,
+    rgba(255, 255, 255, 0.28) 62%,
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0%,
+    rgba(255, 255, 255, 0.45) 18%,
+    rgba(255, 255, 255, 0.55) 32%,
+    rgba(255, 255, 255, 0.28) 62%,
+    transparent 100%
+  );
+  -webkit-mask-size: 100% 100%;
+  mask-size: 100% 100%;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+}
+
+.skills-showcase {
+  z-index: 1;
+}
+
+@media (max-width: 767px) {
+  .hero-immersive {
+    --hero-seam-overlap: 28vh;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-atmosphere-field {
+    transform: none !important;
+  }
+}
 
 /* 系统级减弱动效：压缩所有过渡/动画时长
    （WebGL 组件层另有 useWebGLQuality 门控，不会创建 context） */
