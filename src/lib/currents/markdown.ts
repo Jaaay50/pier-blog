@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import remarkRehype from "remark-rehype";
 import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import rehypeStringify from "rehype-stringify";
+import { remarkCjkEmphasis } from "@/lib/markdown/cjk-emphasis";
 
 type Schema = typeof defaultSchema;
 
@@ -85,8 +86,11 @@ const safeSchema: Schema = {
 /**
  * 后台 LLM 产出的 Markdown → 安全 HTML。
  *
- * 管线：Markdown → mdast → hast → sanitize（AST 层白名单清洗）→ HTML 字符串。
- * 即使后台被攻破或 LLM 产出被投毒，输出也不含可执行内容。
+ * 管线：Markdown → mdast →（CJK 强调补正）→ hast → sanitize（AST 层白名单清洗）
+ * → HTML 字符串。即使后台被攻破或 LLM 产出被投毒，输出也不含可执行内容。
+ *
+ * remarkCjkEmphasis 只重写 mdast 文本节点，位于 sanitize 之前，
+ * 不扩大标签白名单，也不引入 dangerouslySetInnerHTML 之外的新注入面。
  *
  * 服务端（ISR 详情页）与客户端（CurrentsReader 阅读层）共用此唯一入口。
  */
@@ -94,6 +98,7 @@ export async function renderMarkdown(md: string): Promise<string> {
   const file = await unified()
     .use(remarkParse)
     .use(remarkGfm)
+    .use(remarkCjkEmphasis)
     .use(remarkRehype)
     .use(rehypeSanitize, safeSchema)
     .use(removeProtocolRelativeHrefs)

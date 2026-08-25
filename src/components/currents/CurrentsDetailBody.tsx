@@ -128,21 +128,42 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
       <div className="flex gap-10">
         {/* 正文 720–760px */}
         <article className="min-w-0 max-w-[740px] flex-1">
-          {/* Meta 行 */}
-          <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
+          {/* Meta 行一：来源 / 作者 / 时间 —— 最弱一级出处信息 */}
+          <div className="mb-3 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-[var(--text-muted)]">
             {(sourceName ?? item.sourceId) && (
               <span className="font-medium text-[var(--text-secondary)]">{sourceName ?? item.sourceId}</span>
             )}
             {item.author && (
-              <span className="text-[var(--text-secondary)]">{item.author}</span>
+              <>
+                <span aria-hidden="true" className="opacity-30">·</span>
+                <span>{item.author}</span>
+              </>
             )}
             {published && (
-              <time dateTime={item.publishedAt!}>
-                {published.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", { dateStyle: "medium", timeStyle: "short" })}
-              </time>
+              <>
+                <span aria-hidden="true" className="opacity-30">·</span>
+                <time dateTime={item.publishedAt!}>
+                  {published.toLocaleString(locale === "zh" ? "zh-CN" : "en-US", { dateStyle: "medium", timeStyle: "short" })}
+                </time>
+              </>
             )}
+          </div>
+
+          {/* 标题 + 原标题 */}
+          <h1 className="font-display text-balance text-[1.75rem] font-semibold leading-[1.2] tracking-tight md:text-[2.25rem]">
+            {item.title}
+          </h1>
+          {item.originalTitle && item.originalTitle !== item.title && (
+            <p className="mt-2 text-sm text-[var(--text-muted)]">
+              <span className="mr-1 opacity-70">{labels.originalTitleLabel}:</span>
+              {item.originalTitle}
+            </p>
+          )}
+
+          {/* Meta 行二：分类 / 评分 / 收藏 —— 可操作与评价层，与出处信息分开 */}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
             {item.category && (
-              <span className="rounded-full border border-[var(--border)] px-2 py-0.5">
+              <span className="rounded-full border border-[var(--border)] px-2.5 py-0.5 text-xs text-[var(--text-muted)]">
                 {labels.categoryLabels[item.category] ?? item.category}
               </span>
             )}
@@ -150,19 +171,14 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
             <FavoriteButton itemId={item.id} />
           </div>
 
-          {/* 标题 + 原标题 */}
-          <h1 className="font-display mb-2 text-3xl font-semibold leading-tight tracking-tight md:text-4xl">
-            {item.title}
-          </h1>
-          {item.originalTitle && item.originalTitle !== item.title && (
-            <p className="mb-8 text-sm text-[var(--text-muted)]">
-              <span className="mr-1 opacity-70">{labels.originalTitleLabel}:</span>
-              {item.originalTitle}
-            </p>
-          )}
-
-          {/* 批次 2：三档 tab —— 原文翻译 / AI 导读 / 深度解读 */}
-          <div role="tablist" aria-label="content" className="mb-6 flex gap-1 border-b border-[var(--border)]">
+          {/* 批次 2：三档 tab —— 原文翻译 / AI 导读 / 深度解读
+              视觉上改为段落式阅读切换控件；role / aria-selected / aria-disabled
+              与点击行为完全保持原有语义，不改变键盘焦点顺序。 */}
+          <div
+            role="tablist"
+            aria-label="content"
+            className="mb-6 mt-8 inline-flex max-w-full flex-wrap gap-1 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-1"
+          >
             {(
               [
                 { key: "translation", label: labels.translationTab, disabled: !translationHtml },
@@ -180,12 +196,12 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
                   aria-disabled={disabled}
                   title={disabled && key === "translation" ? labels.translationPending : undefined}
                   onClick={() => !disabled && setTab(key)}
-                  className={`-mb-px border-b-2 px-4 py-2 text-sm transition-colors ${
+                  className={`rounded-lg px-3.5 py-1.5 text-sm transition-colors ${
                     active
-                      ? "border-[var(--accent)] font-medium text-[var(--accent)]"
+                      ? "bg-[var(--bg-primary)] font-medium text-[var(--text-primary)] shadow-[var(--shadow-card)]"
                       : disabled
-                        ? "cursor-not-allowed border-transparent text-[var(--text-muted)] opacity-50"
-                        : "border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                        ? "cursor-not-allowed text-[var(--text-muted)] opacity-50"
+                        : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
                   }`}
                 >
                   {label}
@@ -211,10 +227,10 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
             </section>
           )}
 
-          {/* tab：AI 导读 */}
+          {/* tab：AI 导读（摘要卡：与评分卡同一套表面语言） */}
           {tab === "summary" && item.summary && (
-            <section className="currents-surface-list mb-10 rounded-xl p-5">
-              <p className="text-sm leading-relaxed text-[var(--text-secondary)]">{item.summary}</p>
+            <section className="currents-reading-card mb-10">
+              <p className="text-[0.9375rem] leading-relaxed text-[var(--text-secondary)]">{item.summary}</p>
             </section>
           )}
 
@@ -316,13 +332,13 @@ export function CurrentsDetailBody({ item, deepReadHtml, translationHtml, locale
         <aside className="hidden w-64 shrink-0 lg:block">
           <div className="sticky top-24 space-y-6">
             {item.scoreBreakdown && (
-              <div className="currents-surface-list rounded-xl p-4">
-                <h2 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">{labels.scoreBreakdown}</h2>
-                <ul className="space-y-2">
+              <div className="currents-metric-card">
+                <h2 className="mb-3 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">{labels.scoreBreakdown}</h2>
+                <ul className="space-y-1">
                   {BREAKDOWN_KEYS.map((k) => (
-                    <li key={k} className="flex items-center justify-between text-xs">
+                    <li key={k} className="flex items-baseline justify-between gap-3 py-1 text-xs">
                       <span className="text-[var(--text-muted)]">{BREAKDOWN_LABEL[k][locale === "zh" ? "zh" : "en"]}</span>
-                      <span className="font-medium tabular-nums text-[var(--text-secondary)]">{breakdown[k] ?? "—"}</span>
+                      <span className="text-sm font-semibold tabular-nums text-[var(--text-primary)]">{breakdown[k] ?? "—"}</span>
                     </li>
                   ))}
                 </ul>

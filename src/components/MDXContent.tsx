@@ -1,12 +1,14 @@
 import { compile, run } from "@mdx-js/mdx";
 import * as runtime from "react/jsx-runtime";
 import type { ReactElement } from "react";
+import remarkGfm from "remark-gfm";
 import rehypePrettyCode from "rehype-pretty-code";
 import rehypeSlug from "rehype-slug";
 import { visit } from "unist-util-visit";
 import type { Root, Element } from "hast";
 import { Callout } from "@/components/mdx/Callout";
 import { CodeBlockWrapper } from "@/components/mdx/CodeBlockWrapper";
+import { remarkCjkEmphasis } from "@/lib/markdown/cjk-emphasis";
 
 export interface Heading {
   id: string;
@@ -51,16 +53,13 @@ function rehypeExtractHeadings(headings: Heading[]) {
 /**
  * 自定义 MDX 组件映射
  * - Callout: 支持 type=info/tip/warning/danger 的标注块
- * - blockquote: 统一视觉样式
+ * - pre: 包一层 client wrapper 注入复制按钮
+ *
+ * blockquote / 标题 / 列表 / 表格 等元素的排版统一由 globals.css 的
+ * `.prose` 层接管，不在此处重复定义，避免博客与潮汐两条管线样式发散。
  */
 const mdxComponents = {
   Callout,
-  blockquote: (props: React.HTMLAttributes<HTMLQuoteElement>) => (
-    <blockquote
-      {...props}
-      className="not-prose my-6 border-l-[3px] border-[var(--border-hover)] bg-[var(--bg-card)] px-5 py-4 text-sm italic leading-relaxed text-[var(--text-secondary)] [&>p]:m-0"
-    />
-  ),
   // 代码块：包一层 client wrapper 注入复制按钮（pre 本身仍是 SSR 产物）
   pre: (props: React.HTMLAttributes<HTMLPreElement>) => (
     <CodeBlockWrapper>
@@ -96,7 +95,7 @@ export async function compileMDXWithHeadings(
   const code = String(
     await compile(source, {
       outputFormat: "function-body",
-      remarkPlugins: [remarkInjectLineNumbers],
+      remarkPlugins: [remarkGfm, remarkInjectLineNumbers, remarkCjkEmphasis],
       rehypePlugins: [
         rehypeSlug,
         [

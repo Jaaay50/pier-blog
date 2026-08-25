@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { getLenis } from "@/lib/animations/lenis";
 import type { Heading } from "@/components/MDXContent";
 
@@ -11,13 +11,17 @@ interface TableOfContentsProps {
 
 /**
  * 文章目录（TOC）：
- * - 桌面端右侧悬浮
- * - 移动端点按钮展开
+ * - 桌面端右侧 sticky，呈现为轻量编辑目录（细导轨 + 当前项指示条），不做整块卡片
+ * - 移动端点按钮展开为抽屉，抽屉才使用卡片材质
  * - 滚动监听高亮当前章节
  */
 export function TableOfContents({ headings }: TableOfContentsProps) {
   const [activeId, setActiveId] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
+  const prefersReducedMotion = useReducedMotion();
+  const drawerRef = useRef<HTMLElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     if (headings.length === 0) return;
@@ -44,39 +48,134 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
     };
   }, [headings]);
 
+  // 抽屉打开时锁滚动，避免移动端背景跟随滚动
+  useEffect(() => {
+    if (!isOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [isOpen]);
+
+  // 打开后把焦点带入抽屉，并限制 Tab 在抽屉内循环；关闭后还原触发按钮。
+  useEffect(() => {
+    if (!isOpen) {
+      restoreFocusRef.current?.focus();
+      restoreFocusRef.current = null;
+      return;
+    }
+
+    closeRef.current?.focus();
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setIsOpen(false);
+        return;
+      }
+      if (e.key !== "Tab" || !drawerRef.current) return;
+
+      const focusables = Array.from(
+        drawerRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), a[href], [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => element.getAttribute("aria-hidden") !== "true");
+      if (focusables.length === 0) return;
+
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault();
+        last.focus();
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isOpen]);
+
   if (headings.length === 0) return null;
 
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
-    // Phase 4：优先用 Lenis 平滑滚动（带 easing），降级原生 smooth
+    // 优先用 Lenis 平滑滚动（带 easing）；减弱动效或无 Lenis 时直接跳转
     const lenis = getLenis();
-    if (lenis) {
+    if (lenis && !prefersReducedMotion) {
       lenis.scrollTo(el, { offset: -96, duration: 1 });
     } else {
-      el.scrollIntoView({ behavior: "smooth" });
+      el.scrollIntoView({
+        behavior: prefersReducedMotion ? "auto" : "smooth",
+      });
     }
     setIsOpen(false);
   };
 
+  const openDrawer = () => {
+    restoreFocusRef.current = document.activeElement as HTMLElement | null;
+    setIsOpen(true);
+  };
+
+  const items = (
+    <ul className="toc-list">
+      {headings.map((heading) => {
+        const isActive = activeId === heading.id;
+        return (
+          <li key={heading.id} className="relative">
+            {/* 当前项指示条：layoutId 共享实现滑动；减弱动效下瞬时切换 */}
+            {isActive && (
+              <motion.span
+                layoutId="toc-active"
+                aria-hidden="true"
+                className="absolute bottom-[0.3rem] left-0 top-[0.3rem] w-[2px] rounded-full bg-[var(--accent)]"
+                transition={
+                  prefersReducedMotion
+                    ? { duration: 0 }
+                    : { type: "spring", stiffness: 380, damping: 28 }
+                }
+              />
+            )}
+            <button
+              onClick={() => handleClick(heading.id)}
+              aria-current={isActive ? "location" : undefined}
+              className={`block w-full py-1 pr-1 text-left text-[13px] leading-snug transition-colors ${
+                heading.level === 3 ? "pl-6" : "pl-3.5"
+              } ${
+                isActive
+                  ? "font-medium text-[var(--text-primary)]"
+                  : "text-[var(--text-muted)] hover:text-[var(--text-secondary)]"
+              }`}
+            >
+              {heading.text}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+
   return (
     <>
-      {/* 移动端展开按钮 */}
+      {/* 移动端展开按钮：贴右下、尊重安全区，尺寸收小以少压正文 */}
       <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-card)] shadow-lg backdrop-blur-sm transition-all hover:border-[var(--border-hover)] lg:hidden"
+        onClick={openDrawer}
+        className="toc-fab lg:hidden"
         aria-label="Toggle table of contents"
+        aria-expanded={isOpen}
       >
         <svg
-          width="20"
-          height="20"
+          width="18"
+          height="18"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
           strokeWidth="2"
-          className="text-[var(--text-primary)]"
+          strokeLinecap="round"
+          aria-hidden="true"
         >
-          <path d="M3 6h18M3 12h18M3 18h18" />
+          <path d="M4 6h16M4 12h11M4 18h7" />
         </svg>
       </button>
 
@@ -87,57 +186,54 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
+            transition={prefersReducedMotion ? { duration: 0 } : undefined}
             onClick={() => setIsOpen(false)}
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm lg:hidden"
+            className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            aria-hidden="true"
           />
         )}
       </AnimatePresence>
 
-      {/* TOC 面板 */}
+      {/* 桌面端：轻量导轨，无卡片、无玻璃、无阴影 */}
+      <nav className="toc-rail hidden lg:block" aria-label="On this page">
+        <h2 className="mb-3 pl-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+          On This Page
+        </h2>
+        {items}
+      </nav>
+
+      {/* 移动端：抽屉（卡片材质仅用于浮层） */}
       <aside
-        className={`fixed right-0 top-20 z-50 h-[calc(100vh-5rem)] w-64 transform overflow-y-auto transition-transform duration-300 lg:sticky lg:translate-x-0 ${
-          isOpen ? "translate-x-0" : "translate-x-full"
-        }`}
+        ref={drawerRef}
+        className={`toc-drawer lg:hidden ${isOpen ? "is-open" : ""}`}
+        aria-label="On this page"
+        aria-hidden={!isOpen}
       >
-        <nav className="rounded-l-xl border border-r-0 border-[var(--border)] bg-[var(--bg-card)]/95 p-4 backdrop-blur-md lg:border-r lg:rounded-xl">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[var(--text-muted)]">
+        <div className="flex items-center justify-between pb-3 pl-3.5">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
             On This Page
           </h2>
-          <ul className="space-y-1">
-            {headings.map((heading) => (
-              <li
-                key={heading.id}
-                className="relative"
-                style={{
-                  paddingLeft: heading.level === 3 ? "1rem" : "0",
-                }}
-              >
-                {/* Phase 4：果冻高亮背景，layoutId 共享实现弹性滑动 */}
-                {activeId === heading.id && (
-                  <motion.span
-                    layoutId="toc-active"
-                    className="absolute inset-0 rounded-md bg-[var(--accent-soft)]"
-                    transition={{
-                      type: "spring",
-                      stiffness: 380,
-                      damping: 28,
-                    }}
-                  />
-                )}
-                <button
-                  onClick={() => handleClick(heading.id)}
-                  className={`relative block w-full rounded-md px-2 py-1 text-left text-sm transition-colors ${
-                    activeId === heading.id
-                      ? "font-medium text-[var(--accent)]"
-                      : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                  }`}
-                >
-                  {heading.text}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </nav>
+          <button
+            ref={closeRef}
+            onClick={() => setIsOpen(false)}
+            aria-label="Close table of contents"
+            className="-mr-1 rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              aria-hidden="true"
+            >
+              <path d="M18 6L6 18M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        {items}
       </aside>
     </>
   );

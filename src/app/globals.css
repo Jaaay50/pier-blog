@@ -28,11 +28,14 @@
   --border: #dedcd1;          /* Hairline soft */
   --border-hover: #d1cfc5;    /* Hairline */
 
-  /* ---- 潮汐 Currents 语义表面（暖纸张层级，非纯白） ---- */
-  --currents-surface-list: rgba(255, 252, 246, 0.45);        /* 普通列表卡：低白比例 */
-  --currents-surface-list-hover: rgba(255, 252, 246, 0.6);
-  --currents-surface-highlight: rgba(255, 252, 246, 0.68);   /* 要闻强调：更强玻璃 */
-  --currents-surface-sticky: rgba(250, 249, 245, 0.86);      /* sticky 工具栏/浮层：暖纸半透明 */
+  /* ---- 潮汐 Currents 语义表面（暖纸张层级，非纯白） ----
+     不透明度偏高（>=0.9）是有意的：早期 0.45 的半透明白叠在几乎同色的
+     暖纸底上，卡片与背景几乎不分层，同时 backdrop-filter 会把 ambient glow
+     透上来，导致整块发灰。提高不透明度后卡面回到干净的暖白。 */
+  --currents-surface-list: rgba(255, 253, 249, 0.92);        /* 普通列表卡 */
+  --currents-surface-list-hover: rgba(255, 255, 252, 0.97);
+  --currents-surface-highlight: rgba(255, 255, 252, 0.97);   /* 要闻强调 */
+  --currents-surface-sticky: rgba(250, 249, 245, 0.92);      /* sticky 工具栏/浮层 */
   --currents-border: #dedcd1;
   --currents-shadow-list: 0 1px 2px rgba(20, 20, 19, 0.04);
   --currents-shadow-list-hover: 0 6px 18px rgba(20, 20, 19, 0.07);
@@ -79,11 +82,12 @@
   --border: #222222;
   --border-hover: #333333;
 
-  /* ---- 潮汐 Currents 语义表面（深色同步适配） ---- */
-  --currents-surface-list: rgba(26, 26, 26, 0.42);
-  --currents-surface-list-hover: rgba(26, 26, 26, 0.55);
-  --currents-surface-highlight: rgba(26, 26, 26, 0.55);
-  --currents-surface-sticky: rgba(15, 15, 15, 0.82);
+  /* ---- 潮汐 Currents 语义表面（深色同步适配） ----
+     同样提高不透明度：深色下低不透明度叠蓝调 glow 会把卡面抹成淡蓝灰。 */
+  --currents-surface-list: rgba(26, 26, 26, 0.94);
+  --currents-surface-list-hover: rgba(32, 32, 32, 0.98);
+  --currents-surface-highlight: rgba(32, 32, 32, 0.98);
+  --currents-surface-sticky: rgba(15, 15, 15, 0.92);
   --currents-border: #222222;
   --currents-shadow-list: 0 1px 2px rgba(0, 0, 0, 0.3);
   --currents-shadow-list-hover: 0 6px 18px rgba(0, 0, 0, 0.4);
@@ -834,51 +838,334 @@ html[data-gpu-tier="low"].dark .card-glass {
   box-shadow: 0 0 20px var(--glow-color);
 }
 
-/* Prose for blog content */
-.prose {
-  --tw-prose-body: var(--text-primary);
-  --tw-prose-headings: var(--text-primary);
-  --tw-prose-links: var(--accent);
-  --tw-prose-code: var(--accent-hover);
-  line-height: 1.75;
+/* ============================================
+   阅读排版层（Reading Typography）
+
+   唯一职责方：博客 MDX 正文与潮汐深度解读/翻译正文的元素级排版。
+   本项目未安装 @tailwindcss/typography，Preflight 又清空了 h1-h6/ul/ol
+   的默认 margin 与 list-style，因此所有间距、字号、列表样式必须在此显式
+   定义 —— 否则正文会退化成无间距、无项目符号的纯文本流。
+
+   两个消费方：
+   - .prose                    博客 MDX（blog/[slug]/page.tsx）
+   - .currents-reader-prose    潮汐 Markdown（CurrentsDetailBody）
+   二者共享同一套 token，仅通过 token 覆盖做独立微调，
+   保证两条渲染管线视觉一致。组件层不再重复定义元素样式。
+   ============================================ */
+.prose,
+.currents-reader-prose {
+  /* 阅读节奏 token：统一在此调节，避免各处魔法数字 */
+  --prose-measure: 1.75;      /* 正文行高 */
+  --prose-gap: 1.25em;        /* 段落间距 */
+  --prose-h-lead: 2.25em;     /* 标题上间距 */
+  --prose-h-trail: 0.75em;    /* 标题下间距 */
+  --prose-block-gap: 1.5rem;  /* 块级元素（代码/表格/引用/图）外边距 */
+
+  line-height: var(--prose-measure);
+  color: var(--text-primary);
+  /* 长 URL 与连续 ASCII 串不撑破窄屏 */
+  overflow-wrap: break-word;
+}
+
+/* 潮汐正文略紧凑：资讯场景信息密度更高 */
+.currents-reader-prose {
+  --prose-gap: 1.1em;
+  --prose-h-lead: 1.85em;
+  --prose-h-trail: 0.6em;
+}
+
+/* ---- 段落 ---- */
+.prose p,
+.currents-reader-prose p {
+  margin-block: 0 var(--prose-gap);
+}
+
+/* 首尾元素不产生额外外边距，交由容器控制留白 */
+.prose > :first-child,
+.currents-reader-prose > :first-child {
+  margin-block-start: 0;
+}
+
+.prose > :last-child,
+.currents-reader-prose > :last-child {
+  margin-block-end: 0;
 }
 
 /* 浅色模式正文用衬线（Claude 阅读体验），深色保持无衬线（Kimi 屏显） */
 .prose p,
 .prose li,
-.prose blockquote {
+.prose blockquote,
+.currents-reader-prose p,
+.currents-reader-prose li,
+.currents-reader-prose blockquote {
   font-family: var(--font-display);
   font-size: 1.0625rem;
 }
 
 .dark .prose p,
 .dark .prose li,
-.dark .prose blockquote {
+.dark .prose blockquote,
+.dark .currents-reader-prose p,
+.dark .currents-reader-prose li,
+.dark .currents-reader-prose blockquote {
   font-family: var(--font-ui);
   font-size: 1rem;
 }
 
-.prose h1,
-.prose h2,
-.prose h3,
-.prose h4 {
+/* ---- 标题层级 ----
+   字号阶梯克制（1.75 / 1.5 / 1.25 / 1.0625rem），
+   靠字重、字距与间距建立层级，而不是靠尺寸跳跃或分隔线。 */
+.prose :is(h1, h2, h3, h4),
+.currents-reader-prose :is(h1, h2, h3, h4) {
   font-family: var(--font-display);
   font-weight: 600;
   letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--text-primary);
+  margin-block: var(--prose-h-lead) var(--prose-h-trail);
+  /* 锚点跳转时标题不被固定导航栏遮挡 */
+  scroll-margin-top: calc(var(--site-nav-height) + 1.5rem);
+  text-wrap: balance;
 }
 
-.prose a {
+.prose h1,
+.currents-reader-prose h1 { font-size: 1.75rem; }
+
+.prose h2,
+.currents-reader-prose h2 { font-size: 1.5rem; }
+
+.prose h3,
+.currents-reader-prose h3 { font-size: 1.25rem; }
+
+.prose h4,
+.currents-reader-prose h4 {
+  font-size: 1.0625rem;
+  letter-spacing: -0.01em;
+}
+
+/* h2 用极轻的短起始线做分节暗示，取代整行硬分隔 */
+.prose h2::before,
+.currents-reader-prose h2::before {
+  content: "";
+  display: block;
+  width: 1.5rem;
+  height: 2px;
+  margin-bottom: 0.65em;
+  border-radius: 1px;
+  background: var(--accent);
+  opacity: 0.45;
+}
+
+/* ---- 列表 ---- */
+.prose :is(ul, ol),
+.currents-reader-prose :is(ul, ol) {
+  margin-block: 0 var(--prose-gap);
+  padding-inline-start: 1.5em;
+}
+
+.prose ul,
+.currents-reader-prose ul { list-style: disc; }
+
+.prose ol,
+.currents-reader-prose ol { list-style: decimal; }
+
+.prose ul ul,
+.currents-reader-prose ul ul { list-style: circle; }
+
+/* 嵌套列表收紧上下外边距 */
+.prose :is(ul, ol) :is(ul, ol),
+.currents-reader-prose :is(ul, ol) :is(ul, ol) {
+  margin-block: 0.4em;
+}
+
+.prose li,
+.currents-reader-prose li {
+  margin-block: 0.4em;
+  padding-inline-start: 0.2em;
+  line-height: var(--prose-measure);
+}
+
+.prose li::marker,
+.currents-reader-prose li::marker {
+  color: var(--text-muted);
+}
+
+/* 松散列表：项内段落不叠加完整段间距 */
+.prose li > p,
+.currents-reader-prose li > p {
+  margin-block: 0 0.5em;
+}
+
+.prose li > p:last-child,
+.currents-reader-prose li > p:last-child {
+  margin-block-end: 0;
+}
+
+/* ---- 链接：明确但不过度（细下划线 + accent 色） ---- */
+.prose a,
+.currents-reader-prose a {
   color: var(--accent);
-  text-decoration: none;
-  transition: color 0.2s;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.18em;
+  text-decoration-color: color-mix(in srgb, var(--accent) 35%, transparent);
+  transition: color 0.2s ease, text-decoration-color 0.2s ease;
 }
 
-.prose a:hover {
+.prose a:hover,
+.currents-reader-prose a:hover {
   color: var(--accent-hover);
+  text-decoration-color: var(--accent-hover);
 }
 
-/* Code blocks: typed fences use rehype-pretty-code, plain fences only get the
-   client wrapper. Both must own their horizontal scrolling on narrow screens. */
+/* ---- 行内代码 ----
+   :not(pre) > code 精确排除代码块内部，避免与 Shiki 高亮冲突 */
+.prose :not(pre) > code,
+.currents-reader-prose :not(pre) > code {
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.875em;
+  padding: 0.15em 0.4em;
+  border-radius: 5px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--accent-hover);
+  overflow-wrap: break-word;
+}
+
+/* 链接内的行内代码继承链接色，避免双色打架 */
+.prose a > code,
+.currents-reader-prose a > code {
+  color: inherit;
+}
+
+/* ---- 引用 ---- */
+.prose blockquote,
+.currents-reader-prose blockquote {
+  margin-block: var(--prose-block-gap);
+  padding: 0.15em 0 0.15em 1.15em;
+  border-inline-start: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--text-secondary);
+  font-style: normal;
+}
+
+.prose blockquote p,
+.currents-reader-prose blockquote p {
+  margin-block-end: 0.6em;
+}
+
+.prose blockquote > :last-child,
+.currents-reader-prose blockquote > :last-child {
+  margin-block-end: 0;
+}
+
+/* ---- 强调 ---- */
+.prose :is(strong, b),
+.currents-reader-prose :is(strong, b) {
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.prose em,
+.currents-reader-prose em { font-style: italic; }
+
+.prose del,
+.currents-reader-prose del {
+  color: var(--text-muted);
+  text-decoration-thickness: 1px;
+}
+
+/* ---- 分隔线：低存在感，不做整行硬切 ---- */
+.prose hr,
+.currents-reader-prose hr {
+  margin-block: 2.5em;
+  border: 0;
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    var(--border) 0%,
+    var(--border) 35%,
+    transparent 100%
+  );
+}
+
+/* ---- 表格（remark-gfm）：自身承担横向滚动，窄屏不撑破版心 ---- */
+.prose table,
+.currents-reader-prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block: var(--prose-block-gap);
+  border-collapse: collapse;
+  font-family: var(--font-ui);
+  font-size: 0.9375rem;
+}
+
+.prose :is(th, td),
+.currents-reader-prose :is(th, td) {
+  padding: 0.55rem 0.9rem;
+  border: 1px solid var(--border);
+  text-align: start;
+  vertical-align: top;
+}
+
+.prose th,
+.currents-reader-prose th {
+  background: var(--bg-card);
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.prose td,
+.currents-reader-prose td {
+  color: var(--text-secondary);
+}
+
+/* ---- 图片 / 视频 ---- */
+.prose :is(img, video),
+.currents-reader-prose :is(img, video) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-block: var(--prose-block-gap);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+/* 打印：保留层级，交互色降级为墨色 */
+@media print {
+  .prose,
+  .currents-reader-prose {
+    color: #000;
+  }
+
+  .prose a,
+  .currents-reader-prose a {
+    color: #000;
+    text-decoration: underline;
+  }
+
+  .prose h2::before,
+  .currents-reader-prose h2::before {
+    display: none;
+  }
+}
+
+/* ============================================
+   代码块（rehype-pretty-code + CodeBlockWrapper）
+
+   实际 DOM（已实测）：
+     figure[data-rehype-pretty-code-figure]
+       └ figcaption[data-rehype-pretty-code-title]   ← title="x" 时存在
+       └ div.codeblock-wrapper                       ← client 复制按钮容器
+           └ pre > code[data-line-numbers] > span[data-line]
+
+   figcaption 是 figure 的子元素而非 pre 的兄弟，因此标题栏与 pre 的衔接
+   由 figure 承担边框、内部元素去边框实现，不使用负 margin 对齐。
+   横向内边距交给 [data-line]，让行号列与高亮行底色能够通栏。
+   ============================================ */
+
+/* 无 title 的裸代码块：pre 自己承担边框与圆角 */
 [data-rehype-pretty-code-figure] pre,
 .codeblock-wrapper > pre {
   max-width: 100%;
@@ -886,20 +1173,34 @@ html[data-gpu-tier="low"].dark .card-glass {
   overflow-x: auto;
   border-radius: 12px;
   border: 1px solid var(--border);
-  padding: 1.25rem;
-  margin: 1.5rem 0;
+  padding: 1.1rem 0;
+  margin: var(--prose-block-gap, 1.5rem) 0;
+  /* 触屏惯性滚动 + 滚动条不遮挡首行 */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
-/* 代码块标题栏（```lang title="x" 时由 pretty-code 产出） */
+/* 有 title 时：外框收归 figure，标题栏与代码区成为同一张卡 */
+[data-rehype-pretty-code-figure]:has(> [data-rehype-pretty-code-title]) {
+  margin: var(--prose-block-gap, 1.5rem) 0;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+[data-rehype-pretty-code-figure]:has(> [data-rehype-pretty-code-title]) pre {
+  border: 0;
+  border-radius: 0;
+  margin: 0;
+}
+
+/* 代码块标题栏 */
 [data-rehype-pretty-code-title] {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin: 1.5rem 0 -2.75rem;
   padding: 0.55rem 1rem;
-  border: 1px solid var(--border);
-  border-bottom: none;
-  border-radius: 12px 12px 0 0;
+  border-bottom: 1px solid var(--border);
   background: var(--bg-card);
   font-family: var(--font-jetbrains-mono), monospace;
   font-size: 0.75rem;
@@ -912,6 +1213,7 @@ html[data-gpu-tier="low"].dark .card-glass {
   margin-left: auto;
   width: 14px;
   height: 14px;
+  flex: none;
   background:
     /* 灯点 */
     radial-gradient(circle at 50% 52%, var(--accent) 0 1.5px, transparent 1.5px),
@@ -924,16 +1226,12 @@ html[data-gpu-tier="low"].dark .card-glass {
   opacity: 0.55;
 }
 
-/* title 存在时 pre 上圆角收起、上边界与标题条衔接 */
-[data-rehype-pretty-code-title] + [data-rehype-pretty-code-figure] pre,
-[data-rehype-pretty-code-title] + figure pre {
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
-}
-
-/* 行号：grid counter 方案（.codeblock-line-numbers 由 pretty-code meta 触发） */
+/* 行号：grid counter 方案（showLineNumbers 由 remark 插件统一注入） */
 [data-rehype-pretty-code-figure] code {
   counter-reset: line;
+  font-family: var(--font-jetbrains-mono), monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
 }
 
 code[data-line-numbers] > [data-line]::before {
@@ -952,12 +1250,6 @@ code[data-line-numbers] > [data-line]::before {
 code[data-line-numbers-max-digits="2"] > [data-line]::before { width: 2.25rem; }
 code[data-line-numbers-max-digits="3"] > [data-line]::before { width: 2.75rem; }
 
-[data-rehype-pretty-code-figure] code {
-  font-family: var(--font-jetbrains-mono), monospace;
-  font-size: 0.875rem;
-  line-height: 1.7;
-}
-
 [data-rehype-pretty-code-figure] [data-line] {
   padding: 0 1rem;
   border-left: 2px solid transparent;
@@ -966,6 +1258,12 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before { width: 2.75rem; }
 [data-rehype-pretty-code-figure] [data-highlighted-line] {
   background: var(--accent-soft-block);
   border-left-color: var(--accent);
+}
+
+/* 复制按钮：默认隐形，hover/focus 浮现；
+   已复制态由组件切换 aria-label 与图标，此处只保证可见性与位置稳定。 */
+.codeblock-wrapper {
+  position: relative;
 }
 
 /* ============================================
@@ -1085,18 +1383,16 @@ code[data-line-numbers-max-digits="3"] > [data-line]::before { width: 2.75rem; }
   to   { opacity: 1; }
 }
 
-/* 主题切换时禁用默认 fade，改由 JS 控制 clip-path 圆形扩散
+/* 主题切换保持浏览器原生的 viewport-scoped crossfade。
    （html.theme-transitioning 由 ThemeToggle 在切换期间添加） */
 html.theme-transitioning::view-transition-old(root),
 html.theme-transitioning::view-transition-new(root) {
-  animation: none;
   mix-blend-mode: normal;
+  animation-duration: 0.35s;
 }
 
-/* 主题切换期间 ambient-bg 必须回归 root 快照：
-   否则它会独立做 0.25s 交叉淡入，与 0.5s 圆形扩散不同步，
-   光晕区域提前变色 → 闪烁 */
-/* 主题切换期间 scroll-progress 同样回归 root 快照（与 ambient-bg 同步） */
+/* 主题切换期间 ambient-bg 与 scroll-progress 回归 root 快照，
+   避免独立层与主题交叉淡入不同步而产生闪烁。 */
 html.theme-transitioning .scroll-progress {
   view-transition-name: none;
 }
@@ -1105,12 +1401,11 @@ html.theme-transitioning .ambient-bg {
   view-transition-name: none;
 }
 
-html.theme-transitioning::view-transition-new(root) {
-  z-index: 10;
-}
-
-html.theme-transitioning::view-transition-old(root) {
-  z-index: 1;
+@media (prefers-reduced-motion: reduce) {
+  html.theme-transitioning::view-transition-old(root),
+  html.theme-transitioning::view-transition-new(root) {
+    animation: none !important;
+  }
 }
 
 /* ============================================
@@ -1449,9 +1744,10 @@ html[data-density="comfortable"] {
   background-color: var(--currents-surface-list);
   border: 1px solid var(--currents-border);
   box-shadow: var(--currents-shadow-list);
-  backdrop-filter: blur(10px) saturate(1.25);
-  -webkit-backdrop-filter: blur(10px) saturate(1.25);
-  backdrop-filter: blur(10px) saturate(1.25);
+  /* blur 降到 6px 且不再 saturate：高不透明度下强玻璃只会把背景
+     ambient glow 抬进卡面造成发灰，对观感已无贡献。 */
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
   transition: border-color 0.3s ease, box-shadow 0.3s ease,
     transform 0.3s ease, background-color 0.3s ease;
 }
@@ -1483,9 +1779,8 @@ html[data-density="comfortable"] {
   background-color: var(--currents-surface-highlight);
   border: 1px solid var(--currents-border);
   box-shadow: var(--currents-shadow-highlight);
-  backdrop-filter: blur(16px) saturate(1.4);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   transition: border-color 0.3s ease, box-shadow 0.3s ease,
     transform 0.3s ease, background-color 0.3s ease;
 }
@@ -1497,9 +1792,33 @@ html[data-density="comfortable"] {
 
 .currents-surface-sticky {
   background-color: var(--currents-surface-sticky);
-  backdrop-filter: blur(12px) saturate(1.3);
-  -webkit-backdrop-filter: blur(12px) saturate(1.3);
-  backdrop-filter: blur(12px) saturate(1.3);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* ---- 阅读面卡片：摘要卡 / 指标卡 ----
+   与列表卡共用同一套圆角、边框、阴影与背景层级，
+   但不带 hover 位移——它们是阅读内容，不是可点击目标。
+   也不用 backdrop-filter：正文区域不需要透背景，避免发灰。 */
+.currents-reading-card,
+.currents-metric-card {
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background-color: var(--bg-card);
+  box-shadow: var(--shadow-card);
+}
+
+.currents-reading-card {
+  padding: 1.25rem;
+}
+
+.currents-metric-card {
+  padding: 1rem;
+}
+
+/* 指标卡：行间细分割线让数字成列可读，比整块背景块更轻 */
+.currents-metric-card li + li {
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1595,5 +1914,97 @@ html[data-density="comfortable"] {
 
   .prose-guarded [contenteditable="false" i] {
     -webkit-touch-callout: none;
+  }
+}
+
+/* ============================================
+   TOC：桌面端轻量导轨 + 移动端抽屉
+
+   桌面端刻意不使用卡片材质（无背景、无阴影、无 backdrop-filter），
+   只留一条 1px 细导轨，避免与正文争夺视觉焦点。
+   移动端才用卡片浮层，因为浮层需要与正文分层。
+   ============================================ */
+.toc-rail {
+  border-left: 1px solid var(--border);
+  padding: 0.125rem 0;
+  max-height: calc(100vh - 8rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* 细滚动条，不抢注意力 */
+  scrollbar-width: thin;
+}
+
+.toc-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* 移动端浮动按钮：贴右下并尊重安全区；
+   刻意小一号并留出与 BlogProseGuard 底部提示条的错位空间 */
+.toc-fab {
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 40;
+  display: flex;
+  height: 2.5rem;
+  width: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-card);
+  transition: color 200ms ease, border-color 200ms ease;
+}
+
+.toc-fab:hover {
+  color: var(--text-primary);
+  border-color: var(--border-hover);
+}
+
+.toc-drawer {
+  position: fixed;
+  z-index: 50;
+  top: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  width: min(17rem, 82vw);
+  height: 100%;
+  padding: 1.25rem 1rem;
+  padding-top: max(1.25rem, env(safe-area-inset-top));
+  padding-bottom: max(1.25rem, env(safe-area-inset-bottom));
+  padding-right: max(1rem, env(safe-area-inset-right));
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-left: 1px solid var(--border);
+  background: var(--bg-card);
+  box-shadow: var(--shadow-card-hover);
+  transform: translateX(100%);
+  transition: transform 300ms ease;
+}
+
+.toc-drawer.is-open {
+  transform: translateX(0);
+}
+
+/* 关闭态从 tab 序列移除，避免键盘焦点落进隐藏抽屉 */
+.toc-drawer[aria-hidden="true"] {
+  visibility: hidden;
+}
+
+.toc-drawer.is-open[aria-hidden="false"] {
+  visibility: visible;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .toc-drawer {
+    transition: none;
   }
 }
