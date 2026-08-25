@@ -150,14 +150,14 @@ export default async function BlogPostPage({ params }: PageProps) {
       />
 
       {/* Article + TOC 双栏布局 */}
-      <div className="site-content flex gap-8 py-16">
+      <div className="site-content flex py-16 lg:gap-8">
         <article className="min-w-0 flex-1">
           <div className="reading-column-no-px">
 
             {/* ── Header ── */}
-            <header className="mb-16">
+            <header className="mb-12">
               {/* Back link */}
-              <div className="mb-6">
+              <div className="mb-8">
                 <Link
                   href="/blog"
                   className="inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
@@ -169,14 +169,16 @@ export default async function BlogPostPage({ params }: PageProps) {
                 </Link>
               </div>
 
-              {/* Tags — 标题上方 */}
+              {/* Tags — 标题上方，作为最弱的一级分类信息 */}
               {post.tags.length > 0 && (
-                <div className="mb-4 flex flex-wrap gap-2">
-                  {post.tags.map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-full border border-[var(--border)] bg-[var(--bg-primary)] px-3 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--text-muted)]"
-                    >
+                <div className="mb-5 flex flex-wrap items-center gap-x-2 gap-y-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
+                  {post.tags.map((tag, i) => (
+                    <span key={tag} className="inline-flex items-center gap-2">
+                      {i > 0 && (
+                        <span aria-hidden="true" className="opacity-30">
+                          /
+                        </span>
+                      )}
                       {tag}
                     </span>
                   ))}
@@ -184,22 +186,21 @@ export default async function BlogPostPage({ params }: PageProps) {
               )}
 
               {/* Title */}
-              <h1 className="mb-6 text-4xl font-bold leading-tight tracking-tight md:text-5xl">
+              <h1 className="text-balance text-[2rem] font-bold leading-[1.15] tracking-tight md:text-[2.75rem]">
                 {post.title}
               </h1>
 
-              {/* Divider */}
-              <hr className="mb-5 border-[var(--border)]" />
-
-              {/* Meta row */}
-              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-[var(--text-muted)]">
+              {/* Meta row —— 取代标题下横线，用留白与弱色建立层级 */}
+              <div className="mt-5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm text-[var(--text-muted)]">
                 <time dateTime={post.date}>
                   {new Date(post.date).toLocaleDateString(
                     locale === "zh" ? "zh-CN" : "en-US",
                     { year: "numeric", month: "long", day: "numeric" }
                   )}
                 </time>
-                <span className="opacity-40">·</span>
+                <span aria-hidden="true" className="opacity-30">
+                  ·
+                </span>
                 <span>
                   {locale === "zh"
                     ? `${post.readMinutes} 分钟阅读`
@@ -213,17 +214,16 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </article>
 
-        {/* TOC 侧边栏（桌面端 sticky，移动端悬浮按钮） */}
-        <div className="hidden w-64 shrink-0 lg:block">
-          <div className="sticky top-24">
+        {/* TOC：桌面端 sticky 导轨，移动端悬浮按钮 + 抽屉。
+            只渲染一个实例：避免重复 nav landmark、重复 IntersectionObserver，
+            以及 layoutId="toc-active" 在两个实例间相互抓取。
+            移动端用 w-0 而非 hidden：display:none 会一并移除子树中
+            position:fixed 的浮动按钮与抽屉。 */}
+        <div className="w-0 shrink-0 lg:w-64">
+          <div className="lg:sticky lg:top-24">
             <TableOfContents headings={headings} />
           </div>
         </div>
-      </div>
-
-      {/* 移动端 TOC（悬浮） */}
-      <div className="lg:hidden">
-        <TableOfContents headings={headings} />
       </div>
 
       {/* 相关阅读 */}
