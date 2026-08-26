@@ -1,3 +1,14 @@
+### 博客文章排版与卡片视觉优化（2026-08-26，已完成并上线）
+
+- ✅ 统一博客 MDX 与潮汐深度解读的正文排版 token，补齐标题层级、段落节奏、列表、引用、表格、代码、链接和窄屏溢出处理；卡片表面改为更稳定的双主题暖纸/深色层级。
+- ✅ 新增 CJK Markdown 强调修复，中文 `**加粗**` 不再把星号直接输出到页面；补齐 Markdown/MDX 回归覆盖。
+- ✅ 移动端文章目录改为抽屉交互：背景滚动锁定、Escape 关闭、焦点移入、Tab 循环与关闭后焦点恢复；主题切换移除会产生巨大黑色圆形遮罩的 root `clip-path`，改用受视口约束的淡入淡出并支持 reduced-motion 直切。
+- ✅ 验证：40 个测试文件、308 项测试、lint、TypeScript、production build 与 `git diff --check` 通过；Chrome 桌面主题切换与 390×844 移动端目录抽屉已复核。
+- ✅ 交付：PR #29，功能 commit `827c442`（北京时间 2026-08-26），merge commit `4327579f1b266bed5433507768a156093305700f`（GitHub 记录为 2026-08-25 23:52 UTC / 北京时间 2026-08-26 07:52）；main CI `32912708238` 与 production deploy `32912798073` 成功，Vercel deployment `pier-blog-4vp6jrhme-jia-ethans-projects.vercel.app` Ready 并 alias 到 `ethanpier.com`。
+- ➖ 验收边界：线上文章页返回 200 且 `x-vercel-cache: HIT`；正式站技术验证不替代 Safari、真实设备与主观视觉验收。
+
+---
+
 ### 首页 Hero 与第二屏背景过渡（2026-08-24，已完成并上线）
 
 - ✅ 根因：Hero 在 `100vh` 边界裁切独立光场，并用不透明的站点底色渐变收尾；进入使用 fixed ambient background 的第二屏时，两套背景在同一水平线硬切。
