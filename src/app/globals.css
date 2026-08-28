@@ -409,6 +409,32 @@ html.custom-cursor-on body {
   margin-right: auto;
 }
 
+/* About 作为长内容页使用静态光场，避免首屏 WebGL 与滚动动画叠加。 */
+.about-hero-gradient {
+  background:
+    radial-gradient(circle at 72% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 42%),
+    radial-gradient(circle at 20% 72%, color-mix(in srgb, var(--gradient-text-3) 10%, transparent), transparent 48%);
+}
+
+.about-title-gradient {
+  color: var(--gradient-text-2);
+  background-image: linear-gradient(120deg, var(--gradient-text-1), var(--gradient-text-2) 52%, var(--gradient-text-3));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.about-contact-panel {
+  background-color: color-mix(in srgb, var(--bg-card) 72%, transparent);
+  box-shadow: 0 12px 32px color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .about-contact-panel {
+    box-shadow: none;
+  }
+}
+
 /* ============================================
    ScrollProgress：文章页顶部进度线
    ============================================ */
@@ -720,6 +746,19 @@ html[data-gpu-tier="low"].dark .card-glass {
   backdrop-filter: blur(10px) saturate(1.3);
   -webkit-backdrop-filter: blur(10px) saturate(1.3);
   backdrop-filter: blur(10px) saturate(1.3);
+}
+
+/* 关于页卡片以静态表面为主，避免长页滚动时反复合成大面积玻璃模糊。 */
+html[data-gpu-tier] .about-page .card-glass,
+html:not([data-gpu-tier]) .about-page .card-glass {
+  background-color: color-mix(in srgb, var(--bg-card) 92%, transparent);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+
+.about-page .card-glass-hover:hover {
+  box-shadow: 0 12px 28px color-mix(in srgb, var(--text-primary) 8%, transparent);
 }
 
 /* CTA 按钮：浅色纯色（Claude 克制），深色带 glow（Kimi 流光） */

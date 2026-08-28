@@ -1,3 +1,16 @@
+### 博客与 Cloudborne 导流优化（2026-08-28，已完成并上线）
+
+- ✅ 独立站入口：在 `/zh/about` 与 `/en/about` 首屏介绍下加入低强调入口；在工作经历之后、联系我之前加入 Cloudborne 产品卡片；页脚加入外部链接。链接固定为 `https://cloudborne.cn`，新窗口打开并带 `noopener noreferrer`，不加入 UTM。
+- ✅ 导航边界：顶部主导航继续保持五项；Cloudborne 作为个人作品与产品延伸，不加入站内诗意栏目导航。
+- ✅ 页面级 SEO：为首页、About、Portfolio、Blog、Currents 补齐双语 metadata、canonical、`en`/`zh`/`x-default` hreflang、Open Graph/Twitter；Currents 补充 `CollectionPage` JSON-LD。
+- ✅ 内容与交互修复：博客 `?tag=` 筛选可通过 URL 恢复；文章目录统一为中文「本文目录」与英文「Table of Contents」，移动端不可见目录同步 `inert`/`aria-hidden`；文章 JSON-LD 的 `dateModified` 与 frontmatter `updatedAt` 对齐。
+- ✅ 文章准确性：性能文章拆分 FID/INP 并补充 INP `≤200ms` 阈值；AI 界面文章补齐 `AbortController` 的 `fetch(..., { signal })`、reducer/imports 与示例边界说明。
+- ✅ 验证：`npm test` 通过（44 个测试文件、322 个测试），`npm run lint`、`npm run build`、`git diff --check` 均通过；PR CI run `33141843457` 成功。
+- ✅ 交付：PR #30（[GitHub](https://github.com/Jaaay50/pier-blog/pull/30)）已合并，merge commit 为 `dec6817aed44e9f709dd54bf26d8498663fc96ca`；生产部署 run `33141996900` 成功，Vercel deployment `pier-blog-d5ylngstu-jia-ethans-projects.vercel.app` 已 alias 到 `https://ethanpier.com`。
+- ✅ 线上技术核对：2026-08-28 `/zh/about`、`/en/about` 与 `/zh/currents` 均返回 HTTP 200，About 页面包含 Cloudborne 入口，Currents 页面包含 JSON-LD。
+- ➖ 验收边界：上述为代码、CI、部署和线上技术核对，不替代橋对桌面/移动端视觉、Safari/真实设备、键盘触控和业务转化的主观验收；未执行 Cloudborne 官网改动。
+- ➖ 后续范围：原方案 Phase 2/3 的主题页、系列索引、URL 筛选体系、文章上下文 CTA 与跨域点击观测尚未实现。
+
 ### 博客文章排版与卡片视觉优化（2026-08-26，已完成并上线）
 
 - ✅ 统一博客 MDX 与潮汐深度解读的正文排版 token，补齐标题层级、段落节奏、列表、引用、表格、代码、链接和窄屏溢出处理；卡片表面改为更稳定的双主题暖纸/深色层级。
