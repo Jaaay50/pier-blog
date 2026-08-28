@@ -5,8 +5,8 @@ import {
   motion,
   useScroll,
   useTransform,
-  useSpring,
   useMotionValueEvent,
+  useReducedMotion,
 } from "motion/react";
 
 interface Experience {
@@ -63,25 +63,27 @@ function HorizontalJourney({ title, experiences }: ExperienceJourneyProps) {
   const trackRef = useRef<HTMLDivElement>(null);
   const [overflow, setOverflow] = useState(0);
   const [active, setActive] = useState(0);
+  const activeRef = useRef(0);
 
   const { scrollYProgress } = useScroll({
     target: wrapperRef,
     offset: ["start start", "end end"],
   });
-  // 弹簧平滑：横移带轻微惯性
-  const progress = useSpring(scrollYProgress, { stiffness: 120, damping: 24 });
-  const x = useTransform(progress, [0, 1], [0, -overflow]);
+  // 直接映射滚动进度，避免每帧再经过一层 spring 计算。
+  const x = useTransform(scrollYProgress, [0, 1], [0, -overflow]);
   const pathLength = useTransform(scrollYProgress, [0.02, 0.95], [0, 1]);
 
   useMotionValueEvent(scrollYProgress, "change", (v) => {
-    const idx = Math.min(
-      experiences.length - 1,
-      Math.round(v * (experiences.length - 1))
-    );
-    setActive(idx);
+    const lastIndex = Math.max(0, experiences.length - 1);
+    const idx = Math.max(0, Math.min(lastIndex, Math.round(v * lastIndex)));
+    if (activeRef.current !== idx) {
+      activeRef.current = idx;
+      setActive(idx);
+    }
   });
 
   useEffect(() => {
+    activeRef.current = 0;
     const measure = () => {
       const container = containerRef.current;
       const track = trackRef.current;
@@ -162,12 +164,9 @@ function HorizontalJourney({ title, experiences }: ExperienceJourneyProps) {
 function JourneyCard({ exp, active }: { exp: Experience; active: boolean }) {
   return (
     <motion.article
-      animate={{
-        scale: active ? 1 : 0.94,
-        opacity: active ? 1 : 0.55,
-      }}
-      transition={{ type: "spring", stiffness: 200, damping: 26 }}
-      className="relative w-[70vw] max-w-3xl shrink-0"
+      className={`relative w-[70vw] max-w-3xl shrink-0 transition-opacity duration-200 motion-reduce:transition-none ${
+        active ? "opacity-100" : "opacity-75"
+      }`}
     >
       {/* 背景大字年份装饰 */}
       <div
@@ -196,6 +195,8 @@ function JourneyCard({ exp, active }: { exp: Experience; active: boolean }) {
 /* ============ 移动端 / 降级：竖向时间线（SVG 竖线随进入绘制） ============ */
 
 function VerticalTimeline({ title, experiences }: ExperienceJourneyProps) {
+  const reducedMotion = useReducedMotion();
+
   return (
     <section className="py-16">
       <div className="site-content">
@@ -204,10 +205,10 @@ function VerticalTimeline({ title, experiences }: ExperienceJourneyProps) {
           {experiences.map((exp, i) => (
             <motion.div
               key={exp.title}
-              initial={{ opacity: 0, y: 24 }}
-              whileInView={{ opacity: 1, y: 0 }}
+              initial={reducedMotion ? false : { opacity: 0, y: 24 }}
+              whileInView={reducedMotion ? undefined : { opacity: 1, y: 0 }}
               viewport={{ once: true, margin: "-10%" }}
-              transition={{ duration: 0.6, delay: i * 0.1 }}
+              transition={reducedMotion ? { duration: 0 } : { duration: 0.6, delay: i * 0.1 }}
               className="group border-l-2 border-[var(--border)] pl-6 transition-colors hover:border-[var(--border-hover)]"
             >
               <div className="mb-1 text-sm text-[var(--text-muted)]">
