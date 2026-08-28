@@ -7,7 +7,12 @@
     "currents": "Currents",
     "github": "GitHub",
     "menuOpen": "Open menu",
-    "menuClose": "Close menu"
+    "menuClose": "Close menu",
+    "blogHint": "Blog",
+    "currentsHint": "AI updates",
+    "portfolioHint": "Portfolio",
+    "labHint": "Experiments",
+    "aboutHint": "About me"
   },
   "currents": {
     "title": "Currents",
@@ -314,6 +319,10 @@
     "back": "Back",
     "readMore": "Read more",
     "related": "Related Reading",
+    "noArticlesForTag": "No articles match this topic.",
+    "tocLabel": "Table of Contents",
+    "tocOpen": "Open table of contents",
+    "tocClose": "Close table of contents",
     "copyRestricted": "Text copying is restricted here — code blocks and links still work"
   },
   "portfolio": {
@@ -336,6 +345,10 @@
     "getInTouch": "Get in Touch",
     "contactPrompt": "Interested in working together or just want to chat about tech?",
     "sendEmail": "Send Email",
+    "cloudborneLabel": "What I'm Building",
+    "cloudborneDescription": "A product and service hub for AI tool selection, remote guidance, and workflow setup.",
+    "cloudborneVisit": "Visit Cloudborne",
+    "opensInNewWindow": "opens in a new window",
     "skills": {
       "frontend": "Frontend",
       "ai": "AI & Integration",
@@ -354,6 +367,8 @@
     },
     "radarTitle": "Skill Radar",
     "activityTitle": "Writing Activity",
+    "activityEmpty": "Writing activity will appear here as new articles are published.",
+    "activityCount": "{count} articles published so far. More activity will appear as the archive grows.",
     "radar": {
       "frontend": "Frontend",
       "motion": "Motion",
@@ -368,11 +383,14 @@
     "tagline": "Building digital experiences with warmth and vitality.",
     "navTitle": "Navigation",
     "subscribeTitle": "Subscribe",
+    "externalTitle": "External links",
     "rssEn": "RSS — English",
     "rssZh": "RSS — 中文",
     "changelog": "Changelog",
     "agent": "Agent Access",
-    "feedback": "Feedback"
+    "feedback": "Feedback",
+    "cloudborne": "Cloudborne",
+    "opensInNewWindow": "opens in a new window"
   },
   "theme": {
     "toDark": "Switch to dark mode",

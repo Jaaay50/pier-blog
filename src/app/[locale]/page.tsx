@@ -12,6 +12,17 @@ import { TransitionLink } from "@/components/TransitionLink";
 import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { getAllPosts } from "@/lib/posts";
 import { getGitHubStats } from "@/lib/github";
+import { localizedMetadata, pageJsonLd } from "@/lib/site-metadata";
+import { safeJsonLd } from "@/lib/json-ld";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  return localizedMetadata(locale, "home");
+}
 
 export default async function HomePage({
   params,
@@ -119,6 +130,10 @@ export default async function HomePage({
 
       {/* Footer */}
       <SiteFooter />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(pageJsonLd(locale, "home")) }}
+      />
     </main>
   );
 }

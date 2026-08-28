@@ -7,6 +7,11 @@ import type { Heading } from "@/components/MDXContent";
 
 interface TableOfContentsProps {
   headings: Heading[];
+  labels?: {
+    toc: string;
+    open: string;
+    close: string;
+  };
 }
 
 /**
@@ -15,7 +20,10 @@ interface TableOfContentsProps {
  * - 移动端点按钮展开为抽屉，抽屉才使用卡片材质
  * - 滚动监听高亮当前章节
  */
-export function TableOfContents({ headings }: TableOfContentsProps) {
+export function TableOfContents({ headings, labels }: TableOfContentsProps) {
+  const tocLabel = labels?.toc ?? "Table of Contents";
+  const openLabel = labels?.open ?? "Toggle table of contents";
+  const closeLabel = labels?.close ?? "Close table of contents";
   const [activeId, setActiveId] = useState<string>("");
   const [isOpen, setIsOpen] = useState(false);
   const prefersReducedMotion = useReducedMotion();
@@ -98,6 +106,9 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
 
   if (headings.length === 0) return null;
 
+  const desktopHeadingId = "article-toc-heading-desktop";
+  const mobileHeadingId = "article-toc-heading-mobile";
+
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (!el) return;
@@ -162,7 +173,7 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       <button
         onClick={openDrawer}
         className="toc-fab lg:hidden"
-        aria-label="Toggle table of contents"
+        aria-label={openLabel}
         aria-expanded={isOpen}
       >
         <svg
@@ -195,29 +206,37 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
       </AnimatePresence>
 
       {/* 桌面端：轻量导轨，无卡片、无玻璃、无阴影 */}
-      <nav className="toc-rail hidden lg:block" aria-label="On this page">
-        <h2 className="mb-3 pl-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-          On This Page
+      <nav className="toc-rail hidden lg:block" aria-labelledby={desktopHeadingId}>
+        <h2
+          id={desktopHeadingId}
+          className="mb-3 pl-3.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]"
+        >
+          {tocLabel}
         </h2>
         {items}
       </nav>
 
-      {/* 移动端：抽屉（卡片材质仅用于浮层） */}
+      {/* 移动端：抽屉（卡片材质仅用于浮层）。关闭时 inert + aria-hidden，
+          避免与桌面导轨产生重复可访问名称。 */}
       <aside
         ref={drawerRef}
         className={`toc-drawer lg:hidden ${isOpen ? "is-open" : ""}`}
-        aria-label="On this page"
+        aria-labelledby={mobileHeadingId}
         aria-hidden={!isOpen}
+        inert={!isOpen}
       >
         <div className="flex items-center justify-between pb-3 pl-3.5">
-          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]">
-            On This Page
+          <h2
+            id={mobileHeadingId}
+            className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--text-muted)]"
+          >
+            {tocLabel}
           </h2>
           <button
             ref={closeRef}
             onClick={() => setIsOpen(false)}
-            aria-label="Close table of contents"
-            className="-mr-1 rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
+            aria-label={closeLabel}
+            className="-mr-1 inline-flex min-h-11 min-w-11 items-center justify-center rounded-md p-1.5 text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)]"
           >
             <svg
               width="16"

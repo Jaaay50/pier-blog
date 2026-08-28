@@ -1,8 +1,13 @@
 ---
 title: "Building Modern AI Interfaces"
 date: "2026-07-30"
+updatedAt: "2026-08-28"
 description: "Exploring patterns for integrating LLMs into production web applications with streaming, error handling, and user feedback loops."
 tags: ["AI", "React", "System Design"]
+series: "AI Interface Engineering"
+topic: "ai-interface"
+author: "Ethan Pier"
+environment: "Next.js 16.3, React 19.2, Node.js 22"
 ---
 
 ## The Challenge
@@ -17,20 +22,36 @@ Integrating Large Language Models into production web applications isn't just ab
 
 The foundation of any AI interface is a robust streaming pipeline:
 
-```typescript {4,7}
-async function* streamResponse(prompt: string) {
+```typescript {5,8,12,28}
+async function* streamResponse(prompt: string, signal: AbortSignal) {
   const response = await fetch('/api/chat', {
     method: 'POST',
     body: JSON.stringify({ prompt }),
+    signal,
   });
 
-  const reader = response.body?.getReader();
+  if (!response.ok) {
+    throw new Error(`Chat request failed: ${response.status}`);
+  }
+
+  if (!response.body) {
+    throw new Error('Chat response has no readable body');
+  }
+
+  const reader = response.body.getReader();
   const decoder = new TextDecoder();
 
-  while (reader) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    yield decoder.decode(value);
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      yield decoder.decode(value, { stream: true });
+    }
+    const trailing = decoder.decode();
+    if (trailing) yield trailing;
+  } finally {
+    await reader.cancel().catch(() => undefined);
+    reader.releaseLock();
   }
 }
 ```
@@ -64,14 +85,20 @@ function useAIStream() {
 
     dispatch({ type: 'START' });
 
+    const signal = abortRef.current.signal;
+
     try {
-      for await (const chunk of streamResponse(prompt)) {
+      for await (const chunk of streamResponse(prompt, signal)) {
         dispatch({ type: 'CHUNK', payload: chunk });
       }
       dispatch({ type: 'COMPLETE' });
     } catch (error) {
       if (error instanceof Error && error.name !== 'AbortError') {
         dispatch({ type: 'ERROR', payload: error });
+      }
+    } finally {
+      if (abortRef.current?.signal === signal) {
+        abortRef.current = null;
       }
     }
   }, []);

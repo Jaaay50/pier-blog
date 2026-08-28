@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import DecryptedText from "@/components/reactbits/DecryptedText";
 import { ThemedGradientText } from "@/components/ThemedGradientText";
@@ -6,6 +7,17 @@ import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getGitHubStats } from "@/lib/github";
+import { localizedMetadata, pageJsonLd } from "@/lib/site-metadata";
+import { safeJsonLd } from "@/lib/json-ld";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return localizedMetadata(locale, "portfolio");
+}
 
 interface Project {
   id: string;
@@ -231,6 +243,10 @@ export default async function PortfolioPage({
         </div>
       </section>
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(pageJsonLd(locale, "portfolio")) }}
+      />
       <SiteFooter />
     </main>
   );

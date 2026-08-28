@@ -1,8 +1,13 @@
 ---
 title: "消灭 Next.js 冷启动：从动态 SSR 到全量 SSG"
 date: "2026-08-01"
+updatedAt: "2026-08-28"
 description: "i18n/request.ts 里的一行代码让所有页面强制走 Serverless SSR，冷启动 1–4 秒。改用 URL 路由之后，一切都变成静态了。"
-tags: ["Next.js", "Performance", "Architecture"]
+tags: ["Next.js", "性能", "架构"]
+series: "Next.js 性能诊断"
+topic: "performance"
+author: "Ethan Pier"
+environment: "Next.js 16.3、next-intl 4.13、Node.js 22；Vercel 部署"
 ---
 
 ## 症状

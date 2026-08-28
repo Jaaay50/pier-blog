@@ -6,8 +6,8 @@ import DecryptedText from "@/components/reactbits/DecryptedText";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { BlogStatsFilter } from "@/components/viz/BlogStatsFilter";
 import { SiteFooter } from "@/components/SiteFooter";
-
-const SITE_URL = "https://ethanpier.com";
+import { pageJsonLd, SITE_URL } from "@/lib/site-metadata";
+import { safeJsonLd } from "@/lib/json-ld";
 
 export async function generateMetadata({
   params,
@@ -27,6 +27,20 @@ export async function generateMetadata({
         zh: `${SITE_URL}/zh/blog`,
         "x-default": `${SITE_URL}/en/blog`,
       },
+    },
+    openGraph: {
+      title: t("title"),
+      description: t("subtitle"),
+      type: "website",
+      url: `${SITE_URL}/${locale}/blog`,
+      locale: locale === "zh" ? "zh_CN" : "en_US",
+      images: [{ url: `${SITE_URL}/og?type=site`, width: 1200, height: 630 }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: t("title"),
+      description: t("subtitle"),
+      images: [`${SITE_URL}/og?type=site`],
     },
   };
 }
@@ -80,11 +94,16 @@ export default async function BlogPage({
               tags,
               readMinutes,
             }))}
+            noArticlesMessage={t("noArticlesForTag")}
           />
         </div>
       </section>
 
       <SiteFooter />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(pageJsonLd(locale, "blog")) }}
+      />
     </main>
   );
 }

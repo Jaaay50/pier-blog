@@ -81,4 +81,29 @@ describe("TableOfContents", () => {
     expect(document.activeElement).toBe(trigger);
     expect(document.body.style.overflow).toBe("");
   });
+
+  it("使用本地化目录名称，关闭的移动抽屉不进入可访问树", () => {
+    render(
+      <TableOfContents
+        headings={headings}
+        labels={{
+          toc: "本文目录",
+          open: "打开本文目录",
+          close: "关闭本文目录",
+        }}
+      />,
+    );
+
+    const drawer = document.querySelector(".toc-drawer");
+    expect(screen.getByRole("button", { name: "打开本文目录" })).toBeTruthy();
+    expect(drawer?.getAttribute("aria-hidden")).toBe("true");
+    expect(drawer?.hasAttribute("inert")).toBe(true);
+    expect(screen.queryByRole("button", { name: "关闭本文目录" })).toBeNull();
+    expect(document.getElementById("article-toc-heading-desktop")?.textContent).toBe("本文目录");
+    expect(document.getElementById("article-toc-heading-mobile")?.textContent).toBe("本文目录");
+
+    fireEvent.click(screen.getByRole("button", { name: "打开本文目录" }));
+    expect(drawer?.getAttribute("aria-hidden")).toBe("false");
+    expect(screen.getByRole("button", { name: "关闭本文目录" })).toBeTruthy();
+  });
 });

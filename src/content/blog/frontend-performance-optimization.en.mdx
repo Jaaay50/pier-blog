@@ -1,21 +1,28 @@
 ---
 title: "Frontend Performance Optimization"
 date: "2026-07-31"
+updatedAt: "2026-08-28"
 description: "A deep dive into modern web performance: Core Web Vitals, lazy loading, code splitting, and real-world measurement strategies."
 tags: ["Performance", "Next.js", "Web Vitals"]
+series: "Next.js Performance Diagnostics"
+topic: "performance"
+author: "Ethan Pier"
+environment: "Next.js 16.3, React 19.2, Node.js 22; thresholds checked 2026-08-28"
 ---
 
 ## Why Performance Matters
 
-Every 100ms of latency costs 1% of revenue. But more importantly, performance is a UX feature — fast apps feel responsive, trustworthy, and professional.
+Performance is a UX feature — fast apps feel responsive, trustworthy, and professional. Some case studies report measurable revenue effects from latency, but the result depends on the product, audience, and measurement design; do not treat a fixed “1% per 100ms” rule as a universal law.
 
 The three numbers that matter:
 
 | Metric | Target | What It Measures |
 |--------|--------|-----------------|
 | LCP | < 2.5s | Visual completeness |
-| FID/INP | < 100ms | Interactivity |
+| INP | ≤ 200ms | Responsiveness to interaction |
 | CLS | < 0.1 | Visual stability |
+
+FID was deprecated as a Core Web Vital in September 2024 and replaced by INP. The current “good” INP threshold is **≤200ms** at the 75th percentile. Thresholds referenced here were checked on 2026-08-28 against the [web.dev INP guidance](https://web.dev/articles/inp) and [Core Web Vitals definitions](https://web.dev/articles/defining-core-web-vitals-thresholds).
 
 ## Core Web Vitals in Practice
 

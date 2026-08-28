@@ -55,6 +55,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       type: "article",
       url: canonicalUrl,
       publishedTime: post.date,
+      modifiedTime: post.updatedAt ?? post.date,
       tags: post.tags,
       locale: locale === "zh" ? "zh_CN" : "en_US",
       images: [{ url: ogImage, width: 1200, height: 630 }],
@@ -116,17 +117,17 @@ export default async function BlogPostPage({ params }: PageProps) {
             headline: post.title,
             description: post.description,
             datePublished: post.date,
-            dateModified: post.date,
+            dateModified: post.updatedAt ?? post.date,
             inLanguage: locale === "zh" ? "zh-CN" : "en-US",
             image: buildOgImageUrl(locale, slug),
             author: {
               "@type": "Person",
-              name: "Ethan Pier",
+              name: post.author ?? "Ethan Pier",
               url: SITE_URL,
             },
             publisher: {
               "@type": "Person",
-              name: "Ethan Pier",
+              name: post.author ?? "Ethan Pier",
               url: SITE_URL,
             },
             url: `${SITE_URL}/${locale}/blog/${post.slug}`,
@@ -221,7 +222,14 @@ export default async function BlogPostPage({ params }: PageProps) {
             position:fixed 的浮动按钮与抽屉。 */}
         <div className="w-0 shrink-0 lg:w-64">
           <div className="lg:sticky lg:top-24">
-            <TableOfContents headings={headings} />
+            <TableOfContents
+              headings={headings}
+              labels={{
+                toc: t("tocLabel"),
+                open: t("tocOpen"),
+                close: t("tocClose"),
+              }}
+            />
           </div>
         </div>
       </div>
