@@ -10,6 +10,8 @@ author: "Ethan Pier"
 environment: "Next.js 16.3, React 19.2, Node.js 22"
 ---
 
+> **Example scope**: The following snippets are cumulative and target a browser client component in Next.js 16.3, React 19.2, and Node.js 22. `/api/chat` must be provided by your own same-origin Route Handler with a streaming `Response`. The example covers cancellation, HTTP errors, and empty responses, but not authentication, retries, schema validation, protocol parsing, or production error reporting.
+
 ## The Challenge
 
 Integrating Large Language Models into production web applications isn't just about calling an API. It requires rethinking how we handle:
@@ -74,7 +76,37 @@ Each state transition is explicit, testable, and maps directly to UI states. No 
 
 ## React Integration Pattern
 
+Place this hook in the same `.tsx` file as the preceding `streamResponse` and `ChatState` examples. The imports and reducer are included here so the hook does not hide undefined dependencies behind a seemingly complete example. Call the hook from a client component and render send, cancel, and error states from `state.status`.
+
 ```tsx
+import { useCallback, useReducer, useRef } from 'react';
+
+type ChatAction =
+  | { type: 'START' }
+  | { type: 'CHUNK'; payload: string }
+  | { type: 'COMPLETE' }
+  | { type: 'ERROR'; payload: Error }
+  | { type: 'CANCEL' };
+
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  switch (action.type) {
+    case 'START':
+      return { status: 'streaming', buffer: '' };
+    case 'CHUNK':
+      return state.status === 'streaming'
+        ? { status: 'streaming', buffer: state.buffer + action.payload }
+        : state;
+    case 'COMPLETE':
+      return state.status === 'streaming'
+        ? { status: 'complete', response: state.buffer }
+        : state;
+    case 'ERROR':
+      return { status: 'error', error: action.payload, lastMessage: state.status === 'streaming' ? state.buffer : '' };
+    case 'CANCEL':
+      return { status: 'idle' };
+  }
+}
+
 function useAIStream() {
   const [state, dispatch] = useReducer(chatReducer, { status: 'idle' });
   const abortRef = useRef<AbortController | null>(null);

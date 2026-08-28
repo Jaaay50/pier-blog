@@ -62,5 +62,11 @@ describe("pageJsonLd", () => {
       inLanguage: "en-US",
     });
     expect(pageJsonLd("zh", "blog").name).toBe("潮聲 — Pier");
+    expect(pageJsonLd("zh", "currents")).toMatchObject({
+      "@type": "CollectionPage",
+      name: "潮汐 — Pier",
+      url: `${SITE_URL}/zh/currents`,
+      inLanguage: "zh-CN",
+    });
   });
 });

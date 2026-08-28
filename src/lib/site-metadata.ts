@@ -17,6 +17,9 @@ const localeCopy = {
     blogTitle: "Tides — Pier",
     blogDescription:
       "Writing about frontend engineering, AI integration, system design, and the craft of building for the web.",
+    currentsTitle: "Currents — Pier",
+    currentsDescription:
+      "AI frontiers: papers, products, research, and industry moves.",
   },
   zh: {
     site: "Pier",
@@ -32,12 +35,14 @@ const localeCopy = {
     blogTitle: "潮聲 — Pier",
     blogDescription:
       "记录前端工程、AI 集成、系统设计，以及 Web 开发的思考与实践。",
+    currentsTitle: "潮汐 — Pier",
+    currentsDescription: "AI 前沿论文、产品、研究与行业动态。",
   },
 } as const;
 
 export type SiteLocale = keyof typeof localeCopy;
 export type MetadataKind = "home" | "about" | "portfolio";
-export type JsonLdKind = MetadataKind | "blog";
+export type JsonLdKind = MetadataKind | "blog" | "currents";
 
 function siteLocale(locale: string): SiteLocale {
   return locale === "zh" ? "zh" : "en";
@@ -58,6 +63,8 @@ function pageTitle(locale: SiteLocale, kind: JsonLdKind): string {
       return copy.portfolioTitle;
     case "blog":
       return copy.blogTitle;
+    case "currents":
+      return copy.currentsTitle;
   }
 }
 
@@ -72,6 +79,8 @@ function pageDescription(locale: SiteLocale, kind: JsonLdKind): string {
       return copy.portfolioDescription;
     case "blog":
       return copy.blogDescription;
+    case "currents":
+      return copy.currentsDescription;
   }
 }
 
@@ -127,7 +136,7 @@ export function pageJsonLd(locale: string, kind: JsonLdKind) {
     "@type":
       kind === "about"
         ? "ProfilePage"
-        : kind === "portfolio" || kind === "blog"
+        : kind === "portfolio" || kind === "blog" || kind === "currents"
           ? "CollectionPage"
           : "WebSite",
     name: pageTitle(safeLocale, kind),

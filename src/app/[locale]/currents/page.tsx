@@ -2,6 +2,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { CurrentsClient } from "@/components/currents/CurrentsClient";
 import { locales } from "@/i18n/config";
+import { pageJsonLd } from "@/lib/site-metadata";
+import { safeJsonLd } from "@/lib/json-ld";
 
 const SITE_URL = "https://ethanpier.com";
 
@@ -75,6 +77,10 @@ export default async function CurrentsPage({
 
       {/* 数据岛：sticky toolbar + 时间线 + 阅读层 */}
       <CurrentsClient />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(pageJsonLd(locale, "currents")) }}
+      />
     </>
   );
 }

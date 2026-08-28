@@ -10,6 +10,8 @@ author: "Ethan Pier"
 environment: "Next.js 16.3、React 19.2、Node.js 22"
 ---
 
+> **示例说明**：以下代码按本文顺序组合，适用于 Next.js 16.3、React 19.2、Node.js 22 的浏览器客户端组件。`/api/chat` 需要由你自己的同源 Route Handler 提供流式 `Response`；示例覆盖取消、HTTP 错误与空响应处理，但不包含鉴权、重试、schema 校验、具体流协议解析或生产错误上报。
+
 ## 挑战在哪里
 
 把大语言模型接入生产环境的 Web 应用，远不只是调一个 API。它要求我们重新思考几件事：
@@ -74,7 +76,37 @@ type ChatState =
 
 ## React 集成模式
 
+下面的 Hook 与上一节的 `streamResponse`、`ChatState` 放在同一个 `.tsx` 文件中即可运行；这里补出 imports 和 reducer，避免把未定义的依赖误读为完整实现。组件还需要在客户端组件中调用这个 Hook，并由界面根据 `state.status` 渲染发送、取消和错误状态。
+
 ```tsx
+import { useCallback, useReducer, useRef } from 'react';
+
+type ChatAction =
+  | { type: 'START' }
+  | { type: 'CHUNK'; payload: string }
+  | { type: 'COMPLETE' }
+  | { type: 'ERROR'; payload: Error }
+  | { type: 'CANCEL' };
+
+function chatReducer(state: ChatState, action: ChatAction): ChatState {
+  switch (action.type) {
+    case 'START':
+      return { status: 'streaming', buffer: '' };
+    case 'CHUNK':
+      return state.status === 'streaming'
+        ? { status: 'streaming', buffer: state.buffer + action.payload }
+        : state;
+    case 'COMPLETE':
+      return state.status === 'streaming'
+        ? { status: 'complete', response: state.buffer }
+        : state;
+    case 'ERROR':
+      return { status: 'error', error: action.payload, lastMessage: state.status === 'streaming' ? state.buffer : '' };
+    case 'CANCEL':
+      return { status: 'idle' };
+  }
+}
+
 function useAIStream() {
   const [state, dispatch] = useReducer(chatReducer, { status: 'idle' });
   const abortRef = useRef<AbortController | null>(null);
