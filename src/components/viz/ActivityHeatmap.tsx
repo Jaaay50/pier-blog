@@ -9,6 +9,8 @@ interface ActivityHeatmapProps {
   /** 展示周数（默认 26 = 半年） */
   weeks?: number;
   className?: string;
+  emptyMessage?: string;
+  countMessage?: string;
 }
 
 interface DayCell {
@@ -42,6 +44,8 @@ export function ActivityHeatmap({
   postDates,
   weeks = 26,
   className = "",
+  emptyMessage = "Writing activity will appear here as new articles are published.",
+  countMessage,
 }: ActivityHeatmapProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const inView = useInView(containerRef, { once: true, margin: "-10%" });
@@ -70,9 +74,21 @@ export function ActivityHeatmap({
 
   const levelOpacity = [0.08, 0.25, 0.45, 0.7, 1];
 
+  if (postDates.length < 3) {
+    return (
+      <div className={`rounded-xl border border-dashed border-[var(--border)] p-6 ${className}`}>
+        <p className="text-sm leading-relaxed text-[var(--text-secondary)]">
+          {postDates.length === 0
+            ? emptyMessage
+            : countMessage ?? `${postDates.length} articles published so far. More activity will appear as the archive grows.`}
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div ref={containerRef} className={`relative ${className}`}>
-      <div className="flex gap-[3px] overflow-x-auto pb-2">
+      <div className="flex max-w-full gap-[3px] overflow-x-auto pb-2">
         {grid.map((col, ci) => (
           <div key={ci} className="flex flex-col gap-[3px]">
             {col.map((cell) => (

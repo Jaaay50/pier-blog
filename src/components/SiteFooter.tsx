@@ -40,9 +40,9 @@ export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
       </div>
       <div className={currentsWidth ? 'currents-shell-container mx-auto py-12' : 'site-shell mx-auto py-12'}>
         {/* Three-column grid */}
-        <div className="grid gap-10 sm:grid-cols-3">
+        <div className="grid min-w-0 gap-10 sm:grid-cols-3">
           {/* Col 1: Brand */}
-          <div>
+          <div className="min-w-0">
             <div className="mb-2 text-sm text-[var(--text-primary)]">
               <PierWordmark withWaterline />
             </div>
@@ -52,11 +52,11 @@ export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
           </div>
 
           {/* Col 2: Navigation */}
-          <div>
+          <nav className="min-w-0" aria-label={t('navTitle')}>
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
               {t('navTitle')}
             </p>
-            <ul className="space-y-2">
+            <ul className="space-y-1">
               {([
                 { href: '/blog', label: tNav('blog') },
                 { href: '/about', label: tNav('about') },
@@ -68,35 +68,37 @@ export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
                 <li key={href}>
                   <TransitionLink
                     href={href}
-                    className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                    className="inline-flex min-h-11 max-w-full items-center text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                   >
                     {label}
                   </TransitionLink>
                 </li>
               ))}
             </ul>
-          </div>
+          </nav>
 
           {/* Col 3: Subscribe / Links */}
-          <div>
+          <div className="min-w-0">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-              {t('subscribeTitle')}
+              {t('externalTitle')}
             </p>
-            <div className="space-y-2">
+            <div className="space-y-1">
               <a
                 href="/feed.xml"
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                className="inline-flex min-h-11 max-w-full items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={`${t('rssEn')} (${t('opensInNewWindow')})`}
               >
                 <RssIcon />
                 {t('rssEn')}
               </a>
               <a
                 href="/feed-zh.xml"
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                className="inline-flex min-h-11 max-w-full items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label={`${t('rssZh')} (${t('opensInNewWindow')})`}
               >
                 <RssIcon />
                 {t('rssZh')}
@@ -105,10 +107,20 @@ export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
                 href="https://github.com/Jia-Ethan"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                aria-label={`GitHub (${t('opensInNewWindow')})`}
+                className="inline-flex min-h-11 max-w-full items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
                 <GithubIcon />
                 GitHub
+              </a>
+              <a
+                href="https://cloudborne.cn"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${t('cloudborne')} (${t('opensInNewWindow')})`}
+                className="inline-flex min-h-11 max-w-full items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              >
+                {t('cloudborne')} ↗
               </a>
             </div>
           </div>

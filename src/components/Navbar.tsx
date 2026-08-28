@@ -26,11 +26,11 @@ export function Navbar() {
     pathname.startsWith("/currents") || pathname === "/feedback";
 
   const navLinks = [
-    { href: "/blog", label: t("blog") },
-    { href: "/currents", label: t("currents") },
-    { href: "/portfolio", label: t("portfolio") },
-    { href: "/lab", label: t("lab") },
-    { href: "/about", label: t("about") },
+    { href: "/blog", label: t("blog"), title: t("blogHint") },
+    { href: "/currents", label: t("currents"), title: t("currentsHint") },
+    { href: "/portfolio", label: t("portfolio"), title: t("portfolioHint") },
+    { href: "/lab", label: t("lab"), title: t("labHint") },
+    { href: "/about", label: t("about"), title: t("aboutHint") },
   ];
 
   // 路由变化时关闭菜单（渲染期调整，避免 effect 瀑布渲染）
@@ -113,7 +113,8 @@ export function Navbar() {
                 <span key={link.href} className="relative">
                   <TransitionLink
                     href={link.href}
-                    className={`text-sm transition-colors ${
+                    title={link.title}
+                    className={`inline-flex min-h-11 items-center px-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)] ${
                       isActive
                         ? "text-[var(--text-primary)]"
                         : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -198,7 +199,8 @@ export function Navbar() {
                     <li key={link.href}>
                       <TransitionLink
                         href={link.href}
-                        className={`block rounded-lg px-3 py-2.5 text-base transition-colors ${
+                        title={link.title}
+                        className={`flex min-h-11 items-center rounded-lg px-3 py-2.5 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                           isActive
                             ? "text-[var(--text-primary)]"
                             : "text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]"

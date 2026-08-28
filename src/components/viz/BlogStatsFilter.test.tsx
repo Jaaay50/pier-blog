@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BlogStatsFilter } from "./BlogStatsFilter";
 
 // BlogCard 依赖 next-intl 路由上下文，筛选逻辑测试不需要其内部结构
@@ -52,8 +52,14 @@ const posts = [
   },
 ];
 
+beforeEach(() => {
+  window.history.replaceState(null, "", "/blog");
+});
+
 afterEach(() => {
   cleanup();
+  window.history.replaceState(null, "", "/blog");
+  vi.restoreAllMocks();
 });
 
 describe("BlogStatsFilter", () => {
@@ -132,5 +138,42 @@ describe("BlogStatsFilter", () => {
     // 再点当前标签：全部释放
     fireEvent.click(perfBtn);
     expect(perfBtn.getAttribute("aria-pressed")).toBe("false");
+  });
+
+  it("把筛选写入 ?tag=，刷新或直接打开该 URL 时恢复", () => {
+    window.history.replaceState(null, "", "/blog?tag=Next.js");
+    render(<BlogStatsFilter posts={posts} />);
+
+    expect(screen.getAllByTestId("blog-card")).toHaveLength(2);
+    expect(screen.queryByText("Post B")).toBeNull();
+    expect(screen.getByRole("button", { name: /Next\.js/ }).getAttribute("aria-pressed")).toBe("true");
+  });
+
+  it("用 pushState 写入标签，popstate 后恢复上一个筛选", () => {
+    const pushSpy = vi.spyOn(window.history, "pushState");
+    render(<BlogStatsFilter posts={posts} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /Next\.js/ }));
+    expect(pushSpy).toHaveBeenCalled();
+    expect(window.location.search).toBe("?tag=Next.js");
+    fireEvent.click(screen.getByRole("button", { name: /Performance/ }));
+    expect(window.location.search).toBe("?tag=Performance");
+    expect(screen.getAllByTestId("blog-card")).toHaveLength(1);
+
+    act(() => {
+      window.history.replaceState(null, "", "/blog?tag=Next.js");
+      window.dispatchEvent(new PopStateEvent("popstate"));
+    });
+    expect(screen.getAllByTestId("blog-card")).toHaveLength(2);
+    expect(screen.getByRole("button", { name: /Next\.js/ }).getAttribute("aria-pressed")).toBe("true");
+    pushSpy.mockRestore();
+  });
+
+  it("未知标签显示空状态", () => {
+    window.history.replaceState(null, "", "/blog?tag=Unknown");
+    render(<BlogStatsFilter posts={posts} noArticlesMessage="没有匹配这个主题的文章。" />);
+
+    expect(screen.queryByTestId("blog-card")).toBeNull();
+    expect(screen.getByText("没有匹配这个主题的文章。")).not.toBeNull();
   });
 });

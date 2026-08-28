@@ -1,21 +1,28 @@
 ---
 title: "前端性能优化实战"
 date: "2026-07-31"
+updatedAt: "2026-08-28"
 description: "深入现代 Web 性能：Core Web Vitals、懒加载、代码分割与真实世界的度量策略。"
 tags: ["性能", "Next.js", "Web Vitals"]
+series: "Next.js 性能诊断"
+topic: "performance"
+author: "Ethan Pier"
+environment: "Next.js 16.3、React 19.2、Node.js 22；指标阈值核对日期：2026-08-28"
 ---
 
 ## 为什么性能很重要
 
-每 100ms 延迟对应约 1% 的营收损失。但更重要的是，性能本身就是一种用户体验特性——快的应用让人觉得响应灵敏、可靠、专业。
+性能本身就是一种用户体验特性——快的应用让人觉得响应灵敏、可靠、专业。一些案例研究确实观察到延迟与营收之间的关系，但结果取决于产品、用户群体和测量方法，不能把“每 100ms 损失 1%”当成普遍规律。
 
 真正要看的三个数字：
 
 | 指标 | 目标 | 衡量什么 |
 |--------|--------|-----------------|
 | LCP | < 2.5s | 视觉完成度 |
-| FID/INP | < 100ms | 交互响应性 |
+| INP | ≤ 200ms | 交互响应性 |
 | CLS | < 0.1 | 视觉稳定性 |
+
+FID 已在 2024 年 9 月退出 Core Web Vitals，由 INP 接替。目前 INP 在第 75 百分位达到 **≤200ms** 才属于“良好”。本文指标阈值于 2026-08-28 根据 [web.dev 的 INP 指南](https://web.dev/articles/inp) 和 [Core Web Vitals 阈值定义](https://web.dev/articles/defining-core-web-vitals-thresholds) 核对。
 
 ## Core Web Vitals 落地
 

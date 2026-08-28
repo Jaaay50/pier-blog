@@ -125,7 +125,9 @@ function safeLastmod(value: string | null | undefined): string | undefined {
 
 export function buildStaticShardEntries(): SitemapUrlEntry[] {
   const posts = getPostsForLocale("en");
-  const postDate = new Map(posts.map((p) => [p.slug, new Date(p.date).toISOString()]));
+  const postDate = new Map(
+    posts.map((p) => [p.slug, new Date(p.updatedAt ?? p.date).toISOString()]),
+  );
   // 站点级 lastmod 用最新文章日期，而不是构建时间——
   // 每次构建都刷新全站日期会降低搜索引擎对 lastmod 的信任
   const newestPostDate = posts.length

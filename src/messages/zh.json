@@ -7,7 +7,12 @@
     "currents": "潮汐",
     "github": "GitHub",
     "menuOpen": "打开菜单",
-    "menuClose": "关闭菜单"
+    "menuClose": "关闭菜单",
+    "blogHint": "博客",
+    "currentsHint": "AI 动态",
+    "portfolioHint": "作品集",
+    "labHint": "实验室",
+    "aboutHint": "关于我"
   },
   "currents": {
     "title": "潮汐",
@@ -314,6 +319,10 @@
     "back": "返回",
     "readMore": "阅读更多",
     "related": "相关阅读",
+    "noArticlesForTag": "没有匹配这个主题的文章。",
+    "tocLabel": "本文目录",
+    "tocOpen": "打开本文目录",
+    "tocClose": "关闭本文目录",
     "copyRestricted": "正文复制已限制，代码块与链接仍可复制"
   },
   "portfolio": {
@@ -336,6 +345,10 @@
     "getInTouch": "联系我",
     "contactPrompt": "有合作意向，或想聊聊技术？",
     "sendEmail": "发送邮件",
+    "cloudborneLabel": "正在做的事",
+    "cloudborneDescription": "面向 AI 工具选型、远程教学与工作流搭建的产品与服务入口。",
+    "cloudborneVisit": "访问 Cloudborne",
+    "opensInNewWindow": "新窗口打开",
     "skills": {
       "frontend": "前端",
       "ai": "AI 与集成",
@@ -354,6 +367,8 @@
     },
     "radarTitle": "技能雷达",
     "activityTitle": "写作活跃度",
+    "activityEmpty": "发布更多文章后，这里会显示写作活跃度。",
+    "activityCount": "目前已发布 {count} 篇文章，文章库增长后会显示更多活动。",
     "radar": {
       "frontend": "前端",
       "motion": "动效",
@@ -368,11 +383,14 @@
     "tagline": "用温度与生命力打造数字体验。",
     "navTitle": "导航",
     "subscribeTitle": "订阅",
+    "externalTitle": "外部链接",
     "rssEn": "RSS — English",
     "rssZh": "RSS — 中文",
     "changelog": "更新日志",
     "agent": "Agent 接入",
-    "feedback": "反馈"
+    "feedback": "反馈",
+    "cloudborne": "Cloudborne 独立站",
+    "opensInNewWindow": "新窗口打开"
   },
   "theme": {
     "toDark": "切换到深色模式",

@@ -2003,6 +2003,14 @@ html[data-density="comfortable"] {
   visibility: visible;
 }
 
+/* 覆盖 .toc-fab / .toc-drawer 的 display:flex，避免桌面端仍占用可访问树 */
+@media (min-width: 1024px) {
+  .toc-fab,
+  .toc-drawer {
+    display: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .toc-drawer {
     transition: none;

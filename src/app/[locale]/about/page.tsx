@@ -1,4 +1,5 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { ThemedGradientText } from "@/components/ThemedGradientText";
 import DecryptedText from "@/components/reactbits/DecryptedText";
@@ -9,6 +10,17 @@ import { ActivityHeatmap } from "@/components/viz/ActivityHeatmap";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getAllPosts } from "@/lib/posts";
+import { localizedMetadata, pageJsonLd } from "@/lib/site-metadata";
+import { safeJsonLd } from "@/lib/json-ld";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  return localizedMetadata(locale, "about");
+}
 
 export default async function AboutPage({
   params,
@@ -80,6 +92,15 @@ export default async function AboutPage({
             <p className="text-lg leading-relaxed text-[var(--text-secondary)]">
               {t("intro")}
             </p>
+            <a
+              href="https://cloudborne.cn"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${t("cloudborneVisit")} (${t("opensInNewWindow")})`}
+              className="mt-7 inline-flex min-h-11 max-w-full items-center rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            >
+              {t("cloudborneVisit")} ↗
+            </a>
           </div>
         </div>
       </section>
@@ -139,7 +160,11 @@ export default async function AboutPage({
               <h2 className="mb-6 text-2xl font-bold tracking-tight">
                 {t("activityTitle")}
               </h2>
-              <ActivityHeatmap postDates={posts.map((p) => p.date)} />
+              <ActivityHeatmap
+                postDates={posts.map((p) => p.date)}
+                emptyMessage={t("activityEmpty")}
+                countMessage={t("activityCount", { count: posts.length })}
+              />
             </div>
           </div>
         </div>
@@ -147,6 +172,32 @@ export default async function AboutPage({
 
       {/* Experience（Phase 5：桌面横向滚动叙事 + SVG 路径绘制，移动端竖向降级） */}
       <ExperienceJourney title={t("experience")} experiences={experiences} />
+
+      {/* 独立产品：在经历与联系之间承接“现在正在做什么” */}
+      <section className="py-16">
+        <div className="site-content">
+          <div className="card-glass card-glass-hover flex min-w-0 flex-col gap-8 rounded-2xl p-7 md:flex-row md:items-center md:justify-between md:p-9">
+            <div className="min-w-0 max-w-2xl">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+                {t("cloudborneLabel")}
+              </p>
+              <h2 className="mb-3 text-2xl font-bold tracking-tight">Cloudborne</h2>
+              <p className="leading-relaxed text-[var(--text-secondary)]">
+                {t("cloudborneDescription")}
+              </p>
+            </div>
+            <a
+              href="https://cloudborne.cn"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label={`${t("cloudborneVisit")} (${t("opensInNewWindow")})`}
+              className="inline-flex min-h-11 w-full max-w-full shrink-0 items-center justify-center rounded-lg bg-[var(--accent)] px-5 py-2.5 font-medium text-white transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] md:w-auto"
+            >
+              {t("cloudborneVisit")} ↗
+            </a>
+          </div>
+        </div>
+      </section>
 
       {/* Contact */}
       <section className="py-16">
@@ -158,10 +209,10 @@ export default async function AboutPage({
             <p className="mb-6 text-[var(--text-secondary)]">
               {t("contactPrompt")}
             </p>
-            <div className="flex gap-4">
+            <div className="flex flex-wrap gap-4">
               <a
                 href="mailto:ethan_pier@icloud.com"
-                className="rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)]"
+                className="inline-flex min-h-11 max-w-full items-center rounded-lg bg-[var(--accent)] px-6 py-3 font-medium text-white transition-all hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
                 {t("sendEmail")}
               </a>
@@ -169,7 +220,8 @@ export default async function AboutPage({
                 href="https://github.com/Jia-Ethan"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="rounded-lg border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
+                aria-label={`GitHub (${t("opensInNewWindow")})`}
+                className="inline-flex min-h-11 max-w-full items-center rounded-lg border border-[var(--border)] px-6 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
               >
                 GitHub
               </a>
@@ -178,6 +230,10 @@ export default async function AboutPage({
         </div>
       </section>
 
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: safeJsonLd(pageJsonLd(locale, "about")) }}
+      />
       <SiteFooter />
     </main>
   );

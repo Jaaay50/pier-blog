@@ -41,6 +41,14 @@ describe("hero ambient seam", () => {
   });
 });
 
+describe("article TOC", () => {
+  it("hides the mobile TOC on desktop so accessible names are not duplicated", () => {
+    expect(css).toMatch(
+      /@media\s*\(min-width:\s*1024px\)\s*\{\s*\.toc-fab,\s*\.toc-drawer\s*\{[^}]*display:\s*none;/,
+    );
+  });
+});
+
 describe("article code block layout", () => {
   it("keeps plain fenced code scrolling inside its wrapper", () => {
     expect(css).toMatch(

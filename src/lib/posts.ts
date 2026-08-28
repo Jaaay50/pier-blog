@@ -24,6 +24,39 @@ export interface BlogPost {
   tags: string[];
   content: string;
   readMinutes: number;
+  /** Optional editorial metadata used by topic/series pages and dateModified. */
+  updatedAt?: string;
+  author?: string;
+  series?: string;
+  topic?: string;
+  environment?: string;
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function stringArrayValue(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
+}
+
+function toPost(slug: string, data: Record<string, unknown>, content: string): BlogPost {
+  return {
+    slug,
+    title: stringValue(data.title) ?? slug,
+    date: stringValue(data.date) ?? "1970-01-01",
+    description: stringValue(data.description) ?? "",
+    tags: stringArrayValue(data.tags),
+    content,
+    readMinutes: calcReadMinutes(content),
+    updatedAt: stringValue(data.updatedAt),
+    author: stringValue(data.author),
+    series: stringValue(data.series),
+    topic: stringValue(data.topic),
+    environment: stringValue(data.environment),
+  };
 }
 
 /** 中英混排阅读时间：中文 300 字/分钟，英文 200 词/分钟 */
@@ -76,15 +109,7 @@ export function getAllPosts(locale: string): BlogPost[] {
       const fileContent = getLocalizedFile(slug, locale);
       if (!fileContent) return null;
       const { data, content } = matter(fileContent);
-      return {
-        slug,
-        title: data.title || slug,
-        date: data.date || "1970-01-01",
-        description: data.description || "",
-        tags: data.tags || [],
-        content,
-        readMinutes: calcReadMinutes(content),
-      } as BlogPost;
+      return toPost(slug, data as Record<string, unknown>, content);
     })
     .filter((p): p is BlogPost => p !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
@@ -94,15 +119,7 @@ export function getPostBySlug(slug: string, locale: string): BlogPost | null {
   const fileContent = getLocalizedFile(slug, locale);
   if (!fileContent) return null;
   const { data, content } = matter(fileContent);
-  return {
-    slug,
-    title: data.title || slug,
-    date: data.date || "1970-01-01",
-    description: data.description || "",
-    tags: data.tags || [],
-    content,
-    readMinutes: calcReadMinutes(content),
-  };
+  return toPost(slug, data as Record<string, unknown>, content);
 }
 
 export function getAllSlugs(): string[] {
@@ -137,15 +154,7 @@ export function getPostsForLocale(locale: "en" | "zh"): BlogPost[] {
       if (!file) return null;
 
       const { data, content } = matter(fs.readFileSync(file, "utf-8"));
-      return {
-        slug,
-        title: data.title || slug,
-        date: data.date || "1970-01-01",
-        description: data.description || "",
-        tags: data.tags || [],
-        content,
-        readMinutes: calcReadMinutes(content),
-      } as BlogPost;
+      return toPost(slug, data as Record<string, unknown>, content);
     })
     .filter((p): p is BlogPost => p !== null)
     .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
