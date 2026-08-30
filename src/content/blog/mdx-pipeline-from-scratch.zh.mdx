@@ -1,116 +1,25 @@
 ---
-title: "从零搭建 MDX 内容管线"
+title: "我想看见一篇文章改过什么"
 date: "2026-03-10"
-description: "我如何用 MDX 替代 CMS——gray-matter、rehype-pretty-code、Shiki，以及比 happy path 花更多时间的边界情况。"
-tags: ["Next.js", "MDX", "架构"]
-series: "博客与产品构建日志"
-topic: "architecture"
+description: "文章放在文件里。我想看见上一句是什么时候改的，被改成了什么。"
+tags: ["写作", "这个站"]
+series: "做这个站的时候"
+topic: "writing"
 author: "Ethan Pier"
-environment: "Next.js 16、@mdx-js/mdx、rehype-pretty-code、Shiki"
 ---
 
-我不是一开始就选了 MDX。一开始选的是 headless CMS，花了两天跟它的富文本转 React 管线搏斗，然后决定自己拥有内容层比依赖一个可能改 schema 的 API 更靠谱。
+我想看一篇文章上次改了哪一句。
 
-最终的 MDX 管线大约 150 行代码。让它正确运行花的时间比让它能跑花的时间更长。
+后台很难把这件事说清楚。它记得发布，记得草稿，不太记得某一句是哪天被换掉的。我在编辑器里写。文件可以对比。对比的时候能看见旧的那一行还在不在，谁在什么时候动过。对我来说，这已经比一个漂亮的编辑框重要。
 
-## 为什么不用 CMS
+所以这个站的文章就住在仓库里。一篇中文，一篇英文，两个文件，同一个地址。听起来笨。笨的好处是：构建、订阅、分享卡片、搜索，走的都是同一堆文件。改一篇，不用再去另一个系统里同步标题。
 
-CMS 给了我所见即所得编辑器、图片托管和内容 API。它没给我的：
+麻烦也跟着来。文件头里的日期如果没加引号，有时会被读成一个带时区的时间，显示时错一天。中文和英文的阅读速度不一样，如果只用英文的算法，中文那一侧的“几分钟读完”会骗人。中文加粗曾经把星号直接印到页面上，像文章在跟自己打架。
 
-- **用 Shiki 做语法高亮。** CMS 把代码块渲染成带行内样式的 `<pre>`。我想要能控制主题的正确 tokenization。
-- **在内容里嵌入自定义组件。** 我需要 `<Callout>`、`<CodeBlockWrapper>` 和嵌在文章里的交互 demo。富文本不支持任意 React 组件。
-- **Git 历史。** 我想看到一篇文章最后一次改动的时间、谁改的、diff 内容。CMS 数据库不给我这些。
-- **离线编辑。** 我在编辑器里写作，不是在浏览器标签页里。
+没有一项看起来像大功能。它们只在你真的开始写、并且用两种语言写的时候出现。我花在修补它们上的时间，比让第一篇文章显示出来要长。
 
-MDX 全部满足。代价：构建管线、渲染和每一个边界情况都是我自己的事。
+有人会问为什么不交给内容系统。我需要代码块按我的主题着色，需要在文章里放站点自己的组件，需要离线时也能改。这些加在一起，让我更愿意把稿子留在自己这边。代价是每一种边界都得自己接着。接不住的时候，构建会停，或者更糟——不停，只是悄悄显示一个错的日期。
 
-## 管线
+文件名也已经长进其他地方。按目录重排会更干净，可订阅、地图、旧链接都认现在这套。迁过去的成本，高过我每次看见文件名时那一点别扭。别扭还在。我让它待着。
 
-内容住在 `src/content/blog/`，是 `.mdx` 文件。每篇文章有英文和中文版本：`article-slug.en.mdx` 和 `article-slug.zh.mdx`。
-
-### 第一步：读取并解析 frontmatter
-
-```typescript
-import rawMatter from 'gray-matter';
-import { load as yamlLoad } from 'js-yaml';
-
-function matter(input: string) {
-  return rawMatter(input, {
-    engines: {
-      yaml: (s: string) => yamlLoad(s) as object,
-    },
-  });
-}
-```
-
-自定义 YAML engine 的存在是因为 `gray-matter` 内部用的是 `js-yaml@3` 的 `safeLoad`，这个 API 在 `js-yaml@4` 里被移除了。项目出于安全原因固定了 `js-yaml@^4`，所以默认 engine 会抛错。这种东西在依赖升级之前一直没问题，然后在构建时无声地崩掉。
-
-### 第二步：计算元数据
-
-```typescript
-function calcReadMinutes(content: string): number {
-  const cjk = (content.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g) || []).length;
-  const ascii = content.replace(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g, ' ');
-  const words = ascii.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(cjk / 300 + words / 200));
-}
-```
-
-中文的阅读速度跟英文不一样——大约每分钟 300 字对 200 词。双语博客需要两种计算，否则一半内容的预估时间是错的。
-
-### 第三步：用 rehype 插件渲染 MDX
-
-MDX 编译链：
-
-```typescript
-import { compile } from '@mdx-js/mdx';
-import rehypePrettyCode from 'rehype-pretty-code';
-import rehypeSlug from 'rehype-slug';
-
-const compiled = await compile(content, {
-  remarkPlugins: [remarkInjectLineNumbers],
-  rehypePlugins: [
-    rehypeSlug,
-    [rehypePrettyCode, {
-      theme: { dark: 'one-dark-pro', light: 'github-light' },
-      defaultLang: 'typescript',
-    }],
-  ],
-});
-```
-
-`rehype-pretty-code` 底下用的是 Shiki。它在构建时 tokenize 代码块，输出带行内样式的 `<span>` 元素——语法高亮不需要客户端 JavaScript。双主题配置为亮色和暗色模式各生成一套样式，通过 CSS class 切换。
-
-`rehypeSlug` 给标题加 `id` 属性，粘性目录用它做 scroll-spy。
-
-### 第四步：自定义组件
-
-MDX 允许把 HTML 元素映射到 React 组件：
-
-```typescript
-const components = {
-  pre: CodeBlockWrapper,  // 加复制按钮和 hover 效果
-  a: SmartLink,          // 外链加 target="_blank" 和 rel="noopener"
-  img: OptimizedImage,   // 用 Next.js Image 包裹，带 blur 占位
-};
-```
-
-`CodeBlockWrapper` 是一个客户端组件，包裹 Shiki 静态渲染出来的 `<pre>`。语法高亮已经在 HTML 里了；wrapper 加的是复制到剪贴板按钮、标题栏和 hover 效果。代码本身的显示完全不需要 JavaScript。
-
-## 边界情况
-
-**行号。** `rehype-pretty-code` 支持行号，但我需要它默认对所有代码块开启，而不是在每个代码围栏上手动加 `showLineNumbers`。一个自定义 remark 插件（`remarkInjectLineNumbers`）在 rehype 处理之前把 meta 属性注入 AST。
-
-**CJK 行高。** 中文需要比英文更大的行高。`prose` class 处理拉丁文本没问题，但 CJK 字符在同样的行高下会被裁切。修复方法是用 `html[lang="zh"]` 限定的样式，稍微增大 `line-height` 和 `letter-spacing`。
-
-**Frontmatter 校验。** MDX 文件就是文件。没有 schema 强制——`date` 字段缺了的话，页面会渲染成 `"1970-01-01"` 而不是在构建时报错。我加了一个测试，用管线加载每一篇文章并检查必填字段是否存在且格式有效。这在 `npm test` 阶段就能抓住错误，而不是在生产环境。
-
-**gray-matter 与日期。** 如果在 YAML frontmatter 里写 `date: 2026-03-10` 不加引号，`js-yaml` 会把它解析成 JavaScript `Date` 对象而不是字符串。`toPost` 函数会把它转回字符串，但如果不注意，时区偏移可能让显示的日期偏移一天。frontmatter 里的日期永远加引号：`date: "2026-03-10"`。
-
-## 如果重来我会改什么
-
-管线能用。它很快（12 篇文章的构建时间不到 2 秒），类型安全（`BlogPost` 接口强制形状），可测试（每篇文章走同一条代码路径）。
-
-我会改的：双文件命名约定（`slug.en.mdx` / `slug.zh.mdx`）意味着每个 slug 解析函数都要先剥掉 locale 后缀再去重。按目录组织（`slug/en.mdx`、`slug/zh.mdx`）更干净，但当前约定已经接进了构建管线、sitemap 生成器、RSS feed、OG 图生成器和重定向配置。迁移成本超过了烦恼。
-
-有时候正确的架构就是你能发出去的那个。
+有时候能发出去的结构，就是当时正确的结构。我仍想看见一句被改过。只要这一点还在，文章继续住在文件里，我就还觉得踏实。

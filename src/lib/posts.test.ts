@@ -1,7 +1,7 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { getPostBySlug } from "./posts";
+import { getAllSlugs, getPostBySlug } from "./posts";
 
 const blogDir = path.join(process.cwd(), "src/content/blog");
 
@@ -12,36 +12,44 @@ function readPost(name: string) {
 describe("article frontmatter", () => {
   it("exposes updatedAt for JSON-LD dateModified", () => {
     const post = getPostBySlug("frontend-performance-optimization", "zh");
-    expect(post?.updatedAt).toBe("2026-08-28");
-    expect(post?.updatedAt ?? post?.date).toBe("2026-08-28");
+    expect(post?.updatedAt).toBe("2026-08-30");
+    expect(post?.updatedAt ?? post?.date).toBe("2026-08-30");
     expect(post?.author).toBe("Ethan Pier");
-    expect(post?.topic).toBe("performance");
+    expect(post?.topic).toBe("craft");
   });
 
-  it("keeps INP at ≤200ms and does not mix it with FID", () => {
-    for (const file of [
-      "frontend-performance-optimization.zh.mdx",
-      "frontend-performance-optimization.en.mdx",
-    ]) {
-      const source = readPost(file);
-      expect(source).toMatch(/\| INP \| ≤ 200ms \|/);
-      expect(source).not.toContain("FID/INP");
-      expect(source).not.toMatch(/FID\s*\|\s*< 100ms/);
+  it("parses required fields for every localized article", () => {
+    const slugs = getAllSlugs();
+    expect(slugs.length).toBe(12);
+
+    for (const slug of slugs) {
+      for (const locale of ["zh", "en"] as const) {
+        const post = getPostBySlug(slug, locale);
+        expect(post, `${slug}.${locale}`).not.toBeNull();
+        expect(post!.title.length).toBeGreaterThan(0);
+        expect(post!.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+        expect(post!.description.length).toBeGreaterThan(0);
+        expect(post!.tags.length).toBeGreaterThan(0);
+        expect(post!.author).toBe("Ethan Pier");
+        expect(post!.content.trim().length).toBeGreaterThan(0);
+        expect(post!.readMinutes).toBeGreaterThanOrEqual(1);
+      }
     }
   });
 
-  it("passes AbortSignal into fetch and handles empty, HTTP, abort, and cancel paths", () => {
-    for (const file of [
-      "building-modern-ai-interfaces.zh.mdx",
-      "building-modern-ai-interfaces.en.mdx",
-    ]) {
+  it("keeps bilingual files paired and free of tutorial code fences", () => {
+    const files = readdirSync(blogDir).filter((f) => f.endsWith(".mdx"));
+    const zh = files.filter((f) => f.endsWith(".zh.mdx")).sort();
+    const en = files.filter((f) => f.endsWith(".en.mdx")).sort();
+    expect(zh.map((f) => f.replace(".zh.mdx", ""))).toEqual(
+      en.map((f) => f.replace(".en.mdx", "")),
+    );
+
+    for (const file of files) {
       const source = readPost(file);
-      expect(source).toContain("signal,");
-      expect(source).toContain("async function* streamResponse(prompt: string, signal: AbortSignal)");
-      expect(source).toContain("if (!response.ok)");
-      expect(source).toContain("if (!response.body)");
-      expect(source).toContain("error.name !== 'AbortError'");
-      expect(source).toContain("await reader.cancel()");
+      expect(source, file).not.toMatch(/^```/m);
+      expect(source, file).not.toContain("'use server'");
+      expect(source, file).not.toContain("async function*");
     }
   });
 });

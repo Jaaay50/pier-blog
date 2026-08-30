@@ -1,134 +1,23 @@
 ---
-title: "View Transitions: The Snapshot Timing Trap"
+title: "The transition kept flashing"
 date: "2026-06-18"
-description: "How a subtle async timing bug caused View Transitions to always screenshot the old page — and the module-level resolver pattern that fixed it."
-tags: ["Animation", "Next.js", "Performance"]
-series: "Blog & Product Build Logs"
-topic: "interaction"
+description: "The crossfade ran. A ghost of the old page still slipped in front of the new one. The frame was small enough that I almost shipped it."
+tags: ["transitions", "this site"]
+series: "Building this site"
+topic: "craft"
 author: "Ethan Pier"
-environment: "Next.js 16, React 19, Node.js 22; Chromium View Transitions API"
 ---
 
-I spent an afternoon implementing View Transitions in my Next.js blog. The fade animation ran, the page changed. But something was wrong — a flash of old content bleeding through before the new page appeared. The bug was subtle enough that it almost shipped.
+There was a transition. The old page still flashed in front of the new one.
 
-## How View Transitions Work
+I spent an afternoon wiring the changeover. Fades ran. Titles swapped. Every trip from the list into a piece left a smear, like two frames that had not registered. Small enough to ignore. Small enough that if I had been more tired I might have shipped the smear.
 
-Two phases:
+The order was the whole trick. The browser photographs now, waits for you to say the new page has arrived, photographs again, and dissolves the pair. When I said “go,” the address may already have moved. The screen was still the previous essay. The second photograph was a copy of the first. Two identical frames fading through each other read as a flash with no cause.
 
-1. **Capture** — the browser screenshots the current page, then runs your callback.
-2. **Animate** — when your callback's Promise resolves, the browser screenshots the new page and interpolates between the two snapshots.
+The fix is almost rude. You only get to say “the new one is here” after the new page has sat down. The go-ahead can leave early. Sitting down is a second event. The gap between them is where the flash lives.
 
-The critical detail: the browser captures the "new" snapshot at the exact moment your Promise resolves. If the DOM hasn't updated by then, the new snapshot is still the old page.
+I gave it a short time to quit. Slow nets, heavy pages — a transition can freeze in midair. Better to drop the new page in place than leave someone staring at a pane of old light. Modifier-click for a new tab, a click on the page you are already on, a system asking for less motion: the animation steps aside. Those exits matter. Politeness should know when to shut up.
 
-```typescript
-document.startViewTransition(async () => {
-  // Browser screenshots old page before this runs
-  await doYourNavigation();
-  // Browser screenshots new page after this returns
-  // The DOM must reflect the new page at this point
-});
-```
+Language switching later used the same latch. The path looks unchanged; only the words swap. If you forget to count language when you settle the promise, the veil waits for a page change that never comes, then times out. That failure is uglier: the reader is already on the other side, and the animation still thinks nobody has moved.
 
-## The Bug
-
-```typescript
-// ❌ Resolves before the route commits
-document.startViewTransition(async () => {
-  await router.push(href);
-  // router.push() returns immediately after scheduling navigation.
-  // The DOM is still showing the old page.
-});
-```
-
-`router.push()` in Next.js App Router doesn't wait for the new component tree to mount. It schedules the navigation and returns. The Promise resolved while the old page was still on screen, and the browser screenshotted old content as the "new" frame.
-
-The animation became two identical frames crossfading. The page flickered instead of transitioning.
-
-A quick `console.log` confirmed it:
-
-```typescript
-document.startViewTransition(async () => {
-  await router.push(href);
-  console.log(document.title);  // Still the old title
-  console.log(window.location.pathname);  // Still the old path
-});
-```
-
-## The Fix: Module-Level Resolver
-
-Separate "start navigation" from "route is ready." React's `useEffect` with `pathname` as a dependency fires exactly when the new page mounts — after the DOM has committed.
-
-```typescript
-let pendingResolve: (() => void) | null = null;
-
-function resolvePending() {
-  if (pendingResolve) {
-    pendingResolve();
-    pendingResolve = null;
-  }
-}
-
-export function TransitionLink({ href, children, ...props }: TransitionLinkProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    resolvePending();
-  }, [pathname]);
-
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!('startViewTransition' in document)) return;
-    e.preventDefault();
-    resolvePending();
-
-    const transition = document.startViewTransition(
-      () =>
-        new Promise<void>((resolve) => {
-          pendingResolve = resolve;
-          router.push(href);
-        })
-    );
-
-    const timeout = window.setTimeout(() => {
-      transition.skipTransition();
-      resolvePending();
-    }, 600);
-
-    transition.finished
-      .finally(() => window.clearTimeout(timeout))
-      .catch(() => {});
-  };
-
-  return <Link href={href} onClick={handleClick} {...props}>{children}</Link>;
-}
-```
-
-The Promise stays pending until `useEffect` fires on the new page. Because `useEffect` runs after DOM commit, the browser's new-page snapshot captures real new content.
-
-## Why Module-Level
-
-When a transition completes, the old page's component instance is gone. The new page's `TransitionLink` mounts and its `useEffect` fires. It needs to find the resolver that was set by the old page's click handler.
-
-A `useRef` would die with the old component. A module-level variable persists across mounts within the same page lifetime. The new `useEffect` finds `pendingResolve`, calls it, and the transition completes cleanly.
-
-## The 600ms Safety Valve
-
-Slow connections or heavy pages might stall the navigation. Without a fallback, the View Transition freezes the page mid-animation.
-
-`transition.skipTransition()` abandons the animation and shows the new page immediately. `resolvePending()` unsticks the Promise. The timeout fires, the page moves on, and the `transition.finished` handler cleans up the timer.
-
-## Edge Cases
-
-**Modifier keys.** `⌘Click`, `Ctrl+Click`, `Shift+Click` should open in new tabs. The handler bails out early if any modifier is pressed.
-
-**Same-route navigation.** Clicking a link to the current page shouldn't trigger a transition, just a scroll reset.
-
-**Reduced motion.** `prefers-reduced-motion: reduce` disables the animation entirely. Fall through to default navigation.
-
-**Unsupported browsers.** The capability check (`'startViewTransition' in document`) is the source of truth. Check [MDN's compatibility data](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API#browser_compatibility) for the current matrix.
-
-## What Stuck With Me
-
-The contract is strict: `router.push()` means navigation has started, not that the new DOM is ready. The gap between "started" and "ready" is where View Transitions break. The fix isn't complicated, but the bug is invisible enough that it ships to production without anyone noticing — the page "works," it just flickers instead of transitioning.
-
-The production component also guards query-only commits, keyboard navigation, and the `view-transition-name` property for theme transitions. Keep those checks in the real implementation; this article covers the core timing problem.
+What I kept is narrow. Leaving and arriving are two times. Treat them as one and the screen will spend a frame reminding you. That frame is easy to file under “a bit of motion.” I am less willing to file it there now.

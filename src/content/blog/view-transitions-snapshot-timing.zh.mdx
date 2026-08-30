@@ -1,134 +1,23 @@
 ---
-title: "View Transitions：快照时序陷阱"
+title: "转场总闪一下"
 date: "2026-06-18"
-description: "一个细微的异步时序 bug 导致 View Transitions 始终截到旧页面——以及用模块级 resolver 模式修复它的过程。"
-tags: ["动效", "Next.js", "性能"]
-series: "博客与产品构建日志"
-topic: "interaction"
+description: "页面切换是有的。旧内容却会在新页面前面短暂闪过。那一帧足够细，差点就这样上线了。"
+tags: ["转场", "这个站"]
+series: "做这个站的时候"
+topic: "craft"
 author: "Ethan Pier"
-environment: "Next.js 16、React 19、Node.js 22；Chromium View Transitions API"
 ---
 
-我花了一个下午给博客加 View Transitions。淡入淡出在跑，页面也切换了。但每次转场都有一丝旧内容的残影，在新页面出现前短暂闪烁。这个 bug 足够微妙，差点直接发布了。
+转场是有的。旧页面却会在新页面前面闪一下。
 
-## 工作原理
+我花了一个下午把切换接上。淡入淡出在跑，标题也会换。可每次从列表进文章，总有一丝残影，像底片没对齐。细到可以假装没看见。细到如果那天晚一点累了，也许就这样发了。
 
-两个阶段：
+我后来才弄清顺序。浏览器先拍下此刻，再等你说“新的已经来了”，然后拍第二张，把两张叠着化过去。我说“走吧”的时候，地址可能已经改了，屏幕上却还是旧的那篇。第二张照片拍到的仍是第一张。两张一样的画面交叉淡入，人眼读成一次没来由的闪。
 
-1. **捕获**——浏览器截取当前页面快照，然后执行回调。
-2. **动画**——回调的 Promise resolve 时，浏览器截取新页面快照，在两张快照之间插值。
+修复说来也笨。真正说“新的已经来了”，要等新的那一页在屏幕上坐稳。走的指令可以先发出去。坐稳是另一件事。中间那截空，就是闪发生的地方。
 
-关键细节：浏览器在 Promise resolve 的那一刻截取"新页面"快照。如果那时候 DOM 还没更新，"新"快照截到的仍然是旧页面。
+我给它加了一个很短的放弃时间。网络慢、页面重，转场会卡在半空。宁可立刻把新页摊开，也不要人盯着一层冻住的旧光。按住修饰键开新标签、点当前这一页、以及系统要求减弱动效时，这条动画自己让开。这些检查要在。转场这种礼貌，在不该表演时得闭嘴。
 
-```typescript
-document.startViewTransition(async () => {
-  // 浏览器在这里截取旧页面
-  await doYourNavigation();
-  // 浏览器在这里截取新页面
-  // 此时 DOM 必须已经反映新内容
-});
-```
+语言切换后来也走同一套。路径看起来没变，只是中英文对调。如果结算时不把语言算进去，遮罩会等一个永不到来的“页面已换”，然后自己超时。那种失败更难看：人已经在另一边，动画还以为没动身。
 
-## Bug 在哪
-
-```typescript
-// ❌ 在新路由 commit 之前就 resolve 了
-document.startViewTransition(async () => {
-  await router.push(href);
-  // router.push() 调度导航之后立即返回。
-  // DOM 还在显示旧页面。
-});
-```
-
-Next.js App Router 的 `router.push()` 不等新组件树 mount。它调度导航然后返回。Promise 在旧页面还在屏幕上时就 resolve 了，浏览器把旧内容截成了"新"帧。
-
-动画变成两帧相同内容的交叉淡入。页面在闪烁，不是在转场。
-
-一个 `console.log` 就确认了：
-
-```typescript
-document.startViewTransition(async () => {
-  await router.push(href);
-  console.log(document.title);  // 还是旧标题
-  console.log(window.location.pathname);  // 还是旧路径
-});
-```
-
-## 修复：模块级 Resolver
-
-把"发起导航"和"路由就绪"分开。React 的 `useEffect` 以 `pathname` 为依赖，在新页面 mount 后——DOM commit 之后——才触发。
-
-```typescript
-let pendingResolve: (() => void) | null = null;
-
-function resolvePending() {
-  if (pendingResolve) {
-    pendingResolve();
-    pendingResolve = null;
-  }
-}
-
-export function TransitionLink({ href, children, ...props }: TransitionLinkProps) {
-  const router = useRouter();
-  const pathname = usePathname();
-
-  useEffect(() => {
-    resolvePending();
-  }, [pathname]);
-
-  const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-    if (!('startViewTransition' in document)) return;
-    e.preventDefault();
-    resolvePending();
-
-    const transition = document.startViewTransition(
-      () =>
-        new Promise<void>((resolve) => {
-          pendingResolve = resolve;
-          router.push(href);
-        })
-    );
-
-    const timeout = window.setTimeout(() => {
-      transition.skipTransition();
-      resolvePending();
-    }, 600);
-
-    transition.finished
-      .finally(() => window.clearTimeout(timeout))
-      .catch(() => {});
-  };
-
-  return <Link href={href} onClick={handleClick} {...props}>{children}</Link>;
-}
-```
-
-Promise 一直挂起，直到新页面的 `useEffect` 触发。因为 `useEffect` 在 DOM commit 之后才运行，浏览器截到的新页面快照是真实的新内容。
-
-## 为什么用模块级变量
-
-转场完成后，旧页面的组件实例已经消失。新页面的 `TransitionLink` mount 了，它的 `useEffect` 触发。它需要找到旧页面 click handler 设置的 resolver。
-
-`useRef` 会跟旧组件一起消亡。模块级变量在同一个页面生命周期内跨 mount 持久存在。新的 `useEffect` 找到 `pendingResolve`，调用它，转场干净地完成。
-
-## 600ms 安全阀
-
-慢网络或重型页面可能让导航卡住。没有兜底的话，View Transition 会把页面冻结在动画中间。
-
-`transition.skipTransition()` 放弃动画，立即显示新页面。`resolvePending()` 解开挂起的 Promise。超时触发，页面继续走，`transition.finished` handler 清理计时器。
-
-## 边界情况
-
-**修饰键。** `⌘Click`、`Ctrl+Click`、`Shift+Click` 应该打开新标签页。检测到修饰键时提前退出。
-
-**同路由导航。** 点击当前页面的链接不该触发转场，只需要滚回顶部。
-
-**减弱动效。** `prefers-reduced-motion: reduce` 完全禁用动画，透传到默认导航。
-
-**不支持的浏览器。** 能力检测（`'startViewTransition' in document`）是运行时依据。查 [MDN 的兼容性数据](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API#browser_compatibility)了解当前矩阵。
-
-## 留下来的认知
-
-契约很严格：`router.push()` 代表导航已启动，不代表新 DOM 已就绪。"已启动"和"已就绪"之间的间隙就是 View Transitions 崩掉的地方。修复不复杂，但 bug 足够隐蔽，会在没人注意的情况下发到生产——页面"能用"，只是在闪烁而不是在转场。
-
-生产组件还处理了仅 query 变化、键盘导航和主题转场的 `view-transition-name`。这些检查应保留在真实实现里，本文只覆盖核心时序问题。
+我留下的判断很窄。出发和到达是两个时刻。把它们当成一个，屏幕会用一帧来提醒你。那一帧很容易被当成“有点动效而已”。我现在不太肯这么放过它。

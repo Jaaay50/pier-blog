@@ -1,81 +1,23 @@
 ---
-title: "Creative Coding on the Web: WebGL, Canvas, and Knowing When to Stop"
+title: "The homepage looked like a screensaver"
 date: "2026-08-20"
-description: "What I learned building six zero-dependency browser demos — fluid simulation, particle systems, flow fields — and where the line is between showcase and self-indulgence."
-tags: ["WebGL", "Canvas", "Creative Coding"]
-series: "Blog & Product Build Logs"
-topic: "interaction"
+description: "Once the six demos ran, I invited their cousins onto the homepage. Nobody knew where to look. Turning lights off turned out to be the work."
+tags: ["the lab", "this site"]
+series: "Building this site"
+topic: "craft"
 author: "Ethan Pier"
-environment: "WebGL 1/2, Canvas 2D, ogl, Next.js 16"
 ---
 
-I built a lab page with six interactive demos. Navier-Stokes fluid simulation. Particle systems. A shader mixer. Verlet physics. Curl-noise flow fields. Parametric surface morphing. All zero-dependency — no Three.js, no p5.js, no processing framework.
+Once all six demos ran, I invited their cousins onto the homepage.
 
-The tech worked. The harder question was: how much visual complexity does a portfolio actually need?
+The lab has fluid, particles, a shader desk, physics, a flow field, a morphing surface. I wanted them to show I understood the floor, not that I can tune a kit. The fluid went black on some machines because a location was left implied. Title particles clipped the bottom of serif letters because the sample sat on the wrong midline. When those were fixed I was pleased. Pleasure turns easily into more.
 
-## Why Zero Dependencies
+So the homepage grew a starfield. Light mode got a wash of color. Skill cards hid little living windows. Too many things lit at once and the eye had nowhere to land. The particle title — the one piece I actually wanted people to see — sat inside a room where everything was breathing.
 
-Three.js is 600KB minified. For a lab page where each demo is a self-contained canvas, that's a heavy tax for convenience.
+Someone looking from outside said attention was fighting itself. I dropped the sky’s opacity, then the wash. Only one skill card moves by default; the others wake if you come close. A wave divider looked too much like the other fluid and came out entirely. Deleting it felt cleaner than writing it.
 
-I wanted each demo to prove that I understand the underlying math, not that I can configure a library. A particle system from raw WebGL calls, a fluid simulation from actual Navier-Stokes equations, a physics sandbox with hand-written Verlet integration and spatial hashing.
+What I like now is what remains when motion cannot. Weak machine, reduced motion, no canvas — the title is still a line you can read. The six lab windows, with the 3D off, still leave a still or a caption you can understand. Without script the page can still be finished.
 
-The tradeoff: everything takes longer to build, and some things — like decent orbit controls or a proper GLTF loader — aren't worth hand-rolling. For isolated demos on a showcase page, the math-first approach made sense. For a production 3D application, I'd use Three.js without hesitation.
+I do not think I found the line between showing and showing off in one pass. Adding a layer is almost always easier than taking one away. After the taking-away, the homepage felt like a door again.
 
-## The Fluid Simulation
-
-The flagship demo. WebGL2, Navier-Stokes, ping-pong framebuffers, vorticity confinement, 20 Jacobi pressure iterations per frame.
-
-The implementation order mattered more than I expected:
-
-1. Get a single-channel advection working first. Just move dye around.
-2. Add the velocity field. Now the dye follows the field.
-3. Add pressure projection. Without it, the fluid compresses instead of flowing.
-4. Add vorticity confinement. Without it, the simulation is too damped — swirls die too quickly.
-5. Add user input. Drag to inject dye and velocity.
-
-Each step is testable in isolation. Step 3 was where most of the debugging happened — the pressure solver needs enough iterations to converge, and too few iterations create visual artifacts that look like the advection is broken when it's actually the pressure field.
-
-The hardest bug: a black screen on certain GPUs. The cause was `layout(location=0)` missing from the vertex shader. Some drivers default the attribute location to 0; others don't. Adding the explicit layout qualifier fixed it on all tested hardware.
-
-```glsl
-// ❌ Works on some GPUs, black screen on others
-in vec2 aPosition;
-
-// ✅ Explicit location — portable
-layout(location=0) in vec2 aPosition;
-```
-
-## The Particle Title
-
-The homepage hero uses a particle system that reassembles into the page title. The pipeline:
-
-1. Wait for `document.fonts.ready`
-2. Render the title text to an offscreen Canvas 2D
-3. Sample pixel positions from the rendered text using `getImageData`
-4. Create WebGL particles at random positions, then morph them to the sampled positions
-
-The sampling step had a precision issue with serif fonts. The text was rendered with `textBaseline = 'top'`, but serif ascenders pushed the ink above the expected bounds. Switching to `textBaseline = 'middle'` and adjusting the vertical offset fixed it — the particle positions now match the rendered glyphs regardless of font metrics.
-
-The degradation path: if WebGL isn't available, or the device is low-tier, or `prefers-reduced-motion` is set, the title falls back to a CSS character-by-character reveal animation. The text is always in the HTML for SEO. The particles are a layer on top.
-
-## Knowing When to Stop
-
-After the lab page was done, I put animated backgrounds on the homepage. Galaxy stars in dark mode, aurora waves in light mode. Both at full opacity. The page looked like a screensaver.
-
-An external design review pointed out the problem: five simultaneous animated elements compete for attention. The user doesn't know where to look. The particle title — the actual showcase piece — gets lost in the noise.
-
-The fix was opacity reduction. Galaxy went from 0.45 to 0.22. Aurora from 0.40 to 0.18. The skill cards got hover-gating — only one card's animation runs by default, and the others activate on interaction.
-
-The result: the particle title is now the clear focal point. The backgrounds exist, but they don't compete. One demo removed entirely — a wave grid separator that duplicated the shader mixer's visual language.
-
-This was the harder lesson. Building impressive demos is a solvable engineering problem. Deciding how many of them to show at once is a design judgment, and my instinct was wrong. More visual complexity made the page worse, not better.
-
-## The Engineering I'm Proud Of
-
-Not the shaders. The degradation paths.
-
-Every demo checks WebGL capability before mounting. Every animation checks `prefers-reduced-motion`. Every canvas uses `next/dynamic` to avoid SSR. Every interactive element has a static fallback — a screenshot, a simplified CSS version, or just the text content without the visual layer.
-
-The lab page loads in under 2 seconds on a 4G throttle with WebGL disabled. All six demos show meaningful static content. The page is usable without JavaScript.
-
-That's the work that doesn't show up in a demo reel, and it's the work that makes the difference between a tech demo and a production page.
+I still open the lab and drag the fluid around. That is play. Play can stay in the room. If the doorway plays too, people arrive and do not know which way to walk.

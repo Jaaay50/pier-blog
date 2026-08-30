@@ -1,3 +1,13 @@
+### 博客文章改写为个人随笔（2026-08-30，本地完成，未推送）
+
+- ✅ 24 篇 MDX（12 主题 × 中英）从教程/技术说明改写为第一人称随笔；slug 与 `date` 保留，性能文 `updatedAt` 改为 2026-08-30。
+- ✅ 去掉正文代码围栏与「测试环境」字段；系列改为「做这个站的时候 / 使用笔记」或留空；标签收成读者向词汇。
+- ✅ 博客列表、RSS、JSON-LD 介绍文案改为「工作、界面、等待和写作的观察」。
+- ✅ 验证：`npm test` 46 files / 327 tests、`npm run lint`、`npx tsc --noEmit`、`npm run build` 65 页通过。本地 production `PORT=3002` 抽查中英列表与 3 篇详情为 200，OG `type=blog` 1200×630 PNG，RSS/search-index 含新标题。
+- ➖ 未 push、未开 PR、未部署。原文备份在仓库外 `Documents/Codex/pier-blog-article-backups/20260830-essay-rewrite/`。
+
+---
+
 ### 博客与 Cloudborne 导流优化（2026-08-28，已完成并上线）
 
 - ✅ 独立站入口：在 `/zh/about` 与 `/en/about` 首屏介绍下加入低强调入口；在工作经历之后、联系我之前加入 Cloudborne 产品卡片；页脚加入外部链接。链接固定为 `https://cloudborne.cn`，新窗口打开并带 `noopener noreferrer`，不加入 UTM。

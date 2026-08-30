@@ -1,140 +1,26 @@
 ---
-title: "From Server Actions to Progressive Forms"
+title: "I pressed it. Nothing happened."
 date: "2026-01-14"
-description: "Building forms that work before JavaScript loads, stay responsive during submission, and handle every failure the server can throw back."
-tags: ["Next.js", "React", "Architecture"]
-series: "Blog & Product Build Logs"
-topic: "interaction"
+description: "The button was already on the page. I clicked. No spinner, no refusal. A form can look ready before it is alive."
+tags: ["forms"]
+topic: "work"
 author: "Ethan Pier"
-environment: "Next.js 16, React 19, Node.js 22"
 ---
 
-I built a feedback form for a content aggregation product. The first version used a client-side `fetch` with an `onClick` handler. It worked fine until a user on a slow connection clicked "Submit" before React had hydrated. Nothing happened. No error, no feedback, no indication that the click was swallowed.
+The button was sitting there. I pressed it. Nothing happened.
 
-That's when I rewired it with Server Actions and `useActionState`.
+It was the feedback control at the end of a Currents story. Quiet on purpose: no modal, no dimming. The page looked finished. On a slow network I submitted, lifted my finger, and the words were still in the box. The button still said the same thing. No spin. No error. The click had gone into the air.
 
-## The Baseline Problem
+The script had not wired the form yet. The costume arrived first. Hands came later. People click what looks clickable. When nothing follows, they blame themselves: maybe I skipped the category, maybe the network, maybe I missed the pad.
 
-A classic React form:
+I made submit behave like a form. A category. A short note. A button that can say “sending.” The block locks while it travels so a double tap does not fan out. Success says received. If this pair was already reported, we do not pretend it is the first time.
 
-```tsx
-'use client';
-function FeedbackForm() {
-  const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+What actually stops people is rarely the little validation. It is the other side saying “too many,” or the network dropping. If both failures print as a vague “something went wrong,” people retry their way into a real limit. Say rate-limited when it is rate-limited. Say we cannot reach anyone when the line is dead. It is not gentle. At least it points.
 
-  const handleSubmit = async (e: FormEvent) => {
-    e.preventDefault();
-    setStatus('sending');
-    try {
-      await fetch('/api/feedback', { method: 'POST', body: new FormData(e.currentTarget as HTMLFormElement) });
-      setStatus('done');
-    } catch {
-      setStatus('error');
-    }
-  };
+There is a quieter failure too. Some visitors are programs filling boxes. I left a hole a person never sees. If it is filled, the backend shrugs. I want the human notes to remain. The automated ones can vanish.
 
-  return <form onSubmit={handleSubmit}>...</form>;
-}
-```
+A success mark stays on this machine so the same story and category are harder to hammer by accident. That catches a slip. It does not catch a new laptop. The real gate sits on the server. You need both. A browser-only mark stops the careful people and waves the careless ones through.
 
-This requires JavaScript to function. If hydration hasn't finished — which on a slow 3G connection can take several seconds — the form is visually present but functionally dead. The user sees a button, clicks it, and nothing happens. No loading state, no error. The form lied about being ready.
+I trust “looks clickable” less than I used to. Clickable is a costume. Whether anything happens after the press is whether the form is alive.
 
-## Server Actions as the Foundation
-
-A Server Action is a function that runs on the server when the form submits. The key property: it works with a standard HTML `<form action>`, which means the form submits even without JavaScript. The browser sends a POST request, the server processes it, and returns a response.
-
-```tsx
-// src/app/actions/feedback.ts
-'use server';
-
-export async function submitFeedback(prevState: FormState, formData: FormData): Promise<FormState> {
-  const category = formData.get('category');
-  const message = formData.get('message');
-
-  if (!category || typeof category !== 'string') {
-    return { status: 'error', message: 'Please select a category.' };
-  }
-
-  try {
-    await db.feedback.create({
-      data: { category, message: message?.toString() ?? '' },
-    });
-    return { status: 'success', message: 'Feedback received.' };
-  } catch {
-    return { status: 'error', message: 'Something went wrong. Please try again.' };
-  }
-}
-```
-
-No API route. No fetch call. The form action points directly at this function. The framework handles serialization, CSRF protection, and the request/response cycle.
-
-## `useActionState`: Progressive Enhancement
-
-React 19's `useActionState` wraps a Server Action with client-side state:
-
-```tsx
-'use client';
-
-import { useActionState } from 'react';
-import { submitFeedback } from '@/app/actions/feedback';
-
-type FormState = { status: 'idle' } | { status: 'success'; message: string } | { status: 'error'; message: string };
-
-function FeedbackForm() {
-  const [state, formAction, isPending] = useActionState(
-    submitFeedback,
-    { status: 'idle' } as FormState
-  );
-
-  return (
-    <form action={formAction}>
-      <fieldset disabled={isPending}>
-        <select name="category" required>
-          <option value="">Select category</option>
-          <option value="accuracy">Accuracy</option>
-          <option value="missing">Missing info</option>
-          <option value="ui">UI issue</option>
-        </select>
-
-        <textarea name="message" rows={4} />
-
-        <button type="submit">
-          {isPending ? 'Sending...' : 'Submit'}
-        </button>
-      </fieldset>
-
-      {state.status === 'success' && <p>{state.message}</p>}
-      {state.status === 'error' && <p role="alert">{state.message}</p>}
-    </form>
-  );
-}
-```
-
-The progression:
-
-1. **No JavaScript**: The form submits as a standard POST. The server processes it and returns the page with the result. Slow, but functional.
-2. **JavaScript loaded**: `useActionState` intercepts the submission, calls the Server Action via fetch, updates state without a full page reload. `isPending` enables the loading state.
-
-The `disabled` on `<fieldset>` prevents double submission. Native HTML validation (`required`) works before and after hydration. The error message uses `role="alert"` for screen readers.
-
-## The Gotchas
-
-**Return shape matters.** The Server Action must return a serializable object that matches `FormState`. If it throws, the error doesn't reach the client — it becomes a generic "Server Error." Always catch and return a structured error.
-
-**No redirect in the action.** If you need to redirect after success, return a `{ status: 'redirect', url: '/thanks' }` and handle it client-side. Calling `redirect()` inside the action bypasses the state update.
-
-**FormData validation.** `formData.get('category')` returns `FormDataEntryValue | null`, which can be a `File` object if someone tampers with the form. Always narrow the type before using it.
-
-**Rate limiting.** Server Actions have no built-in rate limiting. If the form is public-facing, you need server-side throttling — per-IP, per-session, or per-fingerprint. I use a simple `localStorage` check on the client as UX friction (preventing accidental duplicates) and a proper rate limiter on the server as the real protection.
-
-## What This Pattern Gives You
-
-The form works in three states of the world:
-
-1. **No JS / failed hydration**: Standard HTML form submission. The user sees a full page reload, but the feedback is received.
-2. **JS loaded, fast network**: Instant submission with loading state and inline result.
-3. **JS loaded, slow/failed network**: The `isPending` state shows the loading indicator. If the request fails, the error state renders without losing the user's input.
-
-The cost: the Server Action is a server-side function, which means it needs a running server or a Serverless Function. On a fully static site, this is the one place where you need dynamic compute. For my setup, the feedback endpoint is an ISR page with a Server Action — the page is static, but the action runs serverless.
-
-I've built six forms this way now. The pattern hasn't broken yet.
+I still sometimes poke at a page the instant it appears. When the poke lands in nothing, I wait for it to wake. Readers should not have to invent that pause.

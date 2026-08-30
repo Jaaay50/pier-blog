@@ -1,145 +1,23 @@
 ---
-title: "消灭 Next.js 冷启动：从动态 SSR 到全量 SSG"
+title: "刷新之后，它白了两秒"
 date: "2026-04-25"
-description: "i18n/request.ts 里的一行 cookies() 调用让所有页面强制走 Serverless SSR，冷启动 1–4 秒。改用 URL 路由之后，一切都变成静态了。"
-tags: ["Next.js", "性能", "架构"]
-series: "Next.js 性能诊断"
-topic: "performance"
+description: "页面好几周没改过。我刷新自己的博客，白了两秒，有时三秒。后来才知道，语言被记错了地方。"
+tags: ["刷新", "等待"]
+series: "做这个站的时候"
+topic: "craft"
 author: "Ethan Pier"
-environment: "Next.js 16、next-intl 4、Node.js 22；Vercel 部署"
 ---
 
-> **背景**：这是一份来自单个 Next.js 部署的案例记录。文中的延迟数字只代表这套环境的观测，不是平台承诺。
+刷新。白屏。两秒。再刷一次，三秒。有一次运气差，到了四秒。
 
-我在刷新自己的博客，看着浏览器空白了两秒。然后三秒。有一次运气差，四秒。这些页面已经好几周没变了。它们没有理由要这么久。
+这些页面已经好几周没动过。它们没有理由每次都像刚被叫醒。我盯着空白，听风扇，怀疑是自己的网络。面板上的记录更直白：每一次访问都在现场现做。缓存像不认识它们。
 
-Vercel 面板显示每个请求都在打 Serverless Function。响应头确认了：
+原因后来小得有点可笑。站点要中英两套。最初语言被记在浏览器里，每次打开都去问一次。问这一下，让所有页面都不能提前印好。它们变成必须到了现场才组装的东西。没人来的时候，机器是冷的。冷的机器要先点火。点火的那几秒，就是白屏。
 
-```
-x-vercel-cache: MISS
-```
+我把语言放进地址。中文走一套路径，英文走另一套。两套在构建时就印好。印好的东西可以放在离人近的地方，直接递出去。刷新不再像叫一个睡熟的人起床。
 
-什么都没缓存。每个页面每次访问都从头渲染。
+约束跟着来。页面在印的时候，不能再去翻浏览器里的私人物品：不能读那种随请求变化的记号，不能按每个人当场决定版面。语言只能来自地址。谁把这条约定打破一次，白屏就有机会回来。
 
-## 破坏一切的那一行代码
+即便现在，从我这里打开，仍会有一段过海的时间。那是路途。点火那种等待，我已经很难再接受——明知内容没变，还要看一回空白。
 
-博客用 next-intl 做国际化。最初的方案用 cookie 检测 locale：
-
-```typescript title="i18n/request.ts"
-// ❌ 原来的方案
-import { getRequestConfig } from 'next-intl/server';
-import { cookies } from 'next/headers';
-
-export default getRequestConfig(async () => {
-  const locale = cookies().get('NEXT_LOCALE')?.value ?? 'en';
-  return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
-  };
-});
-```
-
-`cookies()` 是 Next.js 的动态函数。在渲染链路的任何地方调用它，等于告诉框架：页面输出依赖当前请求。Next.js 随即把所有碰到 `getTranslations()` 的页面标记为 dynamic——没有静态生成，没有 CDN 缓存，没有预渲染。
-
-构建产物里全是 `ƒ`。每个页面都是 Serverless Function：
-
-```
-Route                          Size    First Load JS
-┌ ƒ /en                        4.2 kB     142 kB
-├ ƒ /en/blog                   3.1 kB     138 kB
-├ ƒ /en/blog/[slug]            6.4 kB     156 kB
-├ ƒ /en/about                  2.8 kB     135 kB
-└ ƒ /en/portfolio              3.3 kB     140 kB
-```
-
-Vercel 免费版没有持久计算，每次访问都是一次冷启动。
-
-## 修复：把 locale 放进 URL
-
-结构性变更：不再从请求里读 locale，放进 URL。
-
-```
-src/app/
-  [locale]/
-    page.tsx        ← 每个 locale 一条静态路由，构建时预渲染
-    blog/
-      page.tsx
-```
-
-新的 `i18n/request.ts`：
-
-```typescript
-// ✅ 没有 cookies()，没有 headers()
-import { getRequestConfig } from 'next-intl/server';
-import { routing } from './routing';
-
-export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale;
-  if (!locale || !routing.locales.includes(locale as 'en' | 'zh')) {
-    locale = routing.defaultLocale;
-  }
-  return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
-  };
-});
-```
-
-`requestLocale` 来自 URL 里的 `[locale]` 段。它在构建时就有。不读任何运行时请求数据，不触发动态标记。
-
-每个页面调用 `setRequestLocale(locale)` 并导出 `generateStaticParams`：
-
-```typescript
-export async function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export default async function Page({ params }: PageProps) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  // ... 渲染
-}
-```
-
-next-intl 的导航工具自动处理 locale 前缀：
-
-```typescript
-import { Link } from '@/i18n/navigation';
-<Link href="/blog">Blog</Link>
-// 根据当前 locale 渲染成 /en/blog 或 /zh/blog
-```
-
-middleware 处理根路径重定向——访问 `/` 的用户根据 `Accept-Language` 被送到 `/en` 或 `/zh`。这只是一次跳转，不是逐页渲染。
-
-## 结果
-
-```
-Route                          Size    First Load JS
-┌ ○ /en                        4.2 kB     142 kB
-├ ○ /en/blog                   3.1 kB     138 kB
-├ ● /en/blog/[slug]            6.4 kB     156 kB
-├ ○ /en/about                  2.8 kB     135 kB
-└ ○ /en/portfolio              3.3 kB     140 kB
-```
-
-`○` 是完全静态。`●` 是有预渲染页面的静态路由。没有任何 `ƒ`。
-
-```
-x-vercel-cache: HIT
-```
-
-缓存命中请求直接由 CDN 边缘节点返回。同日抽样看到 TTFB 从 1–4 秒降到缓存命中时的 100ms 以内。
-
-## 约束
-
-这套架构有一条硬规则：渲染链路里不能出现 `cookies()`、`headers()` 或 `getLocale()`。任何一个都会把页面打回动态 SSR。
-
-- `i18n/request.ts` 只用 `requestLocale`
-- 每个调用 `getTranslations()` 的页面，之前必须先调 `setRequestLocale(locale)`
-- 数据获取工具接受显式 `locale` 参数，不内部调用 `getLocale()`
-
-locale 始终在 URL 里。从请求里读它等于废掉整次迁移。
-
-## 剩余延迟
-
-缓存命中的 TTFB 稳定快速。首次命中（部署之后）还有一些延迟——但那是到最近 CDN 边缘节点的网络 RTT，不是 Serverless Function 冷启动。不同的问题，不同的解法。你可以通过更近的边缘节点或付费更宽的边缘网络来解决。但得先把 Serverless Function 消灭掉——更好的 CDN 修不了冷启动。
+有时我仍会下意识连点刷新。白屏如果还在，我会先怀疑是不是又把语言问回了浏览器。这种过敏大概留得住。它提醒我：有些慢是距离。有些慢是自己把已经写完的东西，又当场重写了一遍。

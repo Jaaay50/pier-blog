@@ -16,7 +16,7 @@ const localeCopy = {
       "Selected products and open-source tools by Ethan Pier, spanning frontend engineering, AI workflows, and developer tooling.",
     blogTitle: "Tides — Pier",
     blogDescription:
-      "Writing about frontend engineering, AI integration, system design, and the craft of building for the web.",
+      "Notes on work, interfaces, waiting, and writing.",
     currentsTitle: "Currents — Pier",
     currentsDescription:
       "AI frontiers: papers, products, research, and industry moves.",
@@ -34,7 +34,7 @@ const localeCopy = {
       "Ethan Pier 的精选作品与开源工具，涵盖前端工程、AI 工作流与开发者工具。",
     blogTitle: "潮聲 — Pier",
     blogDescription:
-      "记录前端工程、AI 集成、系统设计，以及 Web 开发的思考与实践。",
+      "一些关于工作、界面、等待和写作的观察。",
     currentsTitle: "潮汐 — Pier",
     currentsDescription: "AI 前沿论文、产品、研究与行业动态。",
   },

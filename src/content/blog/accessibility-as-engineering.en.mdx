@@ -1,113 +1,24 @@
 ---
-title: "Accessibility as Engineering, Not Compliance"
+title: "After I pushed the mouse aside"
 date: "2026-07-30"
-description: "The accessibility work that changed how I build components — focus management, screen reader semantics, and the bugs you only find by turning off the mouse."
-tags: ["Accessibility", "React", "CSS"]
-topic: "architecture"
+description: "With a pointer everything worked. I tabbed, and focus walked out of the panel into the page behind it. Some holes only show up on a keyboard."
+tags: ["keyboard"]
+topic: "craft"
 author: "Ethan Pier"
 ---
 
-I started doing accessibility work because a lighthouse audit said my score was 78. I kept doing it because I found real bugs — interactions that worked with a mouse and broke completely with a keyboard.
+I pushed the mouse aside and pressed Tab.
 
-The shift wasn't moral. It was mechanical. Accessibility exposed assumptions in my component logic that I hadn't tested.
+On a narrow screen, Currents filters slide out as a panel. A finger opens and closes it cleanly. From the keyboard, focus walked through the options, crossed the edge, and kept going on the page behind. The panel still looked open. The work was happening on a layer I could not see. Quiet kind of wrong. No red text. Only a slip: I thought I was here, and I was already elsewhere.
 
-## The First Bug: Focus Trap
+When the panel opens now, focus has to come in. Tab circles inside. Escape closes it and returns focus to the control that opened it. Skip that loop and a keyboard user operates a board that looks open while editing the list behind it.
 
-I built a mobile filter panel. It slid in from the right, displayed filter options, and closed on an outside click. It worked perfectly with a pointer.
+The table of contents is the same family. On a desk it is a rail. On a phone it is a drawer. If the drawer only knows how to appear, and not how to take focus and give it back, it becomes another cloth that swallows keys.
 
-When I tabbed into it with a keyboard, focus walked through the filter options, then right through the panel edge into the page behind it. The user could tab to elements they couldn't see. The panel looked open, but focus was somewhere else entirely.
+I walked the site once and replaced squares that acted like buttons with actual buttons. Buttons already know Return and Space. Squares want you to rebuild all of that, and you miss a piece. The missed pieces belong to people who are not using a pointer.
 
-The fix was a focus trap: when the panel opens, focus moves to the first focusable element inside it. Tab cycles within the panel. Pressing Escape closes it and returns focus to the button that opened it.
+When copy succeeds, the label becomes “Copied.” Eyes see it. A screen reader that is not listening to that spot says nothing. I made the change speak softly. Submit results on feedback too. If something happens on a page that is already open and nobody reads it, it did not happen.
 
-```tsx
-useEffect(() => {
-  if (!open) return;
+Some people turn motion off. I do not need their reasons. Particles, sky, fluid — they do not run under that setting. The words stay. The title stays. Nobody has sprinkled moving powder on top.
 
-  const previousFocus = document.activeElement as HTMLElement;
-  panelRef.current?.focus();
-
-  return () => {
-    previousFocus?.focus();
-  };
-}, [open]);
-```
-
-This isn't a nice-to-have. Without it, a keyboard user interacting with a visually open panel is actually interacting with the page behind it. The inputs they fill in might not be the inputs they think they're filling in.
-
-## Semantic HTML Does Most of the Work
-
-The biggest accessibility improvements I made weren't ARIA attributes or screen reader hacks. They were replacing `<div onClick>` with `<button>`, replacing `<div role="list">` with `<ul>`, and adding `<label>` elements to form inputs.
-
-```tsx
-// ❌ A div pretending to be a button
-<div className="btn" onClick={handleClick} tabIndex={0}>
-  Submit
-</div>
-
-// ✅ An actual button
-<button type="submit" onClick={handleClick}>
-  Submit
-</button>
-```
-
-The `<button>` gives you keyboard activation (Enter and Space), focus styling, screen reader announcement, and form submission for free. The `<div>` requires you to reimplement all of that — and you'll miss something.
-
-I went through my codebase and found eight interactive `<div>` elements. Replacing them took twenty minutes and fixed all the keyboard interaction issues on those components.
-
-## Focus-Visible vs Focus
-
-CSS `:focus` shows a focus ring on every click. Users who navigate with a mouse find it annoying. CSS `:focus-visible` shows the ring only when the browser detects keyboard navigation:
-
-```css
-button:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-button:focus:not(:focus-visible) {
-  outline: none;
-}
-```
-
-This is a small detail that dramatically improves the feel of an interface. Mouse users don't see focus rings. Keyboard users always see them. The browser handles the heuristic.
-
-## `aria-live` for Dynamic Content
-
-When a copy button changes its label from "Copy" to "Copied!", sighted users see the change. Screen reader users hear nothing — the text changed in a region the screen reader isn't watching.
-
-`aria-live="polite"` fixes this:
-
-```tsx
-<span aria-live="polite">
-  {copied ? 'Copied!' : 'Copy'}
-</span>
-```
-
-The screen reader announces the text change without interrupting the current reading. `aria-live="assertive"` would interrupt immediately — use it only for errors or time-sensitive alerts.
-
-I added `aria-live` to the copy button, the feedback form status, the search result count, and the toast notification. Four components, four one-line changes, and screen reader users get feedback they were previously missing entirely.
-
-## Reduced Motion
-
-`prefers-reduced-motion: reduce` is a system setting, not a suggestion. Some users set it because motion causes discomfort. Others set it because they prefer efficiency.
-
-The rule I follow: all animation checks `prefers-reduced-motion`. If the user prefers reduced motion, transitions either shorten to near-instant or are removed entirely. The content and functionality remain unchanged.
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-```
-
-For WebGL animations — particle systems, shader effects, fluid simulations — reduced motion means they don't run at all. A static fallback replaces them. The user still sees the page content; they just don't see the animation.
-
-## What Changed in How I Build
-
-Accessibility isn't a separate feature you add at the end. It's an engineering constraint, like type safety or responsive design. You can ignore it and ship, but the bugs it would have caught don't go away — they just become harder to find.
-
-The components I build now start with the HTML element that has the right semantics. I add keyboard handlers before mouse handlers. I test with Tab before I test with a pointer. And I check `prefers-reduced-motion` before I add any animation.
-
-This isn't about compliance or scores. It's about building components that work in more situations — and finding bugs earlier because those situations are part of the test.
+When I build something that opens and closes, I tab through it first. If that path fails, the hole is usually already there. The pointer was covering it. I look at scores less. Scores move. The feeling of focus walking out of the room is harder to unsee.

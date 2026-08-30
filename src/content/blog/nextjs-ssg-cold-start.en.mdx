@@ -1,145 +1,23 @@
 ---
-title: "Eliminating Next.js Cold Starts: From Dynamic SSR to Full SSG"
+title: "Refresh, and it went white"
 date: "2026-04-25"
-description: "How a single cookies() call in i18n/request.ts forced every page into Serverless SSR with 1–4s cold starts — and how moving to URL-based routing made everything static."
-tags: ["Next.js", "Performance", "Architecture"]
-series: "Next.js Performance Diagnostics"
-topic: "performance"
+description: "The pages had not changed in weeks. I refreshed my own blog and watched two seconds of blank, sometimes three. Language had been stored in the wrong place."
+tags: ["refresh", "waiting"]
+series: "Building this site"
+topic: "craft"
 author: "Ethan Pier"
-environment: "Next.js 16, next-intl 4, Node.js 22; Vercel deployment"
 ---
 
-> **Context**: This is a case study from one Next.js deployment. The latency numbers are observations from that specific setup, not a platform guarantee.
+Refresh. White. Two seconds. Again: three. Once, unluckily, four.
 
-I was refreshing my own blog and watching the browser sit empty for two seconds. Then three. Then four, on a bad run. The pages hadn't changed in weeks. There was no reason for them to take this long.
+Those pages had sat still for weeks. They had no reason to wake like someone shaken out of sleep. I stared at the blank, heard the fan, blamed my network. The dashboard was blunter: every visit was being built on the spot. Cache did not seem to know them.
 
-The Vercel dashboard showed every request hitting a Serverless Function. The response header confirmed it:
+The cause was almost funny in its size. The site has Chinese and English. At first the language lived in the browser, and every load went to ask. That one question meant nothing could be printed ahead of time. Pages became things you assemble on arrival. When nobody is around, the machine is cold. A cold machine lights the stove first. Those seconds were the white.
 
-```
-x-vercel-cache: MISS
-```
+I put language in the address. Chinese one path, English another. Both printed at build. Printed pages can sit near people and be handed over. Refresh stopped feeling like waking a heavy sleeper.
 
-Nothing was cached. Every page was rendered from scratch on every visit.
+A rule came with it. While a page is being printed it cannot rifle through private pockets in the browser: no marks that change per request, no layout decided in the moment for each visitor. Language comes from the path. Break that once and the white has a way back in.
 
-## The One Line That Broke Everything
+Even now, from where I sit, there is still a stretch of sea. That is distance. The stove-lighting wait I can hardly stand anymore — knowing the content is unchanged and still watching a blank.
 
-The blog uses next-intl for internationalization. The original setup used cookie-based locale detection:
-
-```typescript title="i18n/request.ts"
-// ❌ The original implementation
-import { getRequestConfig } from 'next-intl/server';
-import { cookies } from 'next/headers';
-
-export default getRequestConfig(async () => {
-  const locale = cookies().get('NEXT_LOCALE')?.value ?? 'en';
-  return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
-  };
-});
-```
-
-`cookies()` is a dynamic function in Next.js. Calling it anywhere in the render chain tells the framework that the page output depends on the incoming request. Next.js marks every page that touches `getTranslations()` as dynamic — no static generation, no CDN caching, no pre-rendering.
-
-The build output was full of `ƒ` symbols. Every page was a Serverless Function:
-
-```
-Route                          Size    First Load JS
-┌ ƒ /en                        4.2 kB     142 kB
-├ ƒ /en/blog                   3.1 kB     138 kB
-├ ƒ /en/blog/[slug]            6.4 kB     156 kB
-├ ƒ /en/about                  2.8 kB     135 kB
-└ ƒ /en/portfolio              3.3 kB     140 kB
-```
-
-On Vercel's free tier with no persistent compute, every page visit meant a cold start.
-
-## The Fix: Move Locale to the URL
-
-The structural change: stop reading locale from the request. Put it in the URL instead.
-
-```
-src/app/
-  [locale]/
-    page.tsx        ← one static route per locale, built at build time
-    blog/
-      page.tsx
-```
-
-The new `i18n/request.ts`:
-
-```typescript
-// ✅ No cookies(), no headers()
-import { getRequestConfig } from 'next-intl/server';
-import { routing } from './routing';
-
-export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale;
-  if (!locale || !routing.locales.includes(locale as 'en' | 'zh')) {
-    locale = routing.defaultLocale;
-  }
-  return {
-    locale,
-    messages: (await import(`../messages/${locale}.json`)).default,
-  };
-});
-```
-
-`requestLocale` comes from the `[locale]` URL segment. It's available at build time. No runtime request data, no dynamic opt-in.
-
-Each page calls `setRequestLocale(locale)` and exports `generateStaticParams`:
-
-```typescript
-export async function generateStaticParams() {
-  return locales.map((locale) => ({ locale }));
-}
-
-export default async function Page({ params }: PageProps) {
-  const { locale } = await params;
-  setRequestLocale(locale);
-  // ... render
-}
-```
-
-Navigation helpers from next-intl handle locale prefixes automatically:
-
-```typescript
-import { Link } from '@/i18n/navigation';
-<Link href="/blog">Blog</Link>
-// renders /en/blog or /zh/blog based on current locale
-```
-
-Middleware handles the root redirect — users arriving at `/` get sent to `/en` or `/zh` based on `Accept-Language`. This is a one-time redirect, not per-page rendering.
-
-## The Result
-
-```
-Route                          Size    First Load JS
-┌ ○ /en                        4.2 kB     142 kB
-├ ○ /en/blog                   3.1 kB     138 kB
-├ ● /en/blog/[slug]            6.4 kB     156 kB
-├ ○ /en/about                  2.8 kB     135 kB
-└ ○ /en/portfolio              3.3 kB     140 kB
-```
-
-`○` is fully static. `●` is static with pre-rendered pages. No `ƒ` anywhere.
-
-```
-x-vercel-cache: HIT
-```
-
-Cache hits served from the CDN edge. In the same-day spot check, TTFB went from the 1–4s range to under 100ms on cache hits.
-
-## The Constraint Going Forward
-
-This architecture has one hard rule: nothing in the render chain can call `cookies()`, `headers()`, or `getLocale()`. Any of these forces the page back into dynamic SSR.
-
-- `i18n/request.ts` uses only `requestLocale`
-- Every page with `getTranslations()` must call `setRequestLocale(locale)` first
-- Data-fetching utilities accept an explicit `locale` parameter instead of calling `getLocale()` internally
-
-The locale is always in the URL. Reading it from the request would undo the entire migration.
-
-## Remaining Latency
-
-TTFB is consistently fast on cache hits. On first hit after a deploy, there's still some latency — but that's network RTT to the nearest CDN edge, not a Serverless Function cold start. Different problem, different solution. You address it with a closer edge node or a paid tier with a wider edge network. But you have to eliminate the Serverless Functions first — a better CDN can't fix a cold start.
+I still mash refresh out of habit. If the white returns I wonder whether language has been asked of the browser again. I will probably keep that allergy. Some slowness is mileage. Some slowness is rewriting, live, a thing that was already written.

@@ -1,152 +1,30 @@
 ---
-title: "State Management in the RSC Era"
+title: "I refreshed, and the filters were gone"
 date: "2025-04-03"
-description: "After rebuilding a production app with React Server Components, most of my state management code disappeared. What remained was more interesting than what left."
-tags: ["React", "Architecture", "State Management"]
-series: "Blog & Product Build Logs"
-topic: "architecture"
+description: "I set the filters, hit refresh, and watched them vanish. After that I became fussy about what belongs in the address bar."
+tags: ["filters", "refresh"]
+topic: "observation"
 author: "Ethan Pier"
-environment: "Next.js 16, React 19, Node.js 22"
 ---
 
-I was migrating a dashboard from Pages Router to App Router when I noticed something odd: the state management layer — a Zustand store with six slices, three Context providers, and a handful of custom hooks — had almost nothing left to do. Not because I'd replaced it. Because the framework had quietly absorbed most of what it managed.
+I set the filters on Currents, refreshed, and they were gone.
 
-That migration is where my opinions about state management in 2025 actually come from. Not from reading docs.
+Source, score, view — all of it had been there. The page came back as if I had just arrived. I sat with that for a couple of seconds, waiting for a choice that was not going to return.
 
-## What Disappeared
+The back button did the same trick. Leave a story, return to the list, and the pile I had made was already tidied into the default. Like walking back into a room where the lamp is still on and the table has been reset.
 
-The old app had a `useCurrentUser` hook backed by a Context provider. It called an API route on mount, cached the result in state, and passed it down. Every protected page imported it.
+For a while I kept that kind of state in the page’s own head. Fine while the tab lived. Close it, share it, refresh it, and only I remembered which stack I had been looking at.
 
-In App Router, the same data is a `fetch` call in a Server Component. No hook, no provider, no client bundle impact. The user object exists on the server, gets serialized into HTML, and arrives at the browser already rendered.
+I moved the filters that can be said out loud into the address. A link can be copied. Back returns you to the version with the conditions still on. Refresh stops pretending we are at the beginning. The blog’s topic chips work the same way: the name rides after the question mark and survives a reload.
 
-```tsx
-async function UserProfile({ id }: { id: string }) {
-  const user = await db.user.findUnique({ where: { id } });
-  if (!user) return <p>User not found.</p>;
+There is a cost you can feel. Change a filter and the address twitches. Sometimes it feels like turning a page. Sometimes there is a small cough while the data comes back.
 
-  return (
-    <div>
-      <h1>{user.name}</h1>
-      <p>{user.bio}</p>
-    </div>
-  );
-}
-```
+Read receipts do not belong there. A necklace of article ids on a shared link is a private scratch sent through the mail. Those stay on this machine.
 
-No `useEffect`. No loading state. No cache invalidation hook. The component doesn't even ship JavaScript.
+That hiding place created a different mistake. Hover long enough and the next page would preload. Preload used to mark the story read. I had not opened it. The list already looked as if I had. Now only a real visit writes. Preload can hurry the next page. It does not get to decide what I have seen.
 
-I went through the codebase and found the same pattern everywhere: filter state that could be URL params, form state that could be `useActionState`, permission checks that could happen on the server before the component tree even starts rendering.
+I ask a dull question now: if I close the window, should this still exist? If yes, maybe it belongs in the address. If no, it can live on this laptop, or only for this visit.
 
-## A Classification That Held Up
+The sidebar tucked away, the dark or light skin — same family. They do not need to be shared. They only need to remember how I was sitting last time.
 
-Before reaching for any library, I now ask one question: who owns this state?
-
-```
-Server data?               → RSC + fetch
-In the URL?                → useSearchParams
-A form?                    → useActionState
-Local to one component?    → useState
-Shared across 3+ distant client components?  → Zustand
-```
-
-The surprising thing is how rarely I reach the last line. In the dashboard migration, exactly two pieces of state needed Zustand: the sidebar open/close toggle (because it's referenced by the layout, the nav, and a keyboard shortcut handler) and a notification queue (because toasts can be triggered from anywhere).
-
-Everything else fit in the first four categories.
-
-## URL State Is Underrated
-
-Filter pages taught me this. The old version stored `sort`, `status`, and `dateRange` in a Zustand slice. Sharing a filtered view meant copying the state into a URL manually. Browser back broke the filters. Refresh lost them.
-
-Moving filters into `useSearchParams` fixed all of that for free:
-
-```tsx
-'use client';
-
-import { useSearchParams, useRouter } from 'next/navigation';
-
-function Filters() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  const setFilter = (key: string, value: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    params.set(key, value);
-    router.push(`?${params.toString()}`);
-  };
-
-  return (
-    <select
-      value={searchParams.get('sort') || 'newest'}
-      onChange={(e) => setFilter('sort', e.target.value)}
-    >
-      <option value="newest">Newest</option>
-      <option value="popular">Popular</option>
-    </select>
-  );
-}
-```
-
-Shareable URLs. Browser history works. Survives refresh. SSR-compatible. No library.
-
-The cost: every filter change triggers a navigation, which in App Router means a server request for the new route. For a static page that's a CDN hit, it's fast. For a page with heavy server-side computation, you might want `router.replace` with `scroll: false` or debounce the params.
-
-## When Zustand Actually Earns Its Keep
-
-The sidebar toggle is the textbook case. Three distant components need to read it: the sidebar itself, the main content area (for the width shift), and a keyboard shortcut handler. None of them are parent-child. `useState` would require lifting to the layout root, and by that point you've built a worse Context provider.
-
-```typescript
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-
-interface AppStore {
-  sidebarOpen: boolean;
-  toggleSidebar: () => void;
-}
-
-export const useAppStore = create<AppStore>()(
-  persist(
-    (set) => ({
-      sidebarOpen: true,
-      toggleSidebar: () => set((s) => ({
-        sidebarOpen: !s.sidebarOpen
-      })),
-    }),
-    { name: 'app-store' }
-  )
-);
-```
-
-No Provider. Selectors limit re-renders. `persist` gives you `localStorage` memory across sessions. This is the exact scope where Zustand earns its 3KB.
-
-If the state doesn't cross 3+ unrelated components, `useState` is enough. That's not minimalism — it's just the right tool.
-
-## The Anti-Pattern I Keep Seeing
-
-```typescript
-// ❌ Three files and a provider wrapper for a boolean
-const ThemeContext = createContext();
-const ThemeProvider = ({ children }) => { /* ... */ };
-const useTheme = () => useContext(ThemeContext);
-
-// ✅ One line, no provider, surgical re-renders
-const useTheme = create((set) => ({
-  theme: 'dark',
-  toggle: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }))
-}));
-```
-
-Context has legitimate uses — dependency injection, theme nesting, compound component APIs. But for global state that multiple leaves need to read without re-rendering their parents, it's the wrong shape. Every Context update re-renders every consumer, even if the value they read didn't change. Zustand's selector model avoids this.
-
-## What I Took Away
-
-The biggest lesson from the migration wasn't about libraries. It was about classification. Most state management pain comes from putting client-side state where server state, URL state, or form state would have been simpler.
-
-Server Components don't eliminate state management. They eliminate the category of state management that was always a workaround for not having server rendering with direct data access. The state that remains — UI toggles, cross-component coordination, client-side caches — is genuinely client work, and it's a smaller problem.
-
-Five things I keep reminding myself:
-
-1. Server Components eliminate most client state. Let the platform work.
-2. URL state is free. Filters, pagination, modals — put them in the URL.
-3. `useState` is underrated. Most UI state is local.
-4. Zustand for the rest. Minimal API, maximum ergonomics.
-5. The best state management is no state management. Derive, don't store.
+After the filters vanished once, I got picky about a page that “remembers.” Memory is useful. Remembering wrong is worse than a blank slate.

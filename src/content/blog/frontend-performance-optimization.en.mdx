@@ -1,146 +1,26 @@
 ---
-title: "Chasing Core Web Vitals on a Real Site"
+title: "I blamed the starfield"
 date: "2025-11-08"
-description: "What I found when I measured my own site's performance — the image that owned LCP, the layout shift I couldn't see, and the INP problem that only existed on phones."
-tags: ["Performance", "Next.js", "Web Vitals"]
-series: "Next.js Performance Diagnostics"
-topic: "performance"
+updatedAt: "2026-08-30"
+description: "My own homepage made me wait on a phone. I blamed the particles. Measurement pointed somewhere quieter."
+tags: ["waiting", "this site"]
+series: "Building this site"
+topic: "craft"
 author: "Ethan Pier"
-environment: "Next.js 16, React 19, Node.js 22"
-updatedAt: "2026-08-28"
 ---
 
-I didn't start optimizing performance because I read an article about Core Web Vitals. I started because the hero section on my own site felt slow on my phone. The Galaxy background loaded, the particles converged, and the whole thing took long enough that I noticed it. Noticing it was the problem.
+The starfield spread. Particles were still gathering into the title. I watched my own homepage and waited.
 
-## Measuring Before Guessing
+The waiting was already the bug. A site of mine should not make time audible on the first screen. My guess was lazy: the most elaborate layer must be the slow one. Stars, particles, fluid — they all looked guilty.
 
-The instinct was to look at the WebGL pipeline. It's the most complex thing on the page, so it must be the bottleneck, right?
+Measurement was less flattering. Desktop scores can look heroic. On a phone the largest piece of content took its time. What the browser calls “largest” was not the moving sky. To it, the sky barely counted as paint. What held the metric was the title underneath, still hidden for a while so an animation could take over. Hidden text cannot finish painting. Fonts arriving late stretched the pause further.
 
-I ran Lighthouse on the deployed site instead. The results surprised me:
+I nearly rewrote the particles. That rewrite would have made the page prettier. It would barely have shortened the wait I could feel.
 
-The three numbers that matter most:
+The fixes were homely. Let the title exist as type first. Particles can land on top if they are able; if not, the words stay. If a web font is late, keep the fallback. Do not swap widths mid-sentence and reflow a whole paragraph. Chinese is hungry for that discipline. Fallback and webfont can disagree enough on a single glyph to rebreak a line.
 
-| Metric | Target | What It Measures |
-|--------|--------|------------------|
-| LCP | < 2.5s | Visual completeness |
-| INP | ≤ 200ms | Responsiveness to interaction |
-| CLS | < 0.1 | Visual stability |
+Theme toggle stuttered on phones too. One tap and every color shifted together. It felt like a slow button. It was too many layers easing at once. Now only the floor and the type ease, briefly. The rest jump. Nobody has asked for those jumps to be animated.
 
-My initial Lighthouse run told a different story:
+Glass cards added blur. Pretty. Stack enough of them and a weak device fights the canvases. We grade it now: stronger machines may blur deeper; weaker ones drop a step. Pixel density on the sky was pulled back too. You can hardly see it. The fan is a little quieter.
 
-| Metric | Value | Rating |
-|--------|-------|--------|
-| LCP | 3.2s | Poor |
-| INP | 280ms | Needs Improvement |
-| CLS | 0.02 | Good |
-
-LCP was 3.2 seconds. But LCP wasn't the particle animation — it was the hero image fallback. The browser identified the largest contentful paint as a background element that loaded after the WebGL canvas, because the canvas doesn't count as contentful paint until it has visible content.
-
-The optimization I almost did (rewrite the particle system) would not have moved LCP at all.
-
-## Fixing What Actually Mattered
-
-### LCP: The Hero Image
-
-The fix was mechanical: preload the critical image, use the `priority` flag, and provide a blur placeholder:
-
-```tsx
-<Image
-  src={hero}
-  alt="Hero"
-  priority
-  sizes="(max-width: 768px) 100vw, 50vw"
-  placeholder="blur"
-/>
-```
-
-After this, LCP dropped to 1.8s on a 4G throttle. The particle system had nothing to do with it.
-
-The lesson: measure before assuming. The most complex code on the page is not always the bottleneck. The browser's definition of "largest contentful paint" doesn't care about your WebGL.
-
-### INP: The Event Handler Problem
-
-INP only showed up as a problem on mobile. On desktop, every interaction responded in under 50ms. On a mid-range Android phone, tapping the theme toggle took 280ms.
-
-The cause: the toggle handler triggered a class change on `<html>`, which forced a repaint of every element with a CSS transition on a custom property. 23 custom properties were transitioning simultaneously.
-
-```css
-/* Before: everything transitions */
-* {
-  transition: all 150ms ease;
-}
-
-/* After: only the properties that users perceive */
-body {
-  transition: background-color 150ms ease, color 150ms ease;
-}
-```
-
-Reducing the transition scope dropped INP to under 120ms on the same device. Everything else — borders, shadows, accent colors — snaps instantly, and users don't notice.
-
-### CLS: Already Fine, Almost Ruined It
-
-CLS was 0.02, well within the "good" threshold. Then I added a dynamic font loading strategy and watched it jump to 0.18.
-
-The problem: `font-display: swap` causes a layout shift when the web font arrives and glyphs change size. For CJK fonts, the shift is larger because the character width difference between the fallback and the web font is bigger.
-
-```css
-@font-face {
-  font-family: var(--font-display);
-  font-display: optional;
-  size-adjust: 100%;
-}
-```
-
-`font-display: optional` eliminates the swap — if the font hasn't loaded by the time the browser needs it, it stays on the fallback for that page load. CLS went back to 0.02. The tradeoff: users on slow connections see the fallback font for the entire first visit. For a site where the content is code and prose, not a brand-sensitive landing page, I'm fine with that.
-
-## Code Splitting: The Easy Win I Almost Over-Did
-
-Next.js App Router handles route-level code splitting automatically. Every route is a separate bundle. The temptation is to then `dynamic()` import everything else:
-
-```typescript
-import dynamic from 'next/dynamic';
-
-const Chart = dynamic(() => import('@/components/Chart'), {
-  loading: () => <ChartSkeleton />,
-  ssr: false,
-});
-```
-
-This is correct for heavy components that aren't needed on first render — WebGL demos, code editors, visualization widgets. It's wrong for components that are part of the critical rendering path. A dynamically imported hero section defeats the purpose of SSG.
-
-The rule I follow: `dynamic()` for below-fold interactive components. Static imports for everything in the initial viewport.
-
-## Measuring in Production
-
-The build log is the first diagnostic:
-
-```bash
-npm run build
-# Route size and First Load JS are printed per route
-```
-
-For runtime data, the web-vitals hook:
-
-```tsx
-'use client';
-
-import { useReportWebVitals } from 'next/web-vitals';
-
-export function WebVitals() {
-  useReportWebVitals((metric) => {
-    console.log(metric.name, metric.value, metric.rating);
-  });
-  return null;
-}
-```
-
-This logs metrics to the console. Sending them to an endpoint requires authentication, retention, sampling, and an actual `/api/vitals` handler — work I haven't done yet because console logging during manual testing catches the problems I can act on.
-
-## What I Took Away
-
-1. Measure first. The bottleneck is usually not where you think it is.
-2. LCP is almost always an image problem. Optimize the hero image pipeline before touching JavaScript.
-3. INP shows up on phones, not laptops. Test on a real mid-range device or throttle aggressively.
-4. CLS is easy to maintain and easy to break. Font loading and dynamic content are the usual culprits.
-5. Bundle size is a feature. Treat it like memory usage — track it, budget it, and notice when it grows.
+I still open the site on my own phone first. Scores are a language you speak afterward. The body knows whether it waited. When it does, I am slower to accuse the starfield. It is loud, so it looks like a culprit. What actually holds you is often a line of silent type, or a font still on the road.

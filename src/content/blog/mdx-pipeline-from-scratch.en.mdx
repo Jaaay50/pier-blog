@@ -1,116 +1,25 @@
 ---
-title: "Building an MDX Pipeline from Scratch"
+title: "I wanted to see what a sentence used to be"
 date: "2026-03-10"
-description: "How I replaced a CMS with a local MDX pipeline — gray-matter, rehype-pretty-code, Shiki, and the edge cases that took longer than the happy path."
-tags: ["Next.js", "MDX", "Architecture"]
-series: "Blog & Product Build Logs"
-topic: "architecture"
+description: "The pieces live in files. I want last Tuesday’s line, and the day it changed, without asking a dashboard to remember for me."
+tags: ["writing", "this site"]
+series: "Building this site"
+topic: "writing"
 author: "Ethan Pier"
-environment: "Next.js 16, @mdx-js/mdx, rehype-pretty-code, Shiki"
 ---
 
-I didn't start with MDX. I started with a headless CMS, spent two days fighting its rich-text-to-React pipeline, and decided that I'd rather own the content layer than depend on an API that might change its schema.
+I wanted to see which sentence in an article had changed last.
 
-The MDX pipeline I ended up with is around 150 lines of code. It took longer to get right than to get working.
+A CMS is good at published-or-draft. It is worse at last Tuesday’s wording. I write in an editor. Files can be compared. Comparison still shows the old line, and who moved it. For me that already beats a handsome box in a browser tab.
 
-## Why Not a CMS
+So the essays live in the repo. One Chinese file, one English, same address. Clumsy. The clumsiness is the point: build, feeds, share cards, search — they all drink from the same pile. Change a piece and you are not chasing a title through a second system.
 
-The CMS gave me a WYSIWYG editor, image hosting, and a content API. What it didn't give me:
+Trouble comes with the house. Leave the date in the header unquoted and it may be read as a timezone-bearing instant, then slip a day on screen. Chinese and English are not read at the same speed; an English-only clock lies about the Chinese side. Bold in Chinese once printed the asterisks onto the page, as if the essay were arguing with itself.
 
-- **Syntax highlighting with Shiki.** The CMS rendered code blocks as `<pre>` with inline styles. I wanted proper tokenization with a theme I control.
-- **Custom components in content.** I need `<Callout>`, `<CodeBlockWrapper>`, and interactive demos embedded in articles. Rich text doesn't support arbitrary React components.
-- **Git history.** I want to see when an article was last changed, who changed it, and diff the content. A CMS database doesn't give me that.
-- **Offline editing.** I write in my editor, not a browser tab.
+None of that looks like a feature. It appears when you actually write, and write in two languages. I spent longer patching those seams than I spent making the first article render.
 
-MDX gives me all of this. The tradeoff: I own the build pipeline, the rendering, and every edge case.
+People ask why I do not hand the pile to a content system. I need code blocks to wear this site’s colors. I need the site’s own components inside a piece. I need to edit offline. Taken together, I would rather keep the manuscript. The bill is that every edge is mine. Miss one and the build stops — or worse, does not stop, and quietly shows the wrong day.
 
-## The Pipeline
+The filenames have already grown into other rooms. Folders would be tidier. Feeds, maps, old links still know this scheme. Moving would cost more than the little grimace I make when I see the names. I let the grimace stay.
 
-The content lives in `src/content/blog/` as `.mdx` files. Each article has an English and Chinese version: `article-slug.en.mdx` and `article-slug.zh.mdx`.
-
-### Step 1: Read and parse frontmatter
-
-```typescript
-import rawMatter from 'gray-matter';
-import { load as yamlLoad } from 'js-yaml';
-
-function matter(input: string) {
-  return rawMatter(input, {
-    engines: {
-      yaml: (s: string) => yamlLoad(s) as object,
-    },
-  });
-}
-```
-
-The custom YAML engine exists because `gray-matter` internally uses `js-yaml@3`'s `safeLoad`, which was removed in `js-yaml@4`. Since the project pins `js-yaml@^4` for security, the default engine throws. This is the kind of thing that works fine until a dependency update, then breaks silently at build time.
-
-### Step 2: Compute metadata
-
-```typescript
-function calcReadMinutes(content: string): number {
-  const cjk = (content.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g) || []).length;
-  const ascii = content.replace(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g, ' ');
-  const words = ascii.trim().split(/\s+/).filter(Boolean).length;
-  return Math.max(1, Math.ceil(cjk / 300 + words / 200));
-}
-```
-
-Reading time for Chinese text is different from English — about 300 characters per minute versus 200 words per minute. A bilingual blog needs both calculations or the estimates are wrong for half the content.
-
-### Step 3: Render MDX with rehype plugins
-
-The MDX compilation chain:
-
-```typescript
-import { compile } from '@mdx-js/mdx';
-import rehypePrettyCode from 'rehype-pretty-code';
-import rehypeSlug from 'rehype-slug';
-
-const compiled = await compile(content, {
-  remarkPlugins: [remarkInjectLineNumbers],
-  rehypePlugins: [
-    rehypeSlug,
-    [rehypePrettyCode, {
-      theme: { dark: 'one-dark-pro', light: 'github-light' },
-      defaultLang: 'typescript',
-    }],
-  ],
-});
-```
-
-`rehype-pretty-code` uses Shiki under the hood. It tokenizes code blocks at build time and outputs `<span>` elements with inline styles — no client-side JavaScript for syntax highlighting. The dual-theme config generates styles for both light and dark mode, switched by a CSS class.
-
-`rehypeSlug` adds `id` attributes to headings, which the sticky table of contents uses for scroll-spy.
-
-### Step 4: Custom components
-
-MDX lets you map HTML elements to React components:
-
-```typescript
-const components = {
-  pre: CodeBlockWrapper,  // Adds copy button and hover effects
-  a: SmartLink,          // External links get target="_blank" and rel="noopener"
-  img: OptimizedImage,   // Wrapped in Next.js Image with blur placeholder
-};
-```
-
-`CodeBlockWrapper` is a client component that wraps the statically-rendered `<pre>` from Shiki. The syntax highlighting is in the HTML; the wrapper adds the copy-to-clipboard button, a title bar, and hover effects. No JavaScript is needed for the code itself to display correctly.
-
-## The Edge Cases
-
-**Line numbers.** `rehype-pretty-code` supports line numbers, but I needed them on by default for all code blocks without adding `showLineNumbers` to every fence. A custom remark plugin (`remarkInjectLineNumbers`) injects the meta attribute into the AST before rehype processing.
-
-**CJK line height.** Chinese text needs more line height than English. The `prose` class handles Latin text well, but CJK characters with ascenders and descenders get clipped at the same line height. The fix is `html[lang="zh"]` scoped styles with slightly increased `line-height` and `letter-spacing`.
-
-**Frontmatter validation.** MDX files are just files. There's no schema enforcement — a missing `date` field produces a page that renders `"1970-01-01"` instead of failing at build time. I added a test that loads every article through the pipeline and checks that required fields exist and have valid formats. This catches errors at `npm test`, not in production.
-
-**Gray-matter and dates.** If you write `date: 2026-03-10` without quotes in YAML frontmatter, `js-yaml` parses it as a JavaScript `Date` object, not a string. The `toPost` function converts it to a string, but if you're not careful, timezone offsets can shift the displayed date by a day. Always quote dates in frontmatter: `date: "2026-03-10"`.
-
-## What I'd Change
-
-The pipeline works. It's fast (build time for 12 articles is under 2 seconds), it's type-safe (the `BlogPost` interface enforces the shape), and it's testable (every article goes through the same code path).
-
-What I'd change: the bilateral file naming convention (`slug.en.mdx` / `slug.zh.mdx`) means every slug-resolution function has to strip locale suffixes before deduplicating. A directory-per-article structure (`slug/en.mdx`, `slug/zh.mdx`) would be cleaner, but the current convention is already wired into the build pipeline, the sitemap generator, the RSS feed, the OG image generator, and the redirect config. Migration cost exceeds the annoyance.
-
-Sometimes the right architecture is the one you can ship.
+Sometimes the structure you can ship is the right one for now. I still want to see a line after it has been changed. As long as that remains, I am calm leaving the writing in files.

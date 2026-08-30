@@ -37,13 +37,13 @@ const channelMeta = {
   en: {
     title: "Ethan Pier — Blog",
     description:
-      "Writing about frontend engineering, motion design, and modern web development.",
+      "Notes on work, interfaces, waiting, and writing.",
     language: "en-US",
     feedPath: "feed.xml",
   },
   zh: {
     title: "Ethan Pier — 博客",
-    description: "关于前端工程、动效设计与现代 Web 开发的写作。",
+    description: "一些关于工作、界面、等待和写作的观察。",
     language: "zh-CN",
     feedPath: "feed-zh.xml",
   },
