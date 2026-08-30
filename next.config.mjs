@@ -18,7 +18,6 @@ export function scriptSources(environment = process.env.NODE_ENV) {
     "'self'",
     "'unsafe-inline'",
     ...(environment === "development" ? ["'unsafe-eval'"] : []),
-    "https://giscus.app",
   ].join(" ");
 }
 const scriptSrc = scriptSources();
@@ -34,7 +33,7 @@ const contentSecurityPolicy = [
       ? ` ${configuredCurrentsApiOrigin}`
       : ""
   }`,
-  "frame-src https://giscus.app",
+  "frame-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self'",

@@ -50,15 +50,16 @@ describe("Next.js 安全响应头", () => {
     const directives = parseDirectives(policy);
 
     expect(policy).not.toContain("unpkg.com");
+    expect(policy).not.toContain("giscus.app");
     expect(directives.get("script-src")).toBe(
       process.env.NODE_ENV === "development"
-        ? "'self' 'unsafe-inline' 'unsafe-eval' https://giscus.app"
-        : "'self' 'unsafe-inline' https://giscus.app",
+        ? "'self' 'unsafe-inline' 'unsafe-eval'"
+        : "'self' 'unsafe-inline'",
     );
     expect(directives.get("script-src-attr")).toBe("'none'");
     expect(directives.get("img-src")).toBe("'self' data: blob:");
     expect(directives.get("connect-src")).toBe("'self' https://currents-api.ethanpier.com");
-    expect(directives.get("frame-src")).toBe("https://giscus.app");
+    expect(directives.get("frame-src")).toBe("'none'");
     expect(directives.get("form-action")).toBe("'self'");
     expect(directives.get("object-src")).toBe("'none'");
   });
@@ -68,9 +69,11 @@ describe("Next.js 安全响应头", () => {
     expect(currentsApiOrigin("not a URL")).toBeNull();
   });
 
-  it("仅开发环境允许 React 调试所需的 unsafe-eval", () => {
+  it("仅开发环境允许 React 调试所需的 unsafe-eval，且不再放行 Giscus", () => {
     expect(scriptSources("development")).toContain("'unsafe-eval'");
     expect(scriptSources("production")).not.toContain("'unsafe-eval'");
+    expect(scriptSources("development")).not.toContain("giscus.app");
+    expect(scriptSources("production")).not.toContain("giscus.app");
   });
 });
 
