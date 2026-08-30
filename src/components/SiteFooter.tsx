@@ -72,7 +72,7 @@ export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
               {t('externalTitle')}
             </p>
-            <div className="space-y-1">
+            <div className="flex flex-col items-start gap-1">
               <a
                 href="https://github.com/Jia-Ethan"
                 target="_blank"

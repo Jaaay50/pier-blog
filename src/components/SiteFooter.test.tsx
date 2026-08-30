@@ -38,5 +38,10 @@ describe("SiteFooter", () => {
     expect(cloudborne.getAttribute("rel")).toBe("noopener noreferrer");
     expect(cloudborne.textContent).toBe("Cloudborne 独立站 ↗");
     expect(cloudborne.className).toContain("min-h-11");
+
+    const externalLinks = screen.getByText("外部链接").nextElementSibling;
+    expect(externalLinks?.className).toContain("flex-col");
+    expect(externalLinks?.className).toContain("items-start");
+    expect(externalLinks?.className).toContain("gap-1");
   });
 });
