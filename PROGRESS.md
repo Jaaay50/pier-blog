@@ -1,3 +1,11 @@
+### 移除文章页留言板（2026-08-30，已完成并上线）
+
+- ✅ 从中英文文章页移除 Giscus 留言板；删除评论组件与主题 CSS；CSP 去掉 `giscus.app`，`frame-src` 改为 `'none'`。GitHub Discussions 中的既有留言未删除。
+- ✅ 验证：46 个测试文件、327 项测试、lint、TypeScript、65 页 production build 通过。
+- ✅ 交付：PR #33，merge commit `cf703dd98f9a0003ddc53411b15feddc396f52e7`；main CI `33299880881`、production deploy `33299929921` 成功；Vercel deployment `pier-blog-ofvjsl8v0-jia-ethans-projects.vercel.app` 已 alias 到 `https://ethanpier.com`。
+- ✅ 线上技术核对：2026-08-30 `/zh/blog/frontend-performance-optimization` 与 `/en/blog/frontend-performance-optimization` 返回 200；CSP 不含 `giscus.app` 且 `frame-src 'none'`；页面无 iframe / 留言区，相关阅读和页脚仍在。
+- ➖ 验收边界：未做浏览器 Network 面板级确认；不替代 Safari、真机与主观视觉验收。
+
 ### 博客与 Cloudborne 导流优化（2026-08-28，已完成并上线）
 
 - ✅ 独立站入口：在 `/zh/about` 与 `/en/about` 首屏介绍下加入低强调入口；在工作经历之后、联系我之前加入 Cloudborne 产品卡片；页脚加入外部链接。链接固定为 `https://cloudborne.cn`，新窗口打开并带 `noopener noreferrer`，不加入 UTM。
