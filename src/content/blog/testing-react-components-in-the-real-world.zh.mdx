@@ -1,0 +1,96 @@
+---
+title: "真实世界里的 React 组件测试"
+date: "2025-09-15"
+description: "我实际测什么、跳过什么，以及哪些测试模式抓住了真正的 bug 而不是在测实现细节。"
+tags: ["React", "测试", "架构"]
+topic: "architecture"
+author: "Ethan Pier"
+environment: "Vitest、Testing Library、jsdom"
+---
+
+我的测试套件有 200 多个测试。其中大约 40 个真正抓到过 bug。其余的存在是因为我在还没搞清楚"一个主要输出静态页面的 React 代码库里什么值得测"之前就写了它们。
+
+这个比例不太好看。以下是我关于怎么写出对得起维护成本的测试的经验。
+
+## 实际测什么
+
+**契约边界。** 当组件 A 向组件 B 传数据时，我测契约是否成立。如果 `BlogCard` 期望 `{ title: string; date: string; slug: string }`，我就测 `getAllPosts()` 返回的对象是否符合这个形状。API 变了，测试会比 UI 先崩。
+
+**状态转换。** 任何被建模为状态机的东西都要做转换测试。AI 聊天界面的 reducer 是个好例子：给定状态 X 和动作 Y，下一个状态必须是 Z。这些是纯函数——快、确定性强，能抓住真正的逻辑错误。
+
+**用户可见的行为。** 过滤器真的在过滤吗？搜索结果页在没有匹配时是否显示"无结果"？复制按钮在点击后是否改变了文字？这些测试用 Testing Library 的 `getByRole` 和 `getByText`——以用户的方式跟组件交互。
+
+```typescript
+it('空搜索时显示无结果提示', async () => {
+  render(<SearchResults query="xyznonexistent" results={[]} />);
+  expect(screen.getByText(/no results/i)).toBeInTheDocument();
+});
+```
+
+**安全敏感路径。** CSP 头、净化边界、noindex 规则。这些我测得很穷尽，因为回归意味着一个真实漏洞，不是表面问题。
+
+## 不测什么
+
+**样式。** 我不测组件有没有 `className="bg-card"`。CSS 类经常变，这种测试测的是 Tailwind 的输出，不是我的逻辑。
+
+**第三方库内部。** 我不测 `next/image` 是否产出一个 `<img>` 标签。那是 Next.js 的事。
+
+**渲染快照。** 在第三次因为 diff 是 200 行不想读的 HTML 而盲目更新快照之后，我停用了快照测试。快照测的是"有没有变"，不测"现在的输出对不对"。
+
+**动画时序。** 我不测淡入是不是 300ms。我测组件在不在。动效是视觉层面的事，属于手动 QA 或视觉回归工具，不是单元测试。
+
+## 真正抓 Bug 的模式
+
+我写过的价值最高的测试全部长一个样：测两个系统之间的边界。
+
+```typescript
+describe('文章 frontmatter', () => {
+  it('日期格式有效', () => {
+    const post = getPostBySlug('frontend-performance-optimization', 'zh');
+    expect(post).not.toBeNull();
+    expect(post!.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('tags 数组非空', () => {
+    const post = getPostBySlug('frontend-performance-optimization', 'zh');
+    expect(post!.tags.length).toBeGreaterThan(0);
+  });
+});
+```
+
+这些测试不检查渲染。它们检查 MDX 内容管线是否为渲染层产出了有效数据。当我不小心破坏了 frontmatter 格式，测试在构建时就能抓住，而不是在浏览器里产出一个写着 "Invalid Date" 的页面。
+
+同样的原则适用于 API 响应契约、i18n 消息完整性、sitemap URL 结构和 RSS 内容。"数据生产者"和"数据消费者"之间的每一条边界，都是类型不匹配可以藏到生产环境的地方。
+
+## Testing Library 的哲学基本是对的
+
+Testing Library 的核心理念——测用户看到的东西，不测组件怎么实现的——对大部分前端测试来说是正确的。`getByRole('button', { name: 'Submit' })` 比 `wrapper.find('.submit-btn')` 好，因为它能活过一次 CSS 重构。
+
+不舒服的地方：有复杂内部状态影响后续交互的组件。拖拽排序、带校验的多步表单、基于 Canvas 的可视化。对于这些，有时候需要直接测内部状态转换，因为第三步的用户可见输出取决于第一步没有可见效果的内部状态变化。
+
+我的折中方案：默认测用户可见行为。只在状态机足够复杂、"渲染然后点击"的测试变得脆弱或不可读时才测内部状态。
+
+## 低估了的维护成本
+
+每个测试都是一个承诺：代码变了的时候你得维护它。一个检查 `screen.getByText('5 articles')` 的测试在你加了第六篇文章时就崩了。一个检查 `expect(posts).toHaveLength(5)` 的测试在 fixture 数据变了时就崩了。
+
+维护成本最低的测试是那些测属性而不是具体值的：
+
+```typescript
+// ❌ 脆弱——文章数量变了就崩
+expect(posts).toHaveLength(5);
+
+// ✅ 稳定——测的是真正重要的属性
+expect(posts.length).toBeGreaterThan(0);
+expect(posts).toEqual(
+  expect.arrayContaining([
+    expect.objectContaining({ slug: expect.any(String), date: expect.any(String) })
+  ])
+);
+```
+
+第二个版本能扛住内容变化。它仍然能抓住真正的失败：文章管线返回空数据或畸形数据。
+
+## 如果能跟六个月前的自己说一句
+
+少写测试。每个测试都测一个真实的边界或一个真实的用户行为。除非有视觉回归基础设施，否则跳过快照测试。把状态机当纯函数测。不要测 CSS 类。当一个测试因为代码正确地变了而崩了，删掉这个测试而不是更新它——它测的是错的东西。

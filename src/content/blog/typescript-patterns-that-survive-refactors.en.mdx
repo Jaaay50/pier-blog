@@ -1,0 +1,162 @@
+---
+title: "TypeScript Patterns That Survive Refactors"
+date: "2025-05-28"
+description: "Five TypeScript patterns I keep reaching for when the codebase changes shape — discriminated unions, branded types, const assertions, satisfies, and exhaustiveness checks."
+tags: ["TypeScript", "Architecture"]
+topic: "architecture"
+author: "Ethan Pier"
+---
+
+I don't think about TypeScript patterns as a collection to learn. I think about them as the ones I reach for when a refactor starts breaking things, and the ones I wish I'd used when it's too late.
+
+These five survived multiple rounds of feature changes, component restructuring, and API redesigns in my own projects. They aren't exotic. They're the ones that keep catching real bugs during type checking instead of at runtime.
+
+## Discriminated Unions
+
+The single most useful pattern in TypeScript for frontend work. Instead of modeling states with booleans:
+
+```typescript
+// ❌ This allows impossible combinations
+interface ChatState {
+  isLoading: boolean;
+  isError: boolean;
+  data: string | null;
+  error: Error | null;
+}
+// isLoading=true AND isError=true AND data="hello" — what does that mean?
+```
+
+Model them as exclusive shapes:
+
+```typescript
+type ChatState =
+  | { status: 'idle' }
+  | { status: 'streaming'; buffer: string }
+  | { status: 'error'; error: Error; lastMessage: string }
+  | { status: 'complete'; response: string };
+```
+
+Each variant has exactly the fields that make sense for that status. You can't access `error` on an `idle` state — TypeScript won't let you. This is the kind of constraint that catches a real bug three months later when someone adds a retry feature and doesn't realize the error state needs different fields than the streaming state.
+
+The narrowing works everywhere:
+
+```typescript
+function renderChat(state: ChatState) {
+  switch (state.status) {
+    case 'idle':
+      return <Placeholder />;
+    case 'streaming':
+      return <StreamingText text={state.buffer} />;
+    case 'error':
+      return <ErrorMessage error={state.error} />;
+    case 'complete':
+      return <Message text={state.response} />;
+  }
+}
+```
+
+## Branded Types
+
+Regular string types are all the same type. A user ID, a post ID, and a session token are all `string`. TypeScript won't stop you from passing a post ID where a user ID is expected.
+
+Branded types add a compile-time tag:
+
+```typescript
+type UserId = string & { readonly __brand: 'UserId' };
+type PostId = string & { readonly __brand: 'PostId' };
+
+function createUserId(id: string): UserId {
+  return id as UserId;
+}
+
+function getUser(id: UserId) { /* ... */ }
+function getPost(id: PostId) { /* ... */ }
+
+const userId = createUserId('abc-123');
+getUser(userId);     // ✅
+getPost(userId);     // ❌ Type error — UserId is not PostId
+```
+
+The `__brand` field doesn't exist at runtime. It's purely a type-level marker. The cost is zero bytes in the bundle and one factory function per branded type.
+
+I use this for any ID that crosses function boundaries. The factory function is also a natural validation point — you can check format or prefix there and know that every branded value has passed the check.
+
+## Const Assertions
+
+`as const` turns a value declaration into a type-level literal:
+
+```typescript
+const ROUTES = {
+  home: '/',
+  blog: '/blog',
+  about: '/about',
+  lab: '/lab',
+} as const;
+
+type Route = typeof ROUTES[keyof typeof ROUTES];
+// Route = '/' | '/blog' | '/about' | '/lab'
+```
+
+Without `as const`, TypeScript widens `ROUTES.home` to `string`. With it, the type is the literal `'/'`. This means route maps, config objects, and enum-like constants can be single-source-of-truth: the object is both the runtime value and the type definition.
+
+The pattern pairs well with exhaustiveness checks. If I add `/portfolio` to `ROUTES`, every `switch` statement over `Route` will fail to compile until it handles the new value.
+
+## The `satisfies` Operator
+
+`satisfies` validates a value against a type without widening it:
+
+```typescript
+type Theme = {
+  colors: Record<string, string>;
+  spacing: Record<string, string>;
+};
+
+const lightTheme = {
+  colors: {
+    primary: '#1a1a2e',
+    accent: '#e07a5f',
+    muted: '#94a3b8',
+  },
+  spacing: {
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+  },
+} satisfies Theme;
+```
+
+The difference from a type annotation: `lightTheme.colors.accent` is typed as `'#e07a5f'`, not `string`. The object satisfies the `Theme` contract, but you keep the narrow literal types. Autocomplete works. Refactoring picks up the specific values.
+
+I use `satisfies` for config objects and i18n message maps. The contract catches missing keys at compile time, and the narrow types give better DX downstream.
+
+## Exhaustiveness Checks
+
+This pattern turns a forgotten `case` into a compile error:
+
+```typescript
+function assertNever(value: never): never {
+  throw new Error(`Unexpected value: ${value}`);
+}
+
+function getStatusColor(status: ChatState['status']): string {
+  switch (status) {
+    case 'idle': return 'gray';
+    case 'streaming': return 'blue';
+    case 'error': return 'red';
+    case 'complete': return 'green';
+    default: return assertNever(status);
+  }
+}
+```
+
+If I add `'retrying'` to `ChatState` and forget to handle it here, TypeScript reports a type error on the `assertNever` call — `'retrying'` is not assignable to `never`. The throw at runtime is a safety net; the real protection is at compile time.
+
+This pattern needs discriminated unions to work. That's another reason to prefer unions over boolean flags: unions compose with the type checker's narrowing, booleans don't.
+
+## What These Have in Common
+
+All five patterns share one property: they make invalid states unrepresentable or uncompilable. They don't add runtime checks. They don't add bundle size. They push errors from "the user saw a broken page" to "the build failed."
+
+The practical implication: when a refactor changes the shape of data — adding a field, removing a status, splitting an ID type — the compiler tells me every location that needs updating. Grep catches string matches. The type checker catches semantic mismatches.
+
+None of these patterns are new or surprising. The reason I keep writing about them is that I keep seeing production codebases where `status: string` causes a bug that `status: 'idle' | 'streaming' | 'error' | 'complete'` would have caught at build time.

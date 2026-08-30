@@ -1,28 +1,31 @@
 ---
-title: "Building Modern AI Interfaces"
-date: "2026-07-30"
-updatedAt: "2026-08-28"
-description: "Exploring patterns for integrating LLMs into production web applications with streaming, error handling, and user feedback loops."
+title: "Building a Streaming AI Chat Interface"
+date: "2025-07-20"
+description: "The state machine, cancellation contract, and error boundaries I built for a production LLM chat UI — and the assumptions that broke first."
 tags: ["AI", "React", "System Design"]
 series: "AI Interface Engineering"
 topic: "ai-interface"
 author: "Ethan Pier"
-environment: "Next.js 16.3, React 19.2, Node.js 22"
+environment: "Next.js 16, React 19, Node.js 22"
 ---
 
-> **Example scope**: The following snippets are cumulative and target a browser client component in Next.js 16.3, React 19.2, and Node.js 22. `/api/chat` must be provided by your own same-origin Route Handler with a streaming `Response`. The example covers cancellation, HTTP errors, and empty responses, but not authentication, retries, schema validation, protocol parsing, or production error reporting.
+> **Scope**: The code below shares one browser-side state machine. The API route, stream protocol, authentication, retries, and telemetry are your own problem. These snippets target a client component in Next.js 16 with React 19. `/api/chat` is a same-origin Route Handler that returns a streaming `Response`.
 
-## The Challenge
+I built a chat interface for an internal tool that calls an LLM endpoint. The first version worked in the demo. The second version survived a week of real use. The difference wasn't the model — it was how the frontend handled the stream falling apart.
 
-Integrating Large Language Models into production web applications isn't just about calling an API. It requires rethinking how we handle:
+## What Broke First
 
-- **Streaming responses** — Users expect real-time feedback, not a loading spinner for 10 seconds.
-- **Error boundaries** — LLMs are non-deterministic. Your UI needs graceful degradation.
-- **Token management** — Context windows have hard limits. Smart truncation preserves conversation quality.
+The first version had a `fetch` call, a `useState` for the response text, and a loading spinner. It worked perfectly until:
 
-## Streaming Architecture
+1. A user navigated away mid-stream. The fetch kept running. The state update hit an unmounted component.
+2. The API returned a 429. The spinner spun forever.
+3. The model returned an empty response. The UI showed nothing and gave no feedback.
 
-The foundation of any AI interface is a robust streaming pipeline:
+These are boring problems. They're also the exact ones that make users distrust an AI feature. A chat that hangs is worse than a chat that says "something went wrong."
+
+## The Streaming Generator
+
+The foundation is an async generator that yields chunks as they arrive:
 
 ```typescript {5,8,12,28}
 async function* streamResponse(prompt: string, signal: AbortSignal) {
@@ -58,11 +61,13 @@ async function* streamResponse(prompt: string, signal: AbortSignal) {
 }
 ```
 
-This generator pattern composes cleanly with React's state model and allows for cancellation, retry, and backpressure handling.
+The `signal` parameter is what makes cancellation work. When the user presses "Stop" or navigates away, aborting the controller tears down the fetch, the reader, and the generator in one move. The `finally` block cleans up regardless of how the generator exits.
 
-## State Machine for Chat
+The trailing `decoder.decode()` without arguments flushes any bytes left in the TextDecoder's internal buffer — a detail that matters for multi-byte characters in CJK text.
 
-Rather than ad-hoc boolean flags, model conversation state as a finite state machine:
+## The State Machine
+
+Rather than `isLoading` / `isError` / `hasData` booleans that allow impossible combinations:
 
 ```typescript
 type ChatState =
@@ -72,11 +77,13 @@ type ChatState =
   | { status: 'complete'; response: string };
 ```
 
-Each state transition is explicit, testable, and maps directly to UI states. No more `isLoading && !isError && hasResponse` chains.
+Four states. Each has exactly the fields that make sense for that state. You can't access `error` on a `streaming` state. You can't access `buffer` on `complete`. The UI render function is a `switch` on `status`, and TypeScript narrows each branch.
 
-## React Integration Pattern
+This isn't academic. The `lastMessage` field on `error` exists because I needed to show partial output when a stream dies mid-sentence — the user wants to see what arrived before the failure, not a blank screen.
 
-Place this hook in the same `.tsx` file as the preceding `streamResponse` and `ChatState` examples. The imports and reducer are included here so the hook does not hide undefined dependencies behind a seemingly complete example. Call the hook from a client component and render send, cancel, and error states from `state.status`.
+## The Hook
+
+The hook wires the generator to the state machine. The tricky parts are cancellation cleanup and preventing stale closures:
 
 ```tsx
 import { useCallback, useReducer, useRef } from 'react';
@@ -101,7 +108,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ? { status: 'complete', response: state.buffer }
         : state;
     case 'ERROR':
-      return { status: 'error', error: action.payload, lastMessage: state.status === 'streaming' ? state.buffer : '' };
+      return {
+        status: 'error',
+        error: action.payload,
+        lastMessage: state.status === 'streaming' ? state.buffer : '',
+      };
     case 'CANCEL':
       return { status: 'idle' };
   }
@@ -116,7 +127,6 @@ function useAIStream() {
     abortRef.current = new AbortController();
 
     dispatch({ type: 'START' });
-
     const signal = abortRef.current.signal;
 
     try {
@@ -144,10 +154,18 @@ function useAIStream() {
 }
 ```
 
-## Key Takeaways
+The `CHUNK` guard (`state.status === 'streaming'`) prevents late-arriving chunks from overwriting a completed or errored state. The `AbortError` filter in the catch prevents a user cancellation from being treated as an error. The `signal` identity check in `finally` prevents cleanup from affecting a newer request that started while the old one was still tearing down.
 
-1. **Stream from day one** — retrofitting streaming is painful.
-2. **Design for failure** — every LLM call can timeout, rate-limit, or hallucinate.
-3. **Measure latency per-token**, not just time-to-first-byte.
-4. **Build cancellation into the contract** — users will navigate away mid-stream.
-5. **Type your states** — state machines prevent impossible UI combinations.
+## What I'd Do Differently
+
+I'd add a per-token latency tracker from the start. Time-to-first-byte tells you about the API. Inter-token latency tells you about the streaming implementation. When a user complains "it feels slow," you need the second number to diagnose whether the problem is the model, the network, or the rendering.
+
+I'd also build the cancellation UI before the happy path. "Stop generating" isn't a nice-to-have. Users will navigate away mid-stream, and if the state doesn't clean up, the next prompt submission fights with a zombie generator.
+
+Five things I keep reminding myself:
+
+1. Stream from day one — retrofitting streaming is painful.
+2. Design for failure — every LLM call can timeout, rate-limit, or hallucinate.
+3. Measure latency per-token, not just time-to-first-byte.
+4. Build cancellation into the contract — users will navigate away mid-stream.
+5. Type your states — state machines prevent impossible UI combinations.

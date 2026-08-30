@@ -1,0 +1,114 @@
+---
+title: "Crafting a Design System with Tailwind CSS"
+date: "2025-02-12"
+description: "How I built a dual-theme design system with CSS custom properties and Tailwind — the decisions that survived, and the ones I had to undo."
+tags: ["CSS", "Design System", "Tailwind CSS"]
+series: "Blog & Product Build Logs"
+topic: "architecture"
+author: "Ethan Pier"
+---
+
+The project started with a Figma file and a handful of hex values. Two months later I had a dual-theme design system running in production, a token naming scheme I'd rewritten three times, and a hard-won opinion about where Tailwind stops being helpful.
+
+## Starting from the Wrong End
+
+My first mistake was picking colors. I spent an afternoon comparing slate, zinc, neutral, and stone from Tailwind's default palette, trying every combination in both light and dark mode. The result looked fine, and it was completely wrong.
+
+The problem: I was choosing surfaces before defining relationships. Which element sits on top of which? What does "primary" mean when the background flips from near-white to near-black? What happens to a border that looks subtle on a light surface but disappears on a dark one?
+
+I backed up and started with the hierarchy.
+
+## The Token Layer
+
+CSS custom properties became the spine of the system:
+
+```css
+:root {
+  --bg-primary: theme('colors.stone.50');
+  --bg-card: theme('colors.white');
+  --text-primary: theme('colors.stone.900');
+  --text-muted: theme('colors.stone.500');
+  --border: theme('colors.stone.200');
+  --accent: theme('colors.amber.600');
+}
+
+.dark {
+  --bg-primary: theme('colors.zinc.950');
+  --bg-card: theme('colors.zinc.900');
+  --text-primary: theme('colors.zinc.100');
+  --text-muted: theme('colors.zinc.400');
+  --border: theme('colors.zinc.800');
+  --accent: theme('colors.sky.400');
+}
+```
+
+Every component references tokens, never raw colors. The `dark` class flips the whole surface in one declaration, and Tailwind's `@theme` extension maps each token to a utility class.
+
+This sounds textbook. What I did not expect was how often I'd need intermediate tokens — `--bg-hover`, `--border-hover`, `--text-link-visited` — that weren't in any guide. The token list grew from 8 to 23 before it stabilized.
+
+## Where Tailwind Helps
+
+Tailwind's utility model is genuinely good at three things in a design system:
+
+**Spacing consistency.** When every margin and padding comes from the same scale, layout accidents mostly stop happening. I can look at `p-4 gap-6` and know the rhythm without opening DevTools.
+
+**Responsive breakpoints.** `sm:`, `md:`, `lg:` prefixes keep responsive logic co-located with the element. No hunting for media queries in a separate file.
+
+**State variants.** `hover:`, `focus-visible:`, `dark:` compose cleanly when the underlying tokens are right. The combination of `bg-[var(--bg-card)] hover:bg-[var(--bg-hover)]` reads like a sentence.
+
+## Where Tailwind Fights You
+
+The trouble starts when you need to express *relationships between tokens*. Tailwind is good at applying values; it's not designed to compute them.
+
+I wanted `--bg-hover` to be "slightly lighter than `--bg-card` in light mode, slightly lighter in dark mode too." CSS `color-mix()` does this directly:
+
+```css
+--bg-hover: color-mix(in srgb, var(--bg-card) 92%, var(--text-primary));
+```
+
+But this is a raw CSS custom property. Tailwind doesn't know about it until you wire it into `@theme`. You end up maintaining two parallel systems — the token definitions in CSS and the utility mappings in Tailwind config — and they drift apart.
+
+My current compromise: define tokens in one CSS file, extend Tailwind once to consume them, and never use Tailwind's built-in color utilities (`bg-zinc-800`) in component code. Components only see semantic names like `bg-card` or `text-muted`. It works, but it means I'm using Tailwind mostly as a spacing and layout framework, not a color system.
+
+## The Dark-Mode Trap
+
+`class="dark"` on `<html>` is simple until animation enters the picture. Theme transitions need to be fast enough to feel instant but slow enough to not flash.
+
+I tried CSS transitions on every custom property. Bad idea — transitioning 23 properties at once caused layout thrashing on mid-range phones. The solution was harsher: transition only `background-color` and `color` on the `body`, let everything else snap. Users perceive the background shift as "the transition" and don't notice that borders and shadows jump.
+
+```css
+body {
+  transition: background-color 150ms ease, color 150ms ease;
+}
+```
+
+One exception: the `<html>` element carries `class="dark"` statically in the initial HTML to avoid a flash of wrong theme on SSR. `next-themes` handles the runtime toggle, but the static default is baked into the build. This means every user sees dark mode for one frame before hydration — an acceptable tradeoff for a dark-default site.
+
+## Component Boundaries
+
+The hardest design-system decision was where to draw component boundaries. A card is not one thing. It's a surface, a border treatment, a hover state, an optional header region, and spacing rules for content inside it.
+
+I ended up with a layered approach:
+
+```tsx
+// Base surface — just the visual treatment
+<div className="bg-card rounded-xl border border-[var(--border)]
+                hover:border-[var(--border-hover)] transition-colors">
+  {children}
+</div>
+
+// Card wrapper — adds spacing and interactive behavior
+<div className="card-interactive p-6">
+  {children}
+</div>
+```
+
+`card-interactive` is a global CSS class that carries the dot-grid texture, hover scale, and focus ring. Components compose these layers instead of rebuilding them.
+
+The advantage: when I decided to add a subtle dot-grid background to all interactive cards, I changed one CSS class instead of editing 14 components.
+
+## What I Still Don't Like
+
+The token file is 87 lines long and growing. Some tokens exist only because one component needed a slightly different shade in one state. I suspect 30% of them could be replaced with `color-mix()` calculations from five base tokens, but I haven't done the refactor because the current system works and I'm afraid of introducing subtle regressions in components I've stopped actively looking at.
+
+The gap between "design system" and "collection of tokens that happen to be consistent" is smaller than I expected. A real design system has documentation, versioning, and an adoption path for other consumers. Mine has a CSS file and the understanding in my head. That's probably fine for a solo project — and probably not fine if anyone else ever needs to touch it.

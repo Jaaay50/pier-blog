@@ -1,30 +1,29 @@
 ---
 title: "消灭 Next.js 冷启动：从动态 SSR 到全量 SSG"
-date: "2026-08-01"
-updatedAt: "2026-08-28"
-description: "i18n/request.ts 里的一行代码让所有页面强制走 Serverless SSR，冷启动 1–4 秒。改用 URL 路由之后，一切都变成静态了。"
+date: "2026-04-25"
+description: "i18n/request.ts 里的一行 cookies() 调用让所有页面强制走 Serverless SSR，冷启动 1–4 秒。改用 URL 路由之后，一切都变成静态了。"
 tags: ["Next.js", "性能", "架构"]
 series: "Next.js 性能诊断"
 topic: "performance"
 author: "Ethan Pier"
-environment: "Next.js 16.3、next-intl 4.13、Node.js 22；Vercel 部署"
+environment: "Next.js 16、next-intl 4、Node.js 22；Vercel 部署"
 ---
 
-## 症状
+> **背景**：这是一份来自单个 Next.js 部署的案例记录。文中的延迟数字只代表这套环境的观测，不是平台承诺。
 
-每次页面导航都有一段固定的卡顿。不是网络慢——香港到 Vercel 免费版边缘节点本来就有延迟。这是另一种慢：即使是几周没变过的页面，首字节也要等 1–4 秒才到。
+我在刷新自己的博客，看着浏览器空白了两秒。然后三秒。有一次运气差，四秒。这些页面已经好几周没变了。它们没有理由要这么久。
 
-Vercel 面板确认了。响应头说明了一切：
+Vercel 面板显示每个请求都在打 Serverless Function。响应头确认了：
 
 ```
 x-vercel-cache: MISS
 ```
 
-每次请求都在打 Serverless Function。没有任何东西被缓存。
+什么都没缓存。每个页面每次访问都从头渲染。
 
-## 找到根因
+## 破坏一切的那一行代码
 
-博客用 [next-intl](https://next-intl.dev) 做国际化。原来的方案是 cookie 检测：middleware 读写 `NEXT_LOCALE` cookie，`i18n/request.ts` 调用 `cookies()` 取值。
+博客用 next-intl 做国际化。最初的方案用 cookie 检测 locale：
 
 ```typescript title="i18n/request.ts"
 // ❌ 原来的方案
@@ -33,7 +32,6 @@ import { cookies } from 'next/headers';
 
 export default getRequestConfig(async () => {
   const locale = cookies().get('NEXT_LOCALE')?.value ?? 'en';
-
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,
@@ -41,9 +39,9 @@ export default getRequestConfig(async () => {
 });
 ```
 
-看起来没什么问题。但 `cookies()` 是 Next.js 的动态函数。在渲染链路的任何地方调用它——包括 `getRequestConfig` 内部——等于告诉框架：*"这个页面的输出依赖当前请求。"*
+`cookies()` 是 Next.js 的动态函数。在渲染链路的任何地方调用它，等于告诉框架：页面输出依赖当前请求。Next.js 随即把所有碰到 `getTranslations()` 的页面标记为 dynamic——没有静态生成，没有 CDN 缓存，没有预渲染。
 
-Next.js 随即把所有调用 `getTranslations()` 的页面都标记为 **dynamic**，完全退出静态生成。构建产物里全是 `ƒ`：
+构建产物里全是 `ƒ`。每个页面都是 Serverless Function：
 
 ```
 Route                          Size    First Load JS
@@ -54,57 +52,32 @@ Route                          Size    First Load JS
 └ ƒ /en/portfolio              3.3 kB     140 kB
 ```
 
-每个 `ƒ` 都是一个 Serverless Function。每次访问都要冷启动一个容器、读 cookie、渲染 HTML、再销毁。Vercel 免费版没有持久计算，冷启动是常态。
+Vercel 免费版没有持久计算，每次访问都是一次冷启动。
 
-## 结构性修复
+## 修复：把 locale 放进 URL
 
-解法是把 locale 从请求里移到 URL 里。不再问"用户 cookie 里写的是哪个语言？"，而是问"这个 URL 路径是哪个语言的？"
-
-路由结构从：
-
-```
-src/app/
-  page.tsx          ← 单一路由，运行时读 cookie 判断 locale
-  blog/
-    page.tsx
-```
-
-改成：
+结构性变更：不再从请求里读 locale，放进 URL。
 
 ```
 src/app/
   [locale]/
-    page.tsx        ← 每个 locale 一条独立静态路由，构建时预渲染
+    page.tsx        ← 每个 locale 一条静态路由，构建时预渲染
     blog/
       page.tsx
 ```
 
-### 第一步：定义路由
+新的 `i18n/request.ts`：
 
 ```typescript
-// src/i18n/routing.ts
-import { defineRouting } from 'next-intl/routing';
-
-export const routing = defineRouting({
-  locales: ['en', 'zh'],
-  defaultLocale: 'en',
-  localePrefix: 'always', // 所有路由都带前缀：/en/... 和 /zh/...
-});
-```
-
-### 第二步：request.ts 改从路由参数读取
-
-```typescript
-// ✅ 新的 i18n/request.ts——没有 cookies()，没有 headers()
+// ✅ 没有 cookies()，没有 headers()
 import { getRequestConfig } from 'next-intl/server';
 import { routing } from './routing';
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale; // 来自 [locale] 路由段
+  let locale = await requestLocale;
   if (!locale || !routing.locales.includes(locale as 'en' | 'zh')) {
     locale = routing.defaultLocale;
   }
-
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,
@@ -112,127 +85,61 @@ export default getRequestConfig(async ({ requestLocale }) => {
 });
 ```
 
-`requestLocale` 在构建时由 URL 段决定，不读任何运行时数据，不触发动态标记。
+`requestLocale` 来自 URL 里的 `[locale]` 段。它在构建时就有。不读任何运行时请求数据，不触发动态标记。
 
-### 第三步：每个页面调用 setRequestLocale 并生成静态参数
+每个页面调用 `setRequestLocale(locale)` 并导出 `generateStaticParams`：
 
 ```typescript
-// src/app/[locale]/blog/page.tsx
-import { setRequestLocale } from 'next-intl/server';
-import { locales } from '@/i18n/config';
-
-interface PageProps {
-  params: Promise<{ locale: string }>;
-}
-
-// 告诉 Next.js 构建时要预渲染哪些 [locale] 值
 export async function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export default async function BlogPage({ params }: PageProps) {
+export default async function Page({ params }: PageProps) {
   const { locale } = await params;
-  setRequestLocale(locale); // 标记这次渲染是静态安全的
-
-  // ... 渲染页面
+  setRequestLocale(locale);
+  // ... 渲染
 }
 ```
 
-有多个动态段的页面（比如博客文章）需要覆盖所有维度的组合：
+next-intl 的导航工具自动处理 locale 前缀：
 
 ```typescript
-// src/app/[locale]/blog/[slug]/page.tsx
-export async function generateStaticParams() {
-  // 预渲染每一个 locale × slug 的组合
-  return locales.flatMap((locale) =>
-    getAllSlugs(locale).map((slug) => ({ locale, slug }))
-  );
-}
-```
-
-### 第四步：全站导航改用 locale-aware 工具函数
-
-原生的 `next/link` 和 `next/navigation` 不知道 locale 前缀。用 next-intl 的导航工具替换：
-
-```typescript
-// src/i18n/navigation.ts
-import { createNavigation } from 'next-intl/navigation';
-import { routing } from './routing';
-
-export const { Link, redirect, usePathname, useRouter } =
-  createNavigation(routing);
-```
-
-```typescript
-// 组件里——href 写不带前缀的路径，locale 自动补全
 import { Link } from '@/i18n/navigation';
-
 <Link href="/blog">Blog</Link>
-// 根据当前 locale 自动渲染成 /en/blog 或 /zh/blog
+// 根据当前 locale 渲染成 /en/blog 或 /zh/blog
 ```
 
-### 第五步：middleware 处理根路径重定向
-
-访问 `/` 的用户要被引导到 `/en` 或 `/zh`。middleware 读 `Accept-Language` 和 `NEXT_LOCALE` cookie（记住上次选择），然后重定向——这只是一次跳转，不是逐页渲染：
-
-```typescript
-// src/middleware.ts
-import createMiddleware from 'next-intl/middleware';
-import { locales, defaultLocale } from '@/i18n/config';
-
-export default createMiddleware({
-  locales,
-  defaultLocale,
-  localePrefix: 'always',
-  localeCookie: true, // 记住上次选择
-});
-
-export const config = {
-  matcher: [
-    '/((?!api|og|feed.xml|feed-zh.xml|sitemap.xml|robots.txt|_next|.*\\..*).*)',
-  ],
-};
-```
+middleware 处理根路径重定向——访问 `/` 的用户根据 `Accept-Language` 被送到 `/en` 或 `/zh`。这只是一次跳转，不是逐页渲染。
 
 ## 结果
-
-重构之后，构建产物完全变了：
 
 ```
 Route                          Size    First Load JS
 ┌ ○ /en                        4.2 kB     142 kB
 ├ ○ /en/blog                   3.1 kB     138 kB
 ├ ● /en/blog/[slug]            6.4 kB     156 kB
-│   ├ /en/blog/frontend-performance-optimization
-│   ├ /en/blog/state-management-in-the-rsc-era
-│   └ /en/blog/building-modern-ai-interfaces
 ├ ○ /en/about                  2.8 kB     135 kB
 └ ○ /en/portfolio              3.3 kB     140 kB
 ```
 
 `○` 是完全静态。`●` 是有预渲染页面的静态路由。没有任何 `ƒ`。
 
-响应头变成了：
-
 ```
 x-vercel-cache: HIT
 ```
 
-页面直接从 Vercel CDN 边缘节点返回，完全不经过 Serverless Function。TTFB 从 1–4s 降到缓存命中时的 100ms 以内。
+缓存命中请求直接由 CDN 边缘节点返回。同日抽样看到 TTFB 从 1–4 秒降到缓存命中时的 100ms 以内。
 
-## 这个约束意味着什么
+## 约束
 
-静态优先架构有一条硬规则：**渲染链路里不能出现 `cookies()`、`headers()`、或 next-intl 服务端工具的 `getLocale()`**。任何一个都会把页面打回动态 SSR。
+这套架构有一条硬规则：渲染链路里不能出现 `cookies()`、`headers()` 或 `getLocale()`。任何一个都会把页面打回动态 SSR。
 
-具体来说：
-- `i18n/request.ts` 只能用 `requestLocale`，不能碰 `cookies()` 或 `headers()`
-- 每个调用 `getTranslations()` 的页面，之前必须先调用 `setRequestLocale(locale)`
-- 原来内部调用 `getLocale()` 的数据获取工具，必须改成接受显式 `locale` 参数
+- `i18n/request.ts` 只用 `requestLocale`
+- 每个调用 `getTranslations()` 的页面，之前必须先调 `setRequestLocale(locale)`
+- 数据获取工具接受显式 `locale` 参数，不内部调用 `getLocale()`
 
-locale 始终可以从路由参数里拿到，不需要在运行时从请求里读取。把它挡在请求链路之外，就是让一切保持静态的关键。
+locale 始终在 URL 里。从请求里读它等于废掉整次迁移。
 
 ## 剩余延迟
 
-重构之后，缓存命中的 TTFB 稳定快速。首次命中（CDN 边缘冷缓存或刚部署之后）还有一些延迟——但这已经是用户到最近边缘节点的网络层 RTT，不再是 Serverless Function 冷启动。
-
-这是本质上不同的问题。你可以通过换一个边缘节点更靠近用户的服务商来解决，或者付费用 Vercel Pro 更宽的边缘网络。但换 CDN 解决不了 Serverless 冷启动——你得先把 Serverless Function 消灭掉。
+缓存命中的 TTFB 稳定快速。首次命中（部署之后）还有一些延迟——但那是到最近 CDN 边缘节点的网络 RTT，不是 Serverless Function 冷启动。不同的问题，不同的解法。你可以通过更近的边缘节点或付费更宽的边缘网络来解决。但得先把 Serverless Function 消灭掉——更好的 CDN 修不了冷启动。

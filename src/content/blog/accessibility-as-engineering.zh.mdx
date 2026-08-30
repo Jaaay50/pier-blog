@@ -1,0 +1,113 @@
+---
+title: "无障碍是工程问题，不是合规清单"
+date: "2026-07-30"
+description: "改变了我构建组件方式的无障碍工作——焦点管理、屏幕阅读器语义，以及只有关掉鼠标才能发现的 bug。"
+tags: ["无障碍", "React", "CSS"]
+topic: "architecture"
+author: "Ethan Pier"
+---
+
+我开始做无障碍工作是因为 Lighthouse 审计说我的分数是 78。我继续做下去是因为我发现了真正的 bug——用鼠标能正常交互，用键盘就完全崩掉的交互。
+
+这个转变不是道德层面的，是机械层面的。无障碍暴露了我组件逻辑中没有测试过的假设。
+
+## 第一个 Bug：焦点逃逸
+
+我做了一个移动端筛选面板。它从右侧滑入，显示筛选选项，在外部点击时关闭。用指针操作一切正常。
+
+当我用键盘 Tab 进去时，焦点走过筛选选项，然后直接穿过面板边缘跑到后面的页面去了。用户可以 tab 到他们看不到的元素。面板看起来是开着的，但焦点已经在别处了。
+
+修复方法是焦点陷阱：面板打开时，焦点移到内部第一个可聚焦元素。Tab 在面板内循环。按 Escape 关闭面板并把焦点还给打开它的按钮。
+
+```tsx
+useEffect(() => {
+  if (!open) return;
+
+  const previousFocus = document.activeElement as HTMLElement;
+  panelRef.current?.focus();
+
+  return () => {
+    previousFocus?.focus();
+  };
+}, [open]);
+```
+
+这不是锦上添花。没有它，一个键盘用户在视觉上打开的面板里操作，实际上是在操作后面的页面。他们填入的输入可能不是他们以为在填的输入。
+
+## 语义 HTML 能干大部分活
+
+我做过的最大的无障碍改善不是 ARIA 属性或屏幕阅读器 hack。而是把 `<div onClick>` 换成 `<button>`，把 `<div role="list">` 换成 `<ul>`，给表单输入加 `<label>`。
+
+```tsx
+// ❌ 一个假装是按钮的 div
+<div className="btn" onClick={handleClick} tabIndex={0}>
+  提交
+</div>
+
+// ✅ 一个真正的按钮
+<button type="submit" onClick={handleClick}>
+  提交
+</button>
+```
+
+`<button>` 免费给你键盘激活（Enter 和 Space）、焦点样式、屏幕阅读器播报和表单提交。`<div>` 需要你重新实现所有这些——而且你会遗漏什么。
+
+我在代码库里走了一遍，找到八个可交互的 `<div>` 元素。替换它们花了二十分钟，修好了那些组件上的所有键盘交互问题。
+
+## Focus-Visible 和 Focus 的区别
+
+CSS `:focus` 在每次点击时都显示焦点环。用鼠标导航的用户觉得烦。CSS `:focus-visible` 只在浏览器检测到键盘导航时才显示焦点环：
+
+```css
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+button:focus:not(:focus-visible) {
+  outline: none;
+}
+```
+
+这是一个小细节，但戏剧性地改善了界面的手感。鼠标用户看不到焦点环。键盘用户总能看到。浏览器处理启发式判断。
+
+## `aria-live` 用于动态内容
+
+当复制按钮把文字从"复制"改成"已复制！"时，视力正常的用户能看到变化。屏幕阅读器用户什么都听不到——文字变了，但在屏幕阅读器没有监听的区域。
+
+`aria-live="polite"` 解决这个问题：
+
+```tsx
+<span aria-live="polite">
+  {copied ? '已复制！' : '复制'}
+</span>
+```
+
+屏幕阅读器会播报文字变化，但不打断当前朗读。`aria-live="assertive"` 会立即打断——只在错误或时间敏感的警报上用。
+
+我在复制按钮、反馈表单状态、搜索结果计数和 toast 通知上加了 `aria-live`。四个组件，四个一行的改动，屏幕阅读器用户得到了之前完全缺失的反馈。
+
+## 减弱动效
+
+`prefers-reduced-motion: reduce` 是系统设置，不是建议。有些用户设置它是因为运动引起不适。有些是因为偏好效率。
+
+我的规则：所有动画都检查 `prefers-reduced-motion`。如果用户偏好减弱动效，过渡要么缩短到接近瞬间，要么完全移除。内容和功能不变。
+
+```css
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+```
+
+WebGL 动画——粒子系统、shader 效果、流体模拟——减弱动效意味着它们不运行。用一个静态回退替代。用户仍然看到页面内容，只是看不到动画。
+
+## 改变了什么
+
+无障碍不是最后加上去的单独功能。它是一个工程约束，像类型安全或响应式设计一样。你可以忽略它然后发布，但它本来能抓住的 bug 不会消失——只是变得更难找。
+
+我现在构建组件时，从有正确语义的 HTML 元素开始。在加鼠标处理器之前先加键盘处理器。在用指针测试之前先用 Tab 测试。在加任何动画之前先检查 `prefers-reduced-motion`。
+
+这不是关于合规或分数。是关于构建在更多场景下都能工作的组件——以及更早地发现 bug，因为那些场景已经是测试的一部分。

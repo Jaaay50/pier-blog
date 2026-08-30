@@ -11,11 +11,18 @@ interface BlogPost {
   date: string;
   tags: string[];
   readMinutes?: number;
+  series?: string;
+  topic?: string;
+  updatedAt?: string;
 }
 
 interface BlogStatsFilterProps {
   posts: BlogPost[];
   noArticlesMessage?: string;
+  allArticlesLabel?: string;
+  filterLabel?: string;
+  articleCountSingular?: string;
+  articleCountPlural?: string;
 }
 
 const useIsoLayoutEffect = typeof window !== "undefined" ? useLayoutEffect : useEffect;
@@ -50,6 +57,10 @@ function writeTagToLocation(tag: string | null) {
 export function BlogStatsFilter({
   posts,
   noArticlesMessage = "No articles match this topic.",
+  allArticlesLabel = "All",
+  filterLabel = "Filter articles by topic",
+  articleCountSingular = "Showing 1 article",
+  articleCountPlural = "Showing 2 articles",
 }: BlogStatsFilterProps) {
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
@@ -74,7 +85,20 @@ export function BlogStatsFilter({
 
   return (
     <div className="min-w-0 max-w-full">
-      <div className="mb-12 flex flex-wrap gap-3" role="group">
+      <div className="mb-12 flex flex-wrap gap-3" role="group" aria-label={filterLabel}>
+        <button
+          type="button"
+          onClick={() => writeTagToLocation(null)}
+          aria-pressed={activeTag === null}
+          className={`inline-flex min-h-11 items-center rounded-full border px-4 py-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
+            activeTag === null
+              ? "border-[var(--accent)] bg-[var(--accent-soft)] font-medium text-[var(--text-primary)]"
+              : "border-[var(--border)] bg-[var(--bg-card)] text-[var(--text-secondary)] hover:border-[var(--border-hover)] hover:text-[var(--text-primary)]"
+          }`}
+        >
+          {allArticlesLabel}
+          <span className="ml-2 text-xs tabular-nums text-[var(--text-muted)]">{posts.length}</span>
+        </button>
         {tagCounts.map(([tag, count]) => {
           const active = activeTag === tag;
           return (
@@ -101,6 +125,10 @@ export function BlogStatsFilter({
           );
         })}
       </div>
+
+      <p className="mb-6 text-sm text-[var(--text-muted)]" aria-live="polite">
+        {(filtered.length === 1 ? articleCountSingular : articleCountPlural).replace(/\d+/, String(filtered.length))}
+      </p>
 
       <motion.div layout className="grid min-w-0 grid-cols-1 gap-6 md:grid-cols-2">
         <AnimatePresence mode="popLayout">

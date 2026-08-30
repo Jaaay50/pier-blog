@@ -1,0 +1,162 @@
+---
+title: "经得起重构的 TypeScript 模式"
+date: "2025-05-28"
+description: "五个我在代码库变形时反复用到的 TypeScript 模式——可辨识联合、品牌类型、const 断言、satisfies 和穷尽检查。"
+tags: ["TypeScript", "架构"]
+topic: "architecture"
+author: "Ethan Pier"
+---
+
+我不把 TypeScript 模式当成一套需要收集的知识。我想的是：重构开始出问题时我伸手去拿哪些，来不及时又后悔没用哪些。
+
+下面五个在我自己的项目里经历了多轮功能变更、组件重组和 API 重新设计之后还活着。它们不算冷门，但它们在类型检查阶段就能抓住真 bug，而不是等到运行时。
+
+## 可辨识联合
+
+前端 TypeScript 里最有用的单一模式。不要用布尔值来建模状态：
+
+```typescript
+// ❌ 允许不可能的组合
+interface ChatState {
+  isLoading: boolean;
+  isError: boolean;
+  data: string | null;
+  error: Error | null;
+}
+// isLoading=true 同时 isError=true 同时 data="hello"——这是什么意思？
+```
+
+用互斥的形状：
+
+```typescript
+type ChatState =
+  | { status: 'idle' }
+  | { status: 'streaming'; buffer: string }
+  | { status: 'error'; error: Error; lastMessage: string }
+  | { status: 'complete'; response: string };
+```
+
+每个变体只有在那个状态下有意义的字段。你不能在 `idle` 状态上访问 `error`——TypeScript 不允许。这种约束的价值在三个月后才显现：有人加了重试功能，没有意识到 error 状态需要跟 streaming 不同的字段。
+
+收窄在所有地方都生效：
+
+```typescript
+function renderChat(state: ChatState) {
+  switch (state.status) {
+    case 'idle':
+      return <Placeholder />;
+    case 'streaming':
+      return <StreamingText text={state.buffer} />;
+    case 'error':
+      return <ErrorMessage error={state.error} />;
+    case 'complete':
+      return <Message text={state.response} />;
+  }
+}
+```
+
+## 品牌类型
+
+普通 string 类型都是同一个类型。用户 ID、帖子 ID 和 session token 都是 `string`。TypeScript 不会阻止你把帖子 ID 传到需要用户 ID 的地方。
+
+品牌类型加了一个编译时标签：
+
+```typescript
+type UserId = string & { readonly __brand: 'UserId' };
+type PostId = string & { readonly __brand: 'PostId' };
+
+function createUserId(id: string): UserId {
+  return id as UserId;
+}
+
+function getUser(id: UserId) { /* ... */ }
+function getPost(id: PostId) { /* ... */ }
+
+const userId = createUserId('abc-123');
+getUser(userId);     // ✅
+getPost(userId);     // ❌ 类型错误——UserId 不是 PostId
+```
+
+`__brand` 字段在运行时不存在。纯粹是类型层面的标记。代价是零字节打包体积加每种品牌类型一个工厂函数。
+
+我在任何跨越函数边界的 ID 上使用这个模式。工厂函数也是天然的校验点——可以在那里检查格式或前缀，之后每个品牌值都保证通过了检查。
+
+## Const 断言
+
+`as const` 把一个值声明变成类型层面的字面量：
+
+```typescript
+const ROUTES = {
+  home: '/',
+  blog: '/blog',
+  about: '/about',
+  lab: '/lab',
+} as const;
+
+type Route = typeof ROUTES[keyof typeof ROUTES];
+// Route = '/' | '/blog' | '/about' | '/lab'
+```
+
+没有 `as const` 的话，TypeScript 会把 `ROUTES.home` 拓宽成 `string`。加了之后，类型是字面量 `'/'`。路由表、配置对象和枚举式常量都可以成为唯一真源：对象既是运行时值，也是类型定义。
+
+这个模式跟穷尽检查配合很好。如果我在 `ROUTES` 里加了 `/portfolio`，所有对 `Route` 做 `switch` 的地方都不能编译，直到处理了新值。
+
+## `satisfies` 操作符
+
+`satisfies` 用一个类型校验值，但不拓宽它：
+
+```typescript
+type Theme = {
+  colors: Record<string, string>;
+  spacing: Record<string, string>;
+};
+
+const lightTheme = {
+  colors: {
+    primary: '#1a1a2e',
+    accent: '#e07a5f',
+    muted: '#94a3b8',
+  },
+  spacing: {
+    sm: '0.5rem',
+    md: '1rem',
+    lg: '1.5rem',
+  },
+} satisfies Theme;
+```
+
+跟类型注解的区别：`lightTheme.colors.accent` 被类型化为 `'#e07a5f'`，不是 `string`。对象满足 `Theme` 契约，但你保留了窄的字面量类型。自动补全能用，重构也能拿到具体的值。
+
+我在配置对象和 i18n 消息表上用 `satisfies`。契约在编译时抓住遗漏的 key，窄类型让下游的开发体验更好。
+
+## 穷尽检查
+
+这个模式把遗忘的 `case` 变成编译错误：
+
+```typescript
+function assertNever(value: never): never {
+  throw new Error(`Unexpected value: ${value}`);
+}
+
+function getStatusColor(status: ChatState['status']): string {
+  switch (status) {
+    case 'idle': return 'gray';
+    case 'streaming': return 'blue';
+    case 'error': return 'red';
+    case 'complete': return 'green';
+    default: return assertNever(status);
+  }
+}
+```
+
+如果我在 `ChatState` 里加了 `'retrying'` 然后忘记在这里处理，TypeScript 会在 `assertNever` 调用上报类型错误——`'retrying'` 不能赋值给 `never`。运行时的 throw 是兜底网；真正的保护在编译时。
+
+这个模式需要可辨识联合才能生效。这也是偏好联合而非布尔标志的另一个原因：联合能跟类型检查器的收窄机制配合，布尔不行。
+
+## 它们的共同点
+
+五个模式有一个共同属性：让非法状态要么无法表示，要么无法编译。它们不增加运行时检查，不增加打包体积。它们把错误从"用户看到了一个坏掉的页面"推到"构建失败了"。
+
+实际含义是：当重构改变了数据的形状——加一个字段、删一个状态、拆分一个 ID 类型——编译器会告诉我每一个需要更新的位置。grep 能抓住字符串匹配。类型检查器能抓住语义不匹配。
+
+这些模式没有一个是新的或出人意料的。我反复写它们的原因是我反复看到生产代码库里 `status: string` 导致了一个 bug，而 `status: 'idle' | 'streaming' | 'error' | 'complete'` 本来可以在构建时就抓住它。

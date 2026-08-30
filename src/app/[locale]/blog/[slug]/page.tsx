@@ -208,6 +208,36 @@ export default async function BlogPostPage({ params }: PageProps) {
                     : `${post.readMinutes} min read`}
                 </span>
               </div>
+
+              <dl className="mt-6 flex flex-wrap gap-x-5 gap-y-2 border-y border-[var(--border)] py-4 text-xs text-[var(--text-muted)]">
+                {post.author && (
+                  <div>
+                    <dt className="sr-only">{t("author")}</dt>
+                    <dd>{post.author}</dd>
+                  </div>
+                )}
+                {post.series && (
+                  <div>
+                    <dt className="sr-only">{t("series")}</dt>
+                    <dd>{post.series}</dd>
+                  </div>
+                )}
+                {post.environment && (
+                  <div>
+                    <dt className="sr-only">{t("testedWith")}</dt>
+                    <dd>{t("testedWith")}: {post.environment}</dd>
+                  </div>
+                )}
+                {post.updatedAt && post.updatedAt !== post.date && (
+                  <div>
+                    <dt className="sr-only">{t("updated")}</dt>
+                    <dd>{t("updated")} {new Date(post.updatedAt).toLocaleDateString(
+                      locale === "zh" ? "zh-CN" : "en-US",
+                      { year: "numeric", month: "long", day: "numeric" }
+                    )}</dd>
+                  </div>
+                )}
+              </dl>
             </header>
 
             {/* MDX Content */}
@@ -251,6 +281,10 @@ export default async function BlogPostPage({ params }: PageProps) {
                     description: p.description,
                     date: p.date,
                     tags: p.tags,
+                    readMinutes: p.readMinutes,
+                    series: p.series,
+                    topic: p.topic,
+                    updatedAt: p.updatedAt,
                   }}
                 />
               ))}

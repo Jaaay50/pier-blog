@@ -86,14 +86,21 @@ export default async function BlogPage({
       <section className="pb-20 pt-16">
         <div className="site-content">
           <BlogStatsFilter
-            posts={posts.map(({ slug, title, description, date, tags, readMinutes }) => ({
+            posts={posts.map(({ slug, title, description, date, tags, readMinutes, series, topic, updatedAt }) => ({
               slug,
               title,
               description,
               date,
               tags,
               readMinutes,
+              series,
+              topic,
+              updatedAt,
             }))}
+            allArticlesLabel={t("allArticles")}
+            filterLabel={t("filterLabel")}
+            articleCountSingular={t("articleCount", { count: 1 })}
+            articleCountPlural={t("articleCount", { count: 2 })}
             noArticlesMessage={t("noArticlesForTag")}
           />
         </div>

@@ -1,0 +1,140 @@
+---
+title: "从 Server Actions 到渐进式表单"
+date: "2026-01-14"
+description: "构建在 JavaScript 加载前就能用、提交时保持响应、并处理服务端一切失败的表单。"
+tags: ["Next.js", "React", "架构"]
+series: "博客与产品构建日志"
+topic: "interaction"
+author: "Ethan Pier"
+environment: "Next.js 16、React 19、Node.js 22"
+---
+
+我给一个内容聚合产品做了一个反馈表单。第一版用了客户端 `fetch` 配一个 `onClick` 处理器。一切正常，直到一个在慢网络上的用户在 React hydration 完成之前点了"提交"。什么都没发生。没有报错，没有反馈，没有任何提示表明这次点击被吞掉了。
+
+然后我用 Server Actions 和 `useActionState` 重新接了一遍。
+
+## 基线问题
+
+经典 React 表单：
+
+```tsx
+'use client';
+function FeedbackForm() {
+  const [status, setStatus] = useState<'idle' | 'sending' | 'done' | 'error'>('idle');
+
+  const handleSubmit = async (e: FormEvent) => {
+    e.preventDefault();
+    setStatus('sending');
+    try {
+      await fetch('/api/feedback', { method: 'POST', body: new FormData(e.currentTarget as HTMLFormElement) });
+      setStatus('done');
+    } catch {
+      setStatus('error');
+    }
+  };
+
+  return <form onSubmit={handleSubmit}>...</form>;
+}
+```
+
+这个方案需要 JavaScript 才能工作。如果 hydration 还没完成——在 3G 慢网络上可能要好几秒——表单视觉上已经出现了但功能上是死的。用户看到一个按钮，点了，什么都不发生。没有加载状态，没有报错。表单在假装自己已经准备好了。
+
+## Server Actions 作为地基
+
+Server Action 是一个在表单提交时在服务端运行的函数。关键属性：它能跟标准 HTML `<form action>` 配合，意味着即使没有 JavaScript 表单也能提交。浏览器发一个 POST 请求，服务端处理，返回响应。
+
+```tsx
+// src/app/actions/feedback.ts
+'use server';
+
+export async function submitFeedback(prevState: FormState, formData: FormData): Promise<FormState> {
+  const category = formData.get('category');
+  const message = formData.get('message');
+
+  if (!category || typeof category !== 'string') {
+    return { status: 'error', message: '请选择一个类别。' };
+  }
+
+  try {
+    await db.feedback.create({
+      data: { category, message: message?.toString() ?? '' },
+    });
+    return { status: 'success', message: '反馈已收到。' };
+  } catch {
+    return { status: 'error', message: '出了点问题，请再试一次。' };
+  }
+}
+```
+
+不需要 API route。不需要 fetch 调用。form action 直接指向这个函数。框架处理序列化、CSRF 保护和请求/响应周期。
+
+## `useActionState`：渐进增强
+
+React 19 的 `useActionState` 用客户端状态包装 Server Action：
+
+```tsx
+'use client';
+
+import { useActionState } from 'react';
+import { submitFeedback } from '@/app/actions/feedback';
+
+type FormState = { status: 'idle' } | { status: 'success'; message: string } | { status: 'error'; message: string };
+
+function FeedbackForm() {
+  const [state, formAction, isPending] = useActionState(
+    submitFeedback,
+    { status: 'idle' } as FormState
+  );
+
+  return (
+    <form action={formAction}>
+      <fieldset disabled={isPending}>
+        <select name="category" required>
+          <option value="">选择类别</option>
+          <option value="accuracy">准确性</option>
+          <option value="missing">信息缺失</option>
+          <option value="ui">界面问题</option>
+        </select>
+
+        <textarea name="message" rows={4} />
+
+        <button type="submit">
+          {isPending ? '提交中...' : '提交'}
+        </button>
+      </fieldset>
+
+      {state.status === 'success' && <p>{state.message}</p>}
+      {state.status === 'error' && <p role="alert">{state.message}</p>}
+    </form>
+  );
+}
+```
+
+渐进过程：
+
+1. **无 JavaScript**：表单作为标准 POST 提交。服务端处理后返回带结果的页面。慢，但能用。
+2. **JavaScript 已加载**：`useActionState` 拦截提交，通过 fetch 调用 Server Action，不做整页刷新就更新状态。`isPending` 启用加载状态。
+
+`<fieldset>` 上的 `disabled` 防止重复提交。原生 HTML 校验（`required`）在 hydration 前后都生效。错误消息用了 `role="alert"` 给屏幕阅读器。
+
+## 踩过的坑
+
+**返回形状很重要。** Server Action 必须返回一个可序列化的、符合 `FormState` 的对象。如果它 throw 了，错误到不了客户端——变成一个通用的"Server Error"。永远 catch 然后返回结构化的错误。
+
+**不要在 action 里 redirect。** 如果成功后需要跳转，返回 `{ status: 'redirect', url: '/thanks' }` 然后在客户端处理。在 action 里调 `redirect()` 会绕过状态更新。
+
+**FormData 校验。** `formData.get('category')` 返回的是 `FormDataEntryValue | null`，如果有人篡改了表单，它可能是一个 `File` 对象。用之前一定要收窄类型。
+
+**限流。** Server Actions 没有内置限流。如果表单面向公众，你需要服务端节流——per-IP、per-session 或 per-fingerprint。我在客户端用一个简单的 `localStorage` 检查做 UX 层面的摩擦（防止意外重复），在服务端用真正的限流器做实际保护。
+
+## 这套模式给你什么
+
+表单在三种世界状态下都能工作：
+
+1. **无 JS / hydration 失败**：标准 HTML 表单提交。用户看到整页刷新，但反馈已收到。
+2. **JS 已加载、快网络**：即时提交，有加载状态和行内结果。
+3. **JS 已加载、慢网络/网络失败**：`isPending` 显示加载指示器。请求失败时错误状态渲染出来，不会丢掉用户已输入的内容。
+
+代价：Server Action 是服务端函数，需要一个运行中的服务器或 Serverless Function。在完全静态的站点上，这是唯一需要动态计算的地方。在我的架构里，反馈端点是一个带 Server Action 的 ISR 页面——页面是静态的，但 action 跑在 serverless 上。
+
+我已经用这套模式做了六个表单。到目前为止还没崩过。
