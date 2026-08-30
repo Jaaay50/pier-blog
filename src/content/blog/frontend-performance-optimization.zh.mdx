@@ -1,147 +1,146 @@
 ---
-title: "前端性能优化实战"
-date: "2026-07-31"
-updatedAt: "2026-08-28"
-description: "深入现代 Web 性能：Core Web Vitals、懒加载、代码分割与真实世界的度量策略。"
+title: "在真实站点上追 Core Web Vitals"
+date: "2025-11-08"
+description: "测量自己站点性能后发现的事——占住 LCP 的那张图、肉眼看不到的布局偏移、以及只在手机上出现的 INP 问题。"
 tags: ["性能", "Next.js", "Web Vitals"]
 series: "Next.js 性能诊断"
 topic: "performance"
 author: "Ethan Pier"
-environment: "Next.js 16.3、React 19.2、Node.js 22；指标阈值核对日期：2026-08-28"
+environment: "Next.js 16、React 19、Node.js 22"
+updatedAt: "2026-08-28"
 ---
 
-## 为什么性能很重要
+我不是因为读了一篇 Core Web Vitals 的文章才开始做性能优化。我是因为自己的站在手机上首屏打开时明显能感觉到等待。Galaxy 背景加载了，粒子在聚合，整个过程长到我注意到了。注意到它本身就是问题。
 
-性能本身就是一种用户体验特性——快的应用让人觉得响应灵敏、可靠、专业。一些案例研究确实观察到延迟与营收之间的关系，但结果取决于产品、用户群体和测量方法，不能把“每 100ms 损失 1%”当成普遍规律。
+## 先测量再猜
 
-真正要看的三个数字：
+本能反应是去看 WebGL 管线。它是页面上最复杂的东西，所以一定是瓶颈对吧？
+
+我改而在已部署的站上跑了一次 Lighthouse。结果让我意外：
+
+三个最重要的数字：
 
 | 指标 | 目标 | 衡量什么 |
-|--------|--------|-----------------|
+|--------|--------|------------------|
 | LCP | < 2.5s | 视觉完成度 |
 | INP | ≤ 200ms | 交互响应性 |
 | CLS | < 0.1 | 视觉稳定性 |
 
-FID 已在 2024 年 9 月退出 Core Web Vitals，由 INP 接替。目前 INP 在第 75 百分位达到 **≤200ms** 才属于“良好”。本文指标阈值于 2026-08-28 根据 [web.dev 的 INP 指南](https://web.dev/articles/inp) 和 [Core Web Vitals 阈值定义](https://web.dev/articles/defining-core-web-vitals-thresholds) 核对。
+我的第一次 Lighthouse 跑出来的结果是另一个故事：
 
-## Core Web Vitals 落地
+| 指标 | 值 | 评级 |
+|--------|-------|--------|
+| LCP | 3.2s | 差 |
+| INP | 280ms | 待改善 |
+| CLS | 0.02 | 好 |
 
-### LCP — Largest Contentful Paint
+LCP 是 3.2 秒。但 LCP 不是粒子动画——是 hero 图片兜底元素。浏览器把最大内容绘制判定给了一个在 WebGL canvas 之后加载的背景元素，因为 canvas 在有可见内容之前不算 contentful paint。
 
-影响最大的几个优化手段：
+我差点做的优化（重写粒子系统）完全不会改变 LCP。
+
+## 修理真正有影响的地方
+
+### LCP：Hero 图片
+
+修复是机械性的：预加载关键图片、用 `priority` 标记、提供 blur 占位：
 
 ```tsx
-// 1. 预加载关键图片
-<link rel="preload" as="image" href="/hero.webp" />
-
-// 2. 使用 Next.js priority 标记
 <Image
   src={hero}
   alt="Hero"
-  priority                       // 首屏预加载
+  priority
   sizes="(max-width: 768px) 100vw, 50vw"
-  placeholder="blur"             // 即时感知加载
+  placeholder="blur"
 />
-
-// 3. 内联关键 CSS（Next.js 自动处理）
 ```
 
-### INP — Interaction to Next Paint
+之后在 4G 节流下 LCP 降到了 1.8s。粒子系统跟这事毫无关系。
 
-拆分长任务：
+教训：先测量再假设。页面上最复杂的代码不一定是瓶颈。浏览器对"最大内容绘制"的定义不关心你的 WebGL。
 
-```typescript
-// 差：阻塞主线程
-function processLargeList(items: Item[]) {
-  items.forEach(item => heavyComputation(item));
-}
+### INP：事件处理器的问题
 
-// 好：分块之间让出控制权给浏览器
-async function processLargeList(items: Item[]) {
-  const chunks = chunkArray(items, 50);
+INP 只在移动端表现为问题。桌面上每次交互响应在 50ms 以内。在一台中端 Android 手机上，点主题切换要 280ms。
 
-  for (const chunk of chunks) {
-    chunk.forEach(item => heavyComputation(item));
-    // 让浏览器有机会渲染和响应输入
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
-}
-```
-
-### CLS — Cumulative Layout Shift
-
-最常见的几个元凶：
+原因：toggle 处理器在 `<html>` 上触发了 class 变化，强制重绘了所有带自定义属性 CSS transition 的元素。23 个自定义属性在同时做过渡。
 
 ```css
-/* 为动态内容预留空间 */
-.hero-image {
-  aspect-ratio: 16 / 9;
-  width: 100%;
+/* 之前：所有属性都在 transition */
+* {
+  transition: all 150ms ease;
 }
 
-/* 防止字体切换造成偏移 */
+/* 之后：只 transition 用户能感知到的属性 */
+body {
+  transition: background-color 150ms ease, color 150ms ease;
+}
+```
+
+缩小 transition 范围后，同一台设备上 INP 降到了 120ms 以内。其他东西——边框、阴影、accent 色——全部瞬间跳变，用户注意不到。
+
+### CLS：本来没问题，差点搞坏
+
+CLS 是 0.02，在"好"的阈值内。然后我加了一个动态字体加载策略，看着它跳到了 0.18。
+
+问题：`font-display: swap` 在 web 字体到达、字形大小变化时造成布局偏移。CJK 字体的偏移更大，因为兜底字体和 web 字体之间的字符宽度差异更大。
+
+```css
 @font-face {
-  font-family: 'Inter';
-  font-display: optional; /* 或用 'swap' 配合 size-adjust */
+  font-family: var(--font-display);
+  font-display: optional;
   size-adjust: 100%;
 }
 ```
 
-## 代码分割策略
+`font-display: optional` 消除了 swap——如果浏览器需要字体时它还没加载完，这次页面加载就一直用兜底字体。CLS 回到了 0.02。代价：慢网络上的用户第一次访问全程看到兜底字体。对于内容是代码和文章、不是品牌敏感落地页的站点来说，我可以接受。
+
+## 代码分割：差点做过头的低垂果实
+
+Next.js App Router 自动处理路由级代码分割。每个路由是一个独立 bundle。诱惑是接下来把所有其他东西都 `dynamic()` 导入：
 
 ```typescript
 import dynamic from 'next/dynamic';
 
-// 路由级：App Router 自动处理
-// 组件级：用于重型库
 const Chart = dynamic(() => import('@/components/Chart'), {
   loading: () => <ChartSkeleton />,
   ssr: false,
 });
-
-// 库级：只导入需要的部分
-import { format } from 'date-fns/format';  // 而不是 'date-fns'
 ```
 
-## 打包体积分析
+这对不在首次渲染中需要的重型组件是正确的——WebGL demo、代码编辑器、可视化组件。对关键渲染路径上的组件就是错的。动态导入一个 hero section 等于废掉了 SSG 的意义。
+
+我的规则：`dynamic()` 用于首屏以下的可交互组件。初始视口内的东西全部静态导入。
+
+## 在生产环境测量
+
+构建日志是第一层诊断：
 
 ```bash
-# 每周审计命令
-ANALYZE=true next build
-
-# 或使用 next-bundle-analyzer
-npm install @next/bundle-analyzer
+npm run build
+# 每个路由的大小和 First Load JS 会被打印出来
 ```
 
-几条经验法则：
+运行时数据用 web-vitals hook：
 
-- 某个依赖 gzip 后超过 50KB，就需要理由才能留下
-- 用 `npm ls <pkg>` 检查重复依赖
-- 装 `import cost` VS Code 插件，获得即时反馈
+```tsx
+'use client';
 
-## 度量策略
+import { useReportWebVitals } from 'next/web-vitals';
 
-不要盲目优化。搭好真实用户监控：
-
-```typescript
-// 把 Web Vitals 上报到你的分析系统
-export function reportWebVitals(metric: NextWebVitalsMetric) {
-  const body = {
-    name: metric.name,
-    value: metric.value,
-    rating: metric.rating,
-    delta: metric.delta,
-    id: metric.id,
-  };
-
-  // 用 sendBeacon 保证可靠性
-  navigator.sendBeacon('/api/vitals', JSON.stringify(body));
+export function WebVitals() {
+  useReportWebVitals((metric) => {
+    console.log(metric.name, metric.value, metric.rating);
+  });
+  return null;
 }
 ```
 
+这会把指标输出到控制台。要发到端点需要鉴权、留存策略、采样和一个真正的 `/api/vitals` handler——这些我还没做，因为手动测试时看控制台已经能抓住我能处理的问题。
+
 ## 几点心得
 
-1. **先测量** —— 优化前先做剖析，避免白费功夫。
-2. **LCP 通常就是一张图** —— 优化好首屏图片的处理链路。
-3. **打包体积是一项特性** —— 像对待内存占用那样对待它。
-4. **渐进增强** —— 最快的代码是根本不发出去的代码。
+1. 先测量。瓶颈通常不在你以为的地方。
+2. LCP 几乎总是图片问题。在碰 JavaScript 之前先优化 hero 图片管线。
+3. INP 在手机上才显现，不是笔记本。在真实中端设备上测试，或者用力节流。
+4. CLS 容易保持也容易破坏。字体加载和动态内容是常见元凶。
+5. 打包体积是一项特性。像对待内存占用那样对待它——跟踪它、给它预算、在它长大时注意到。

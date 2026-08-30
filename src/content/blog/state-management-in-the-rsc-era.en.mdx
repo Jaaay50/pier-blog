@@ -1,42 +1,28 @@
 ---
 title: "State Management in the RSC Era"
-date: "2026-07-29"
-updatedAt: "2026-08-28"
-description: "Comparing modern state management approaches: Server Components, React Context, Zustand, and when to use each pattern."
+date: "2025-04-03"
+description: "After rebuilding a production app with React Server Components, most of my state management code disappeared. What remained was more interesting than what left."
 tags: ["React", "Architecture", "State Management"]
 series: "Blog & Product Build Logs"
 topic: "architecture"
 author: "Ethan Pier"
-environment: "Next.js 16.3, React 19.2, Node.js 22"
+environment: "Next.js 16, React 19, Node.js 22"
 ---
 
-## The Landscape Has Changed
+I was migrating a dashboard from Pages Router to App Router when I noticed something odd: the state management layer — a Zustand store with six slices, three Context providers, and a handful of custom hooks — had almost nothing left to do. Not because I'd replaced it. Because the framework had quietly absorbed most of what it managed.
 
-React Server Components fundamentally shift where state lives. The old mental model of "everything is client state" no longer applies.
+That migration is where my opinions about state management in 2025 actually come from. Not from reading docs.
 
-The key insight: **most state doesn't belong on the client anymore.**
+## What Disappeared
 
-## Decision Framework
+The old app had a `useCurrentUser` hook backed by a Context provider. It called an API route on mount, cached the result in state, and passed it down. Every protected page imported it.
 
-Before reaching for a library, classify your state:
-
-```
-Is it server data?         → RSC + fetch (zero bundle)
-Is it in the URL?          → useSearchParams (shareable)
-Is it a form?              → useFormState (progressive)
-Is it local UI?            → useState (simple)
-Is it shared across 3+?   → Zustand (minimal)
-Is it complex + global?    → Consider Zustand slices
-```
-
-## Server Components: The Default
-
-In Next.js App Router, components are server-first:
+In App Router, the same data is a `fetch` call in a Server Component. No hook, no provider, no client bundle impact. The user object exists on the server, gets serialized into HTML, and arrives at the browser already rendered.
 
 ```tsx
-// This component ships ZERO JavaScript to the client
 async function UserProfile({ id }: { id: string }) {
   const user = await db.user.findUnique({ where: { id } });
+  if (!user) return <p>User not found.</p>;
 
   return (
     <div>
@@ -47,9 +33,31 @@ async function UserProfile({ id }: { id: string }) {
 }
 ```
 
-No `useEffect`. No loading state. No stale cache. The data is always fresh because it runs on the server at request time.
+No `useEffect`. No loading state. No cache invalidation hook. The component doesn't even ship JavaScript.
 
-## URL State: The Underrated Pattern
+I went through the codebase and found the same pattern everywhere: filter state that could be URL params, form state that could be `useActionState`, permission checks that could happen on the server before the component tree even starts rendering.
+
+## A Classification That Held Up
+
+Before reaching for any library, I now ask one question: who owns this state?
+
+```
+Server data?               → RSC + fetch
+In the URL?                → useSearchParams
+A form?                    → useActionState
+Local to one component?    → useState
+Shared across 3+ distant client components?  → Zustand
+```
+
+The surprising thing is how rarely I reach the last line. In the dashboard migration, exactly two pieces of state needed Zustand: the sidebar open/close toggle (because it's referenced by the layout, the nav, and a keyboard shortcut handler) and a notification queue (because toasts can be triggered from anywhere).
+
+Everything else fit in the first four categories.
+
+## URL State Is Underrated
+
+Filter pages taught me this. The old version stored `sort`, `status`, and `dateRange` in a Zustand slice. Sharing a filtered view meant copying the state into a URL manually. Browser back broke the filters. Refresh lost them.
+
+Moving filters into `useSearchParams` fixed all of that for free:
 
 ```tsx
 'use client';
@@ -78,41 +86,27 @@ function Filters() {
 }
 ```
 
-Benefits: shareable URLs, browser back/forward works, SSR-compatible, survives refresh.
+Shareable URLs. Browser history works. Survives refresh. SSR-compatible. No library.
 
-## When NOT to Use a State Library
+The cost: every filter change triggers a navigation, which in App Router means a server request for the new route. For a static page that's a CDN hit, it's fast. For a page with heavy server-side computation, you might want `router.replace` with `scroll: false` or debounce the params.
 
-Most apps don't need Redux, Jotai, or Recoil. Ask yourself:
+## When Zustand Actually Earns Its Keep
 
-1. Does this state need to be shared across 3+ distant components?
-2. Does it need to survive navigation?
-3. Does it need middleware (logging, persistence, devtools)?
-
-If no to all three → `useState` is your answer. Seriously.
-
-## Zustand: The Right Amount of Library
-
-When you *do* need shared client state:
+The sidebar toggle is the textbook case. Three distant components need to read it: the sidebar itself, the main content area (for the width shift), and a keyboard shortcut handler. None of them are parent-child. `useState` would require lifting to the layout root, and by that point you've built a worse Context provider.
 
 ```typescript
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface AppStore {
-  theme: 'light' | 'dark';
   sidebarOpen: boolean;
-  toggleTheme: () => void;
   toggleSidebar: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
-      theme: 'dark',
       sidebarOpen: true,
-      toggleTheme: () => set((s) => ({
-        theme: s.theme === 'dark' ? 'light' : 'dark'
-      })),
       toggleSidebar: () => set((s) => ({
         sidebarOpen: !s.sidebarOpen
       })),
@@ -122,34 +116,37 @@ export const useAppStore = create<AppStore>()(
 );
 ```
 
-Why Zustand wins:
-- No Provider wrapper
-- No context re-render issues
-- TypeScript-first
-- Tiny bundle (1KB)
-- Built-in persistence, devtools, immer middleware
+No Provider. Selectors limit re-renders. `persist` gives you `localStorage` memory across sessions. This is the exact scope where Zustand earns its 3KB.
 
-## The Anti-Pattern: Over-Engineering
+If the state doesn't cross 3+ unrelated components, `useState` is enough. That's not minimalism — it's just the right tool.
+
+## The Anti-Pattern I Keep Seeing
 
 ```typescript
-// ❌ Don't do this for a toggle
+// ❌ Three files and a provider wrapper for a boolean
 const ThemeContext = createContext();
-const ThemeProvider = ({ children }) => { ... };
+const ThemeProvider = ({ children }) => { /* ... */ };
 const useTheme = () => useContext(ThemeContext);
-// + 3 files, 1 provider, re-renders entire tree
 
-// ✅ Do this instead
+// ✅ One line, no provider, surgical re-renders
 const useTheme = create((set) => ({
   theme: 'dark',
   toggle: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }))
 }));
-// 1 file, no provider, surgical re-renders
 ```
 
-## Key Takeaways
+Context has legitimate uses — dependency injection, theme nesting, compound component APIs. But for global state that multiple leaves need to read without re-rendering their parents, it's the wrong shape. Every Context update re-renders every consumer, even if the value they read didn't change. Zustand's selector model avoids this.
 
-1. **Server Components eliminate most client state** — let the platform work.
-2. **URL state is free** — use it for filters, pagination, modals.
-3. **useState is underrated** — most UI state is local.
-4. **Zustand for the rest** — minimal API, maximum ergonomics.
-5. **The best state management is no state management** — derive, don't store.
+## What I Took Away
+
+The biggest lesson from the migration wasn't about libraries. It was about classification. Most state management pain comes from putting client-side state where server state, URL state, or form state would have been simpler.
+
+Server Components don't eliminate state management. They eliminate the category of state management that was always a workaround for not having server rendering with direct data access. The state that remains — UI toggles, cross-component coordination, client-side caches — is genuinely client work, and it's a smaller problem.
+
+Five things I keep reminding myself:
+
+1. Server Components eliminate most client state. Let the platform work.
+2. URL state is free. Filters, pagination, modals — put them in the URL.
+3. `useState` is underrated. Most UI state is local.
+4. Zustand for the rest. Minimal API, maximum ergonomics.
+5. The best state management is no state management. Derive, don't store.

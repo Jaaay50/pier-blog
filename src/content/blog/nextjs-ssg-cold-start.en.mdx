@@ -1,39 +1,37 @@
 ---
 title: "Eliminating Next.js Cold Starts: From Dynamic SSR to Full SSG"
-date: "2026-08-01"
-updatedAt: "2026-08-28"
-description: "How a single line in i18n/request.ts was forcing every page into Serverless SSR with 1–4s cold starts — and how moving to URL-based routing made everything static."
+date: "2026-04-25"
+description: "How a single cookies() call in i18n/request.ts forced every page into Serverless SSR with 1–4s cold starts — and how moving to URL-based routing made everything static."
 tags: ["Next.js", "Performance", "Architecture"]
 series: "Next.js Performance Diagnostics"
 topic: "performance"
 author: "Ethan Pier"
-environment: "Next.js 16.3, next-intl 4.13, Node.js 22; Vercel deployment"
+environment: "Next.js 16, next-intl 4, Node.js 22; Vercel deployment"
 ---
 
-## The Symptom
+> **Context**: This is a case study from one Next.js deployment. The latency numbers are observations from that specific setup, not a platform guarantee.
 
-Every page navigation felt slow. Not network-slow — there's an inherent latency between Hong Kong and Vercel's free-tier edge nodes. This was a different kind of slow: a consistent 1–4 second stall before the first byte arrived, even for pages that hadn't changed in weeks.
+I was refreshing my own blog and watching the browser sit empty for two seconds. Then three. Then four, on a bad run. The pages hadn't changed in weeks. There was no reason for them to take this long.
 
-The Vercel dashboard confirmed it. The response header told the story:
+The Vercel dashboard showed every request hitting a Serverless Function. The response header confirmed it:
 
 ```
 x-vercel-cache: MISS
 ```
 
-Every request was hitting a Serverless Function. Nothing was being cached.
+Nothing was cached. Every page was rendered from scratch on every visit.
 
-## Finding the Root Cause
+## The One Line That Broke Everything
 
-My blog uses [next-intl](https://next-intl.dev) for internationalization. The original implementation used a cookie-based locale detection strategy: middleware would read or set a `NEXT_LOCALE` cookie, and `i18n/request.ts` would call `cookies()` to retrieve it.
+The blog uses next-intl for internationalization. The original setup used cookie-based locale detection:
 
 ```typescript title="i18n/request.ts"
-// ❌ Original implementation
+// ❌ The original implementation
 import { getRequestConfig } from 'next-intl/server';
 import { cookies } from 'next/headers';
 
 export default getRequestConfig(async () => {
   const locale = cookies().get('NEXT_LOCALE')?.value ?? 'en';
-
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,
@@ -41,9 +39,9 @@ export default getRequestConfig(async () => {
 });
 ```
 
-This looks harmless. But `cookies()` is a dynamic function in Next.js. Calling it anywhere in the render chain — including inside `getRequestConfig` — tells the framework: *"this page's output depends on the incoming request."*
+`cookies()` is a dynamic function in Next.js. Calling it anywhere in the render chain tells the framework that the page output depends on the incoming request. Next.js marks every page that touches `getTranslations()` as dynamic — no static generation, no CDN caching, no pre-rendering.
 
-Next.js then marks every page that calls `getTranslations()` as **dynamic**, opting it out of static generation entirely. The build output was full of `ƒ` symbols:
+The build output was full of `ƒ` symbols. Every page was a Serverless Function:
 
 ```
 Route                          Size    First Load JS
@@ -54,57 +52,32 @@ Route                          Size    First Load JS
 └ ƒ /en/portfolio              3.3 kB     140 kB
 ```
 
-Every `ƒ` is a Serverless Function. Every page visit spins up a cold container, reads a cookie, renders HTML, and tears down. On Vercel's free tier with no persistent compute, cold starts are the norm, not the exception.
+On Vercel's free tier with no persistent compute, every page visit meant a cold start.
 
-## The Structural Fix
+## The Fix: Move Locale to the URL
 
-The solution is to move locale out of the request and into the URL. Instead of asking "what locale did the user's cookie say?", ask "what locale is in this URL path?"
-
-This means restructuring from:
-
-```
-src/app/
-  page.tsx          ← single route, reads locale from cookie at runtime
-  blog/
-    page.tsx
-```
-
-to:
+The structural change: stop reading locale from the request. Put it in the URL instead.
 
 ```
 src/app/
   [locale]/
-    page.tsx        ← separate static route per locale, baked at build time
+    page.tsx        ← one static route per locale, built at build time
     blog/
       page.tsx
 ```
 
-### Step 1: Define routing
+The new `i18n/request.ts`:
 
 ```typescript
-// src/i18n/routing.ts
-import { defineRouting } from 'next-intl/routing';
-
-export const routing = defineRouting({
-  locales: ['en', 'zh'],
-  defaultLocale: 'en',
-  localePrefix: 'always', // /en/... and /zh/... for all routes
-});
-```
-
-### Step 2: Fix request.ts to read from route params
-
-```typescript
-// ✅ New i18n/request.ts — no cookies(), no headers()
+// ✅ No cookies(), no headers()
 import { getRequestConfig } from 'next-intl/server';
 import { routing } from './routing';
 
 export default getRequestConfig(async ({ requestLocale }) => {
-  let locale = await requestLocale; // comes from [locale] route segment
+  let locale = await requestLocale;
   if (!locale || !routing.locales.includes(locale as 'en' | 'zh')) {
     locale = routing.defaultLocale;
   }
-
   return {
     locale,
     messages: (await import(`../messages/${locale}.json`)).default,
@@ -112,127 +85,61 @@ export default getRequestConfig(async ({ requestLocale }) => {
 });
 ```
 
-`requestLocale` is derived from the URL segment at build time. No runtime cookie reads. No dynamic opt-in.
+`requestLocale` comes from the `[locale]` URL segment. It's available at build time. No runtime request data, no dynamic opt-in.
 
-### Step 3: Each page calls setRequestLocale and generates static params
+Each page calls `setRequestLocale(locale)` and exports `generateStaticParams`:
 
 ```typescript
-// src/app/[locale]/blog/page.tsx
-import { setRequestLocale } from 'next-intl/server';
-import { locales } from '@/i18n/config';
-
-interface PageProps {
-  params: Promise<{ locale: string }>;
-}
-
-// Tell Next.js all the [locale] values to pre-render at build time
 export async function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
 }
 
-export default async function BlogPage({ params }: PageProps) {
+export default async function Page({ params }: PageProps) {
   const { locale } = await params;
-  setRequestLocale(locale); // marks this render as static-safe
-
-  // ... render the page
+  setRequestLocale(locale);
+  // ... render
 }
 ```
 
-For pages with additional dynamic segments (like blog posts), `generateStaticParams` covers both dimensions:
+Navigation helpers from next-intl handle locale prefixes automatically:
 
 ```typescript
-// src/app/[locale]/blog/[slug]/page.tsx
-export async function generateStaticParams() {
-  // Pre-render every locale × slug combination
-  return locales.flatMap((locale) =>
-    getAllSlugs(locale).map((slug) => ({ locale, slug }))
-  );
-}
-```
-
-### Step 4: Use locale-aware navigation everywhere
-
-Standard `next/link` and `next/navigation` don't know about locale prefixes. Replace them with the helpers from next-intl:
-
-```typescript
-// src/i18n/navigation.ts
-import { createNavigation } from 'next-intl/navigation';
-import { routing } from './routing';
-
-export const { Link, redirect, usePathname, useRouter } =
-  createNavigation(routing);
-```
-
-```typescript
-// In any component — href is just /blog, the locale prefix is automatic
 import { Link } from '@/i18n/navigation';
-
 <Link href="/blog">Blog</Link>
-// renders as /en/blog or /zh/blog depending on current locale
+// renders /en/blog or /zh/blog based on current locale
 ```
 
-### Step 5: Middleware handles the root redirect
-
-Users arriving at `/` need to be sent to `/en` or `/zh`. Middleware reads `Accept-Language` and the `NEXT_LOCALE` cookie (for remembered preferences), then redirects — but this is a one-time redirect, not per-page rendering:
-
-```typescript
-// src/middleware.ts
-import createMiddleware from 'next-intl/middleware';
-import { locales, defaultLocale } from '@/i18n/config';
-
-export default createMiddleware({
-  locales,
-  defaultLocale,
-  localePrefix: 'always',
-  localeCookie: true, // remembers last choice
-});
-
-export const config = {
-  matcher: [
-    '/((?!api|og|feed.xml|feed-zh.xml|sitemap.xml|robots.txt|_next|.*\\..*).*)',
-  ],
-};
-```
+Middleware handles the root redirect — users arriving at `/` get sent to `/en` or `/zh` based on `Accept-Language`. This is a one-time redirect, not per-page rendering.
 
 ## The Result
-
-After the refactor, the build output changed completely:
 
 ```
 Route                          Size    First Load JS
 ┌ ○ /en                        4.2 kB     142 kB
 ├ ○ /en/blog                   3.1 kB     138 kB
 ├ ● /en/blog/[slug]            6.4 kB     156 kB
-│   ├ /en/blog/frontend-performance-optimization
-│   ├ /en/blog/state-management-in-the-rsc-era
-│   └ /en/blog/building-modern-ai-interfaces
 ├ ○ /en/about                  2.8 kB     135 kB
 └ ○ /en/portfolio              3.3 kB     140 kB
 ```
 
-`○` means fully static. `●` means static with pre-rendered pages. No `ƒ` anywhere.
-
-The response header now reads:
+`○` is fully static. `●` is static with pre-rendered pages. No `ƒ` anywhere.
 
 ```
 x-vercel-cache: HIT
 ```
 
-Pages are served directly from Vercel's CDN edge, with no Serverless Function involved at all. TTFB dropped from 1–4s to under 100ms on cache hits.
+Cache hits served from the CDN edge. In the same-day spot check, TTFB went from the 1–4s range to under 100ms on cache hits.
 
-## What This Constraint Means Going Forward
+## The Constraint Going Forward
 
-The static-first architecture has one hard rule: **nothing in the render chain can call `cookies()`, `headers()`, or `getLocale()` from next-intl's server utilities**. Any of these forces the page back into dynamic SSR.
+This architecture has one hard rule: nothing in the render chain can call `cookies()`, `headers()`, or `getLocale()`. Any of these forces the page back into dynamic SSR.
 
-Specifically:
-- `i18n/request.ts` must only use `requestLocale` — never `cookies()` or `headers()`  
-- Every page that calls `getTranslations()` must also call `setRequestLocale(locale)` beforehand
-- Any data-fetching utility that previously called `getLocale()` internally must accept an explicit `locale` parameter instead
+- `i18n/request.ts` uses only `requestLocale`
+- Every page with `getTranslations()` must call `setRequestLocale(locale)` first
+- Data-fetching utilities accept an explicit `locale` parameter instead of calling `getLocale()` internally
 
-The locale is always available from route params. There's no need to read it from the request at runtime. Keeping it out of the request chain is what keeps everything static.
+The locale is always in the URL. Reading it from the request would undo the entire migration.
 
 ## Remaining Latency
 
-After the refactor, TTFB is consistently fast on cache hits. On first hit (cold CDN edge or after a fresh deploy), there's still some latency — but this is now network-layer RTT between the user and the nearest edge node, not a Serverless Function cold start.
-
-That's a fundamentally different problem. You can address it by moving to a provider with edge nodes closer to your users, or paying for Vercel Pro's wider edge network. But you can't solve Serverless cold starts by choosing a better CDN — you have to eliminate the Serverless Functions first.
+TTFB is consistently fast on cache hits. On first hit after a deploy, there's still some latency — but that's network RTT to the nearest CDN edge, not a Serverless Function cold start. Different problem, different solution. You address it with a closer edge node or a paid tier with a wider edge network. But you have to eliminate the Serverless Functions first — a better CDN can't fix a cold start.

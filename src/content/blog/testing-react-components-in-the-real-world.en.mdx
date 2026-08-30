@@ -1,0 +1,96 @@
+---
+title: "Testing React Components in the Real World"
+date: "2025-09-15"
+description: "What I actually test, what I skip, and the testing patterns that caught real bugs instead of testing implementation details."
+tags: ["React", "Testing", "Architecture"]
+topic: "architecture"
+author: "Ethan Pier"
+environment: "Vitest, Testing Library, jsdom"
+---
+
+My test suite has 200+ tests. Around 40 of them have caught a real bug. The rest exist because I wrote them before I had a clear idea of what was worth testing in a React codebase that ships mostly static pages.
+
+The ratio is worse than I'd like. Here's what I learned about making tests that earn their maintenance cost.
+
+## What I Actually Test
+
+**Contract boundaries.** When component A passes data to component B, I test that the contract holds. If `BlogCard` expects `{ title: string; date: string; slug: string }`, I test that `getAllPosts()` returns objects matching that shape. If the API changes, the test breaks before the UI does.
+
+**State transitions.** Anything modeled as a state machine gets transition tests. The chat reducer from my AI interface work is a good example: given state X and action Y, the next state must be Z. These are pure functions — fast, deterministic, and they catch real logic errors.
+
+**User-visible behavior.** Does the filter actually filter? Does the search results page show "no results" when the query matches nothing? Does the copy button change its label after clicking? These tests use Testing Library's `getByRole` and `getByText` — they interact with the component the way a user would.
+
+```typescript
+it('shows no-results message for empty search', async () => {
+  render(<SearchResults query="xyznonexistent" results={[]} />);
+  expect(screen.getByText(/no results/i)).toBeInTheDocument();
+});
+```
+
+**Security-sensitive paths.** CSP headers, sanitization boundaries, noindex rules. These I test exhaustively because a regression means a real vulnerability, not a cosmetic issue.
+
+## What I Don't Test
+
+**Styling.** I don't test that a component has `className="bg-card"`. CSS classes change constantly, and the test would be testing Tailwind's output, not my logic.
+
+**Third-party library internals.** I don't test that `next/image` produces an `<img>` tag. That's Next.js's problem.
+
+**Render snapshots.** I stopped using snapshot tests after the third time I blindly updated a snapshot because the diff was 200 lines of HTML I didn't want to read. Snapshots test that nothing changed; they don't test that the current output is correct.
+
+**Animation timing.** I don't test that a fade-in takes 300ms. I test that the component is present or absent. Motion is a visual concern that belongs in manual QA or visual regression tools, not unit tests.
+
+## The Pattern That Catches Real Bugs
+
+The highest-value tests I've written all follow one shape: they test the boundary between two systems.
+
+```typescript
+describe('article frontmatter', () => {
+  it('has valid date format', () => {
+    const post = getPostBySlug('frontend-performance-optimization', 'zh');
+    expect(post).not.toBeNull();
+    expect(post!.date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+
+  it('has non-empty tags array', () => {
+    const post = getPostBySlug('frontend-performance-optimization', 'zh');
+    expect(post!.tags.length).toBeGreaterThan(0);
+  });
+});
+```
+
+These tests don't check rendering. They check that the MDX content pipeline produces valid data for the rendering layer. When I accidentally break the frontmatter format, the test catches it at build time instead of producing a page with "Invalid Date" in the browser.
+
+The same principle applies to API response contracts, i18n message completeness, sitemap URL structure, and RSS feed content. Every boundary between "data producer" and "data consumer" is a place where a type mismatch can hide until production.
+
+## Testing Library's Philosophy Is Mostly Right
+
+Testing Library's core idea — test what the user sees, not how the component is implemented — is correct for most frontend tests. `getByRole('button', { name: 'Submit' })` is better than `wrapper.find('.submit-btn')` because it survives a CSS refactor.
+
+Where it gets uncomfortable: components with complex internal state that affect future interactions. A drag-and-drop reorder, a multi-step form with validation, a canvas-based visualization. For these, you sometimes need to test internal state transitions directly, because the user-visible output of step 3 depends on internal state changes in step 1 that had no visible effect.
+
+My compromise: test user-visible behavior by default. Test internal state only when the state machine is complex enough that "render and click" tests become fragile or unreadable.
+
+## The Maintenance Cost I Underestimated
+
+Every test is a commitment to maintain it when the code changes. A test that checks `screen.getByText('5 articles')` breaks when you add a sixth article. A test that checks `expect(posts).toHaveLength(5)` breaks when the fixture data changes.
+
+The tests that cost the least to maintain are the ones that test properties instead of specific values:
+
+```typescript
+// ❌ Brittle — breaks when article count changes
+expect(posts).toHaveLength(5);
+
+// ✅ Stable — tests the property that actually matters
+expect(posts.length).toBeGreaterThan(0);
+expect(posts).toEqual(
+  expect.arrayContaining([
+    expect.objectContaining({ slug: expect.any(String), date: expect.any(String) })
+  ])
+);
+```
+
+The second version survives content changes. It still catches the real failure: the post pipeline returning empty or malformed data.
+
+## What I'd Tell Myself Six Months Ago
+
+Write fewer tests. Make each one test a real boundary or a real user behavior. Skip snapshot tests unless you have visual regression infrastructure. Test state machines as pure functions. Don't test CSS classes. And when a test breaks because the code changed correctly, delete the test instead of updating it — it was testing the wrong thing.

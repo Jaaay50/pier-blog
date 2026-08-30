@@ -11,6 +11,9 @@ interface BlogPost {
   date: string;
   tags: string[];
   readMinutes?: number;
+  series?: string;
+  topic?: string;
+  updatedAt?: string;
 }
 
 interface BlogCardProps {
@@ -41,6 +44,12 @@ export function BlogCard({ post }: BlogCardProps) {
           </div>
         )}
 
+        {post.series && (
+          <p className="mb-2 text-[11px] font-medium uppercase tracking-[0.12em] text-[var(--text-muted)]">
+            {post.series}
+          </p>
+        )}
+
         {/* Title */}
         <h3 className="mb-2.5 text-base font-semibold leading-snug tracking-tight">
           {post.title}
@@ -67,6 +76,17 @@ export function BlogCard({ post }: BlogCardProps) {
                   {locale === "zh"
                     ? `${post.readMinutes} 分钟`
                     : `${post.readMinutes} min`}
+                </span>
+              </>
+            )}
+            {post.updatedAt && post.updatedAt !== post.date && (
+              <>
+                <span className="opacity-40">·</span>
+                <span>
+                  {locale === "zh" ? "已更新" : "updated"} {new Date(post.updatedAt).toLocaleDateString(
+                    locale === "zh" ? "zh-CN" : "en-US",
+                    { year: "numeric", month: "short", day: "numeric" }
+                  )}
                 </span>
               </>
             )}

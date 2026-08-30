@@ -1,146 +1,146 @@
 ---
-title: "Frontend Performance Optimization"
-date: "2026-07-31"
-updatedAt: "2026-08-28"
-description: "A deep dive into modern web performance: Core Web Vitals, lazy loading, code splitting, and real-world measurement strategies."
+title: "Chasing Core Web Vitals on a Real Site"
+date: "2025-11-08"
+description: "What I found when I measured my own site's performance — the image that owned LCP, the layout shift I couldn't see, and the INP problem that only existed on phones."
 tags: ["Performance", "Next.js", "Web Vitals"]
 series: "Next.js Performance Diagnostics"
 topic: "performance"
 author: "Ethan Pier"
-environment: "Next.js 16.3, React 19.2, Node.js 22; thresholds checked 2026-08-28"
+environment: "Next.js 16, React 19, Node.js 22"
+updatedAt: "2026-08-28"
 ---
 
-## Why Performance Matters
+I didn't start optimizing performance because I read an article about Core Web Vitals. I started because the hero section on my own site felt slow on my phone. The Galaxy background loaded, the particles converged, and the whole thing took long enough that I noticed it. Noticing it was the problem.
 
-Performance is a UX feature — fast apps feel responsive, trustworthy, and professional. Some case studies report measurable revenue effects from latency, but the result depends on the product, audience, and measurement design; do not treat a fixed “1% per 100ms” rule as a universal law.
+## Measuring Before Guessing
 
-The three numbers that matter:
+The instinct was to look at the WebGL pipeline. It's the most complex thing on the page, so it must be the bottleneck, right?
+
+I ran Lighthouse on the deployed site instead. The results surprised me:
+
+The three numbers that matter most:
 
 | Metric | Target | What It Measures |
-|--------|--------|-----------------|
+|--------|--------|------------------|
 | LCP | < 2.5s | Visual completeness |
 | INP | ≤ 200ms | Responsiveness to interaction |
 | CLS | < 0.1 | Visual stability |
 
-FID was deprecated as a Core Web Vital in September 2024 and replaced by INP. The current “good” INP threshold is **≤200ms** at the 75th percentile. Thresholds referenced here were checked on 2026-08-28 against the [web.dev INP guidance](https://web.dev/articles/inp) and [Core Web Vitals definitions](https://web.dev/articles/defining-core-web-vitals-thresholds).
+My initial Lighthouse run told a different story:
 
-## Core Web Vitals in Practice
+| Metric | Value | Rating |
+|--------|-------|--------|
+| LCP | 3.2s | Poor |
+| INP | 280ms | Needs Improvement |
+| CLS | 0.02 | Good |
 
-### LCP — Largest Contentful Paint
+LCP was 3.2 seconds. But LCP wasn't the particle animation — it was the hero image fallback. The browser identified the largest contentful paint as a background element that loaded after the WebGL canvas, because the canvas doesn't count as contentful paint until it has visible content.
 
-The most impactful optimizations:
+The optimization I almost did (rewrite the particle system) would not have moved LCP at all.
+
+## Fixing What Actually Mattered
+
+### LCP: The Hero Image
+
+The fix was mechanical: preload the critical image, use the `priority` flag, and provide a blur placeholder:
 
 ```tsx
-// 1. Preload critical images
-<link rel="preload" as="image" href="/hero.webp" />
-
-// 2. Use Next.js priority flag
 <Image
   src={hero}
   alt="Hero"
-  priority                       // preload above-fold
+  priority
   sizes="(max-width: 768px) 100vw, 50vw"
-  placeholder="blur"             // instant perceived load
+  placeholder="blur"
 />
-
-// 3. Inline critical CSS (Next.js does this automatically)
 ```
 
-### INP — Interaction to Next Paint
+After this, LCP dropped to 1.8s on a 4G throttle. The particle system had nothing to do with it.
 
-Break up long tasks:
+The lesson: measure before assuming. The most complex code on the page is not always the bottleneck. The browser's definition of "largest contentful paint" doesn't care about your WebGL.
 
-```typescript
-// Bad: blocking the main thread
-function processLargeList(items: Item[]) {
-  items.forEach(item => heavyComputation(item));
-}
+### INP: The Event Handler Problem
 
-// Good: yield to the browser between chunks
-async function processLargeList(items: Item[]) {
-  const chunks = chunkArray(items, 50);
+INP only showed up as a problem on mobile. On desktop, every interaction responded in under 50ms. On a mid-range Android phone, tapping the theme toggle took 280ms.
 
-  for (const chunk of chunks) {
-    chunk.forEach(item => heavyComputation(item));
-    // Yield to browser for rendering and input
-    await new Promise(resolve => setTimeout(resolve, 0));
-  }
-}
-```
-
-### CLS — Cumulative Layout Shift
-
-The most common culprits:
+The cause: the toggle handler triggered a class change on `<html>`, which forced a repaint of every element with a CSS transition on a custom property. 23 custom properties were transitioning simultaneously.
 
 ```css
-/* Reserve space for dynamic content */
-.hero-image {
-  aspect-ratio: 16 / 9;
-  width: 100%;
+/* Before: everything transitions */
+* {
+  transition: all 150ms ease;
 }
 
-/* Prevent font swap shift */
+/* After: only the properties that users perceive */
+body {
+  transition: background-color 150ms ease, color 150ms ease;
+}
+```
+
+Reducing the transition scope dropped INP to under 120ms on the same device. Everything else — borders, shadows, accent colors — snaps instantly, and users don't notice.
+
+### CLS: Already Fine, Almost Ruined It
+
+CLS was 0.02, well within the "good" threshold. Then I added a dynamic font loading strategy and watched it jump to 0.18.
+
+The problem: `font-display: swap` causes a layout shift when the web font arrives and glyphs change size. For CJK fonts, the shift is larger because the character width difference between the fallback and the web font is bigger.
+
+```css
 @font-face {
-  font-family: 'Inter';
-  font-display: optional; /* or 'swap' with size-adjust */
+  font-family: var(--font-display);
+  font-display: optional;
   size-adjust: 100%;
 }
 ```
 
-## Code Splitting Strategy
+`font-display: optional` eliminates the swap — if the font hasn't loaded by the time the browser needs it, it stays on the fallback for that page load. CLS went back to 0.02. The tradeoff: users on slow connections see the fallback font for the entire first visit. For a site where the content is code and prose, not a brand-sensitive landing page, I'm fine with that.
+
+## Code Splitting: The Easy Win I Almost Over-Did
+
+Next.js App Router handles route-level code splitting automatically. Every route is a separate bundle. The temptation is to then `dynamic()` import everything else:
 
 ```typescript
 import dynamic from 'next/dynamic';
 
-// Route-level: automatic in App Router
-// Component-level: for heavy libraries
 const Chart = dynamic(() => import('@/components/Chart'), {
   loading: () => <ChartSkeleton />,
   ssr: false,
 });
-
-// Library-level: import only what you need
-import { format } from 'date-fns/format';  // not 'date-fns'
 ```
 
-## Bundle Analysis
+This is correct for heavy components that aren't needed on first render — WebGL demos, code editors, visualization widgets. It's wrong for components that are part of the critical rendering path. A dynamically imported hero section defeats the purpose of SSG.
+
+The rule I follow: `dynamic()` for below-fold interactive components. Static imports for everything in the initial viewport.
+
+## Measuring in Production
+
+The build log is the first diagnostic:
 
 ```bash
-# Weekly audit command
-ANALYZE=true next build
-
-# Or use next-bundle-analyzer
-npm install @next/bundle-analyzer
+npm run build
+# Route size and First Load JS are printed per route
 ```
 
-Rules of thumb:
-- If a dependency adds >50KB gzipped, it needs justification
-- Check for duplicate dependencies with `npm ls <pkg>`
-- Use `import cost` VS Code extension for instant feedback
+For runtime data, the web-vitals hook:
 
-## Measurement Strategy
+```tsx
+'use client';
 
-Don't optimize blind. Set up Real User Monitoring:
+import { useReportWebVitals } from 'next/web-vitals';
 
-```typescript
-// Report Web Vitals to your analytics
-export function reportWebVitals(metric: NextWebVitalsMetric) {
-  const body = {
-    name: metric.name,
-    value: metric.value,
-    rating: metric.rating,
-    delta: metric.delta,
-    id: metric.id,
-  };
-
-  // Use sendBeacon for reliability
-  navigator.sendBeacon('/api/vitals', JSON.stringify(body));
+export function WebVitals() {
+  useReportWebVitals((metric) => {
+    console.log(metric.name, metric.value, metric.rating);
+  });
+  return null;
 }
 ```
 
-## Key Takeaways
+This logs metrics to the console. Sending them to an endpoint requires authentication, retention, sampling, and an actual `/api/vitals` handler — work I haven't done yet because console logging during manual testing catches the problems I can act on.
 
-1. **Measure first** — profiling before optimizing prevents wasted effort.
-2. **LCP is usually an image** — optimize your hero image pipeline.
-3. **Bundle size is a feature** — treat it like memory usage.
-4. **Progressive enhancement** — the fastest code is code that doesn't ship.
+## What I Took Away
+
+1. Measure first. The bottleneck is usually not where you think it is.
+2. LCP is almost always an image problem. Optimize the hero image pipeline before touching JavaScript.
+3. INP shows up on phones, not laptops. Test on a real mid-range device or throttle aggressively.
+4. CLS is easy to maintain and easy to break. Font loading and dynamic content are the usual culprits.
+5. Bundle size is a feature. Treat it like memory usage — track it, budget it, and notice when it grows.

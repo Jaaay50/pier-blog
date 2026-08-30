@@ -1,42 +1,28 @@
 ---
 title: "RSC 时代的状态管理"
-date: "2026-07-29"
-updatedAt: "2026-08-28"
-description: "对比现代状态管理方案：Server Components、React Context、Zustand，以及各自的适用场景。"
+date: "2025-04-03"
+description: "用 React Server Components 重写一个生产应用之后，大部分状态管理代码消失了。留下来的那些反而更有意思。"
 tags: ["React", "架构", "状态管理"]
 series: "博客与产品构建日志"
 topic: "architecture"
 author: "Ethan Pier"
-environment: "Next.js 16.3、React 19.2、Node.js 22"
+environment: "Next.js 16、React 19、Node.js 22"
 ---
 
-## 格局已经变了
+我在把一个仪表盘从 Pages Router 迁移到 App Router 时注意到一件奇怪的事：状态管理层——一个有六个 slice 的 Zustand store、三个 Context provider、再加一把自定义 hook——几乎没什么事可做了。不是因为我换了别的方案，而是框架悄悄地吸收了它管理的大部分东西。
 
-React Server Components 从根本上改变了状态的归属。「一切都是客户端状态」的旧心智模型不再适用。
+那次迁移是我对 2025 年状态管理的看法真正成形的地方。不是来自读文档。
 
-核心洞察：**大部分状态已经不属于客户端了。**
+## 消失的部分
 
-## 决策框架
+旧应用有一个 `useCurrentUser` hook，背后是一个 Context provider。它在 mount 时调 API route，把结果缓存在 state 里，然后往下传。每个需要鉴权的页面都导入它。
 
-在引入任何库之前，先给状态分类：
-
-```
-是服务端数据？         → RSC + fetch（零打包体积）
-在 URL 里？           → useSearchParams（可分享）
-是表单？              → useFormState（渐进式）
-是局部 UI？           → useState（够简单）
-跨 3+ 组件共享？      → Zustand（够轻量）
-复杂且全局？          → 考虑 Zustand slices
-```
-
-## Server Components：默认选择
-
-在 Next.js App Router 里，组件默认就是服务端的：
+在 App Router 里，同样的数据是 Server Component 里的一个 `fetch` 调用。没有 hook，没有 provider，不影响客户端打包体积。用户对象存在于服务端，序列化进 HTML，到达浏览器时已经渲染完毕。
 
 ```tsx
-// 这个组件不会给客户端发送任何 JavaScript
 async function UserProfile({ id }: { id: string }) {
   const user = await db.user.findUnique({ where: { id } });
+  if (!user) return <p>找不到用户。</p>;
 
   return (
     <div>
@@ -47,9 +33,31 @@ async function UserProfile({ id }: { id: string }) {
 }
 ```
 
-没有 `useEffect`，没有加载状态，没有过期缓存。数据永远是新鲜的，因为它在请求时在服务端运行。
+没有 `useEffect`。没有 loading 状态。没有缓存失效 hook。这个组件甚至不会发出 JavaScript。
 
-## URL 状态：被低估的模式
+我在代码库里过了一遍，到处都是同样的模式：过滤器状态可以是 URL 参数，表单状态可以是 `useActionState`，权限检查可以在服务端、在组件树开始渲染之前就完成。
+
+## 一个经得住的分类法
+
+在引入任何库之前，我现在只问一个问题：这段状态归谁？
+
+```
+服务端数据？               → RSC + fetch
+在 URL 里？               → useSearchParams
+表单？                    → useActionState
+只属于一个组件？           → useState
+跨 3 个以上不相邻的客户端组件？ → Zustand
+```
+
+令我意外的是最后一行用得多么少。在整个仪表盘迁移里，只有两处状态需要 Zustand：侧边栏的展开/收起（因为 layout、导航和键盘快捷键处理都要读它）和一个通知队列（因为 toast 可能从任何地方触发）。
+
+其他的全都归进了前四类。
+
+## URL 状态被严重低估了
+
+过滤器页面教会了我这一点。旧版本把 `sort`、`status`、`dateRange` 存在 Zustand slice 里。要分享一个过滤后的视图得手动把状态拼进 URL。浏览器后退会丢掉过滤。刷新也会丢。
+
+把过滤器移到 `useSearchParams` 之后，这些全免费解决了：
 
 ```tsx
 'use client';
@@ -78,41 +86,27 @@ function Filters() {
 }
 ```
 
-好处：URL 可分享、浏览器前进后退可用、兼容 SSR、刷新后状态仍在。
+URL 可分享。浏览器历史正常工作。刷新后状态还在。兼容 SSR。不需要任何库。
 
-## 什么时候不需要状态库
+代价：每次过滤变化都触发一次导航，在 App Router 里意味着一次服务端请求。如果是静态页走 CDN 命中，很快。如果页面有重型服务端计算，可能需要 `router.replace` 配合 `scroll: false`，或者对参数做 debounce。
 
-大部分应用根本不需要 Redux、Jotai 或 Recoil。先问自己三个问题：
+## Zustand 真正有用的场景
 
-1. 这个状态需要在 3 个以上互相隔得很远的组件之间共享吗？
-2. 它需要在导航之后继续存在吗？
-3. 它需要中间件（日志、持久化、devtools）吗？
-
-三个都是「不」→ 答案就是 `useState`。真的。
-
-## Zustand：刚好够用的那个库
-
-当你**确实**需要共享的客户端状态时：
+侧边栏切换是典型案例。三个不相邻的组件需要读它：侧边栏本身、主内容区（宽度变化）和一个键盘快捷键处理器。它们之间没有父子关系。用 `useState` 就得提升到 layout 根节点，到那一步你其实造了个更差的 Context provider。
 
 ```typescript
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 
 interface AppStore {
-  theme: 'light' | 'dark';
   sidebarOpen: boolean;
-  toggleTheme: () => void;
   toggleSidebar: () => void;
 }
 
 export const useAppStore = create<AppStore>()(
   persist(
     (set) => ({
-      theme: 'dark',
       sidebarOpen: true,
-      toggleTheme: () => set((s) => ({
-        theme: s.theme === 'dark' ? 'light' : 'dark'
-      })),
       toggleSidebar: () => set((s) => ({
         sidebarOpen: !s.sidebarOpen
       })),
@@ -122,35 +116,37 @@ export const useAppStore = create<AppStore>()(
 );
 ```
 
-Zustand 胜出的理由：
+不需要 Provider。selector 限制重渲染。`persist` 跨 session 记住状态。这就是 Zustand 那 3KB 真正值得的范围。
 
-- 不需要 Provider 包裹
-- 没有 context 重渲染问题
-- TypeScript 优先
-- 体积极小（1KB）
-- 内置持久化、devtools、immer 中间件
+如果状态没有跨到 3 个以上不相关的组件，`useState` 就够了。这不是极简主义——就是用对了工具。
 
-## 反模式：过度工程
+## 反复出现的反模式
 
 ```typescript
-// ❌ 一个开关不要这么写
+// ❌ 一个布尔值搞出三个文件加一个 provider
 const ThemeContext = createContext();
-const ThemeProvider = ({ children }) => { ... };
+const ThemeProvider = ({ children }) => { /* ... */ };
 const useTheme = () => useContext(ThemeContext);
-// 多出 3 个文件、1 个 provider，还会重渲染整棵树
 
-// ✅ 改成这样
+// ✅ 一行搞定，无 provider，精准重渲染
 const useTheme = create((set) => ({
   theme: 'dark',
   toggle: () => set(s => ({ theme: s.theme === 'dark' ? 'light' : 'dark' }))
 }));
-// 1 个文件，无 provider，精准重渲染
 ```
 
-## 几点心得
+Context 有正当用途——依赖注入、主题嵌套、复合组件 API。但对于多个叶子组件需要读取而不应该重渲染父节点的全局状态来说，它的形状不对。每次 Context 更新都会重渲染每个消费者，即使它们读的那个值没变。Zustand 的 selector 模型避开了这个问题。
 
-1. **Server Components 消灭了大部分客户端状态** —— 让平台去干活。
-2. **URL 状态是免费的** —— 过滤器、分页、弹窗都可以放进去。
-3. **useState 被严重低估** —— 大部分 UI 状态本来就是局部的。
-4. **剩下的交给 Zustand** —— API 极简，手感最好。
-5. **最好的状态管理是没有状态管理** —— 能推导就不要存储。
+## 这次迁移教会我的事
+
+最大的收获跟库没关系，是关于分类。大部分状态管理的痛苦来自于把客户端状态放在了本该用服务端状态、URL 状态或表单状态的地方。
+
+Server Components 没有消灭状态管理。它消灭的是那一类状态管理——本来就是对"没有直接数据访问的服务端渲染"的变通方案。剩下的状态——UI 开关、跨组件协调、客户端缓存——是真正的客户端工作，而且它是一个更小的问题。
+
+五件我不断提醒自己的事：
+
+1. Server Components 消灭了大部分客户端状态。让平台去干活。
+2. URL 状态是免费的。过滤器、分页、弹窗——放进 URL。
+3. `useState` 被严重低估。大部分 UI 状态本来就是局部的。
+4. 剩下的交给 Zustand。API 极简，手感最好。
+5. 最好的状态管理是没有状态管理。能推导就不要存储。

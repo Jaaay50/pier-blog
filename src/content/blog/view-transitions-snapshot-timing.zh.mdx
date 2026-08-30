@@ -1,82 +1,64 @@
 ---
 title: "View Transitions：快照时序陷阱"
-date: "2026-08-01"
-updatedAt: "2026-08-28"
+date: "2026-06-18"
 description: "一个细微的异步时序 bug 导致 View Transitions 始终截到旧页面——以及用模块级 resolver 模式修复它的过程。"
 tags: ["动效", "Next.js", "性能"]
 series: "博客与产品构建日志"
 topic: "interaction"
 author: "Ethan Pier"
-environment: "Next.js 16.3、React 19.2、Node.js 22；Chromium View Transitions API"
+environment: "Next.js 16、React 19、Node.js 22；Chromium View Transitions API"
 ---
 
-## 看起来能跑，但有点不对劲
+我花了一个下午给博客加 View Transitions。淡入淡出在跑，页面也切换了。但每次转场都有一丝旧内容的残影，在新页面出现前短暂闪烁。这个 bug 足够微妙，差点直接发布了。
 
-我花了一个下午给博客实现 View Transitions，效果看起来差不多——淡入淡出在跑，页面也切换了。但总有什么地方不对：每次转场都有一丝旧内容的残影，在新页面出现前短暂闪烁。
+## 工作原理
 
-这个 bug 足够微妙，差点直接发布了。
+两个阶段：
 
-## View Transitions 的工作原理
+1. **捕获**——浏览器截取当前页面快照，然后执行回调。
+2. **动画**——回调的 Promise resolve 时，浏览器截取新页面快照，在两张快照之间插值。
 
-浏览器的 View Transitions API 分两个阶段：
-
-1. **捕获** — 截取当前页面快照，然后执行你的回调
-2. **动画** — 当你的回调 Promise resolve 时，截取新页面快照，在两张快照之间插值动画
-
-关键在于：**浏览器在 Promise resolve 的那一刻截取"新页面"快照**。如果 resolve 时 DOM 还没更新，"新"快照截到的仍然是旧页面。
+关键细节：浏览器在 Promise resolve 的那一刻截取"新页面"快照。如果那时候 DOM 还没更新，"新"快照截到的仍然是旧页面。
 
 ```typescript
 document.startViewTransition(async () => {
-  // 浏览器在这里截取旧页面（回调执行之前）
-
+  // 浏览器在这里截取旧页面
   await doYourNavigation();
-
-  // 浏览器在这里截取新页面（回调返回之后）
-  // 此时 DOM 必须已经反映新页面的内容
+  // 浏览器在这里截取新页面
+  // 此时 DOM 必须已经反映新内容
 });
 ```
 
-## 问题在哪
-
-我最初的实现看起来没什么问题：
+## Bug 在哪
 
 ```typescript
-// ❌ 有 bug — 在新路由 commit 之前就 resolve 了
-const handleClick = (e: React.MouseEvent) => {
-  e.preventDefault();
-
-  document.startViewTransition(async () => {
-    await router.push(href);
-    // 我们以为 router.push resolve 之后页面就好了。
-    // 并不是。
-  });
-};
+// ❌ 在新路由 commit 之前就 resolve 了
+document.startViewTransition(async () => {
+  await router.push(href);
+  // router.push() 调度导航之后立即返回。
+  // DOM 还在显示旧页面。
+});
 ```
 
-问题在于：Next.js App Router 的 `router.push()` 在**调度导航之后立即返回**，它不等待新的组件树 mount。所以 Promise 在 DOM 还显示旧页面时就 resolve 了，浏览器尽职尽责地把旧内容截成了"新页面"快照。
+Next.js App Router 的 `router.push()` 不等新组件树 mount。它调度导航然后返回。Promise 在旧页面还在屏幕上时就 resolve 了，浏览器把旧内容截成了"新"帧。
 
-动画变成了两帧相同内容的交叉淡入——页面看起来在闪烁，而不是转场。
+动画变成两帧相同内容的交叉淡入。页面在闪烁，不是在转场。
 
-## 定位问题
-
-加一个简单的 log 就能确认：
+一个 `console.log` 就确认了：
 
 ```typescript
 document.startViewTransition(async () => {
   await router.push(href);
-  console.log('document.title:', document.title); // 还是旧标题！
-  console.log('pathname:', window.location.pathname); // 还是旧路径！
+  console.log(document.title);  // 还是旧标题
+  console.log(window.location.pathname);  // 还是旧路径
 });
 ```
 
-路由还没 commit，DOM 没有变化，快照自然截不到新内容。
+## 修复：模块级 Resolver
 
-## 修复：把"发起导航"和"路由就绪"解耦
-
-解决方案是把这两步分开。React 提供了恰好合适的工具：以 `pathname` 为依赖的 `useEffect`，在新页面 mount 之后才触发。
+把"发起导航"和"路由就绪"分开。React 的 `useEffect` 以 `pathname` 为依赖，在新页面 mount 后——DOM commit 之后——才触发。
 
 ```typescript
-// 模块级：在同一个页面生命周期内跨组件实例共享
 let pendingResolve: (() => void) | null = null;
 
 function resolvePending() {
@@ -90,26 +72,23 @@ export function TransitionLink({ href, children, ...props }: TransitionLinkProps
   const router = useRouter();
   const pathname = usePathname();
 
-  // ✅ 新页面组件树 mount、DOM commit 之后才触发
   useEffect(() => {
     resolvePending();
   }, [pathname]);
 
   const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
     if (!('startViewTransition' in document)) return;
-
     e.preventDefault();
-    resolvePending(); // 清理上一次转场可能遗留的 resolver
+    resolvePending();
 
     const transition = document.startViewTransition(
       () =>
         new Promise<void>((resolve) => {
-          pendingResolve = resolve; // 存起来，等 useEffect 来调用
-          router.push(href);       // 发起导航——不 await
+          pendingResolve = resolve;
+          router.push(href);
         })
     );
 
-    // 慢速导航保护
     const timeout = window.setTimeout(() => {
       transition.skipTransition();
       resolvePending();
@@ -124,45 +103,32 @@ export function TransitionLink({ href, children, ...props }: TransitionLinkProps
 }
 ```
 
-核心逻辑：传给 `startViewTransition` 的 Promise 会一直挂起，直到新页面的 `useEffect` 触发。因为 `useEffect` 在 DOM commit 之后才运行，浏览器截到的新页面快照是真实的新内容。
+Promise 一直挂起，直到新页面的 `useEffect` 触发。因为 `useEffect` 在 DOM commit 之后才运行，浏览器截到的新页面快照是真实的新内容。
 
-## 为什么用模块级变量？
+## 为什么用模块级变量
 
-你可能会问，为什么 `pendingResolve` 是模块级的，而不是 ref 或 state？
+转场完成后，旧页面的组件实例已经消失。新页面的 `TransitionLink` mount 了，它的 `useEffect` 触发。它需要找到旧页面 click handler 设置的 resolver。
 
-原因：转场完成后，**旧页面的组件实例已经消失**。旧的 `TransitionLink` 卸载时 `useEffect` 清理函数会运行，但此时我们需要的是让*刚 mount 的新页面* `TransitionLink` 实例能访问到这个 resolver。
+`useRef` 会跟旧组件一起消亡。模块级变量在同一个页面生命周期内跨 mount 持久存在。新的 `useEffect` 找到 `pendingResolve`，调用它，转场干净地完成。
 
-模块级变量在同一个页面生命周期内跨组件实例持久存在。新页面的 `useEffect` 触发，找到旧页面 click handler 设置的 `pendingResolve`，调用它。交接干净。
+## 600ms 安全阀
 
-## 600ms 超时
+慢网络或重型页面可能让导航卡住。没有兜底的话，View Transition 会把页面冻结在动画中间。
 
-网络慢或页面重时，导航可能超过 600ms。没有兜底的话，View Transition 会无限挂起，页面冻结在动画中间。
+`transition.skipTransition()` 放弃动画，立即显示新页面。`resolvePending()` 解开挂起的 Promise。超时触发，页面继续走，`transition.finished` handler 清理计时器。
 
-`transition.skipTransition()` 放弃动画并立即显示新页面，配合 `resolvePending()` 确保浏览器不会永远等下去。
+## 边界情况
 
-```typescript
-const timeout = window.setTimeout(() => {
-  transition.skipTransition(); // 放弃动画
-  resolvePending();            // 解开挂起的 Promise
-}, 600);
+**修饰键。** `⌘Click`、`Ctrl+Click`、`Shift+Click` 应该打开新标签页。检测到修饰键时提前退出。
 
-transition.finished
-  .finally(() => window.clearTimeout(timeout)) // 正常结束时清理 timer
-  .catch(() => {});
-```
+**同路由导航。** 点击当前页面的链接不该触发转场，只需要滚回顶部。
 
-## 其他边界情况
+**减弱动效。** `prefers-reduced-motion: reduce` 完全禁用动画，透传到默认导航。
 
-**修饰键** — `⌘Click`、`Ctrl+Click`、`Shift+Click` 应该触发新标签页或浏览器原生行为。检测到任何修饰键时提前退出，走默认导航。
+**不支持的浏览器。** 能力检测（`'startViewTransition' in document`）是运行时依据。查 [MDN 的兼容性数据](https://developer.mozilla.org/en-US/docs/Web/API/View_Transition_API#browser_compatibility)了解当前矩阵。
 
-**同路由导航** — 点击当前页面的链接不应该触发视觉转场，只需要滚回顶部。检查 `href === pathname`，跳过转场。
+## 留下来的认知
 
-**减弱动效** — `prefers-reduced-motion: reduce` 完全禁用动画，透传到默认导航。
+契约很严格：`router.push()` 代表导航已启动，不代表新 DOM 已就绪。"已启动"和"已就绪"之间的间隙就是 View Transitions 崩掉的地方。修复不复杂，但 bug 足够隐蔽，会在没人注意的情况下发到生产——页面"能用"，只是在闪烁而不是在转场。
 
-**不支持的浏览器** — Safari 和 Firefox 截至目前不支持 View Transitions API。`'startViewTransition' in document` 的检测让组件在这些环境里透明降级。
-
-## 结果
-
-修复之后转场干净了。浏览器截到真实的前后两张快照，交叉淡入动画在两个不同页面之间插值。600ms 超时保证慢导航不会卡住。整体在不支持的浏览器上安全降级。
-
-整个实现大概 70 行。最难理解的一点是：`router.push()` 不代表"导航完成"，只代表"导航已启动"。
+生产组件还处理了仅 query 变化、键盘导航和主题转场的 `view-transition-name`。这些检查应保留在真实实现里，本文只覆盖核心时序问题。

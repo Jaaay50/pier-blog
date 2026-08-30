@@ -1,28 +1,31 @@
 ---
-title: "构建现代 AI 界面"
-date: "2026-07-30"
-updatedAt: "2026-08-28"
-description: "探索将大语言模型接入生产环境 Web 应用的模式：流式输出、错误处理与用户反馈闭环。"
+title: "构建流式 AI 聊天界面"
+date: "2025-07-20"
+description: "为生产环境 LLM 聊天 UI 搭建的状态机、取消契约和错误边界——以及最先崩掉的假设。"
 tags: ["AI", "React", "系统设计"]
 series: "AI 界面工程"
 topic: "ai-interface"
 author: "Ethan Pier"
-environment: "Next.js 16.3、React 19.2、Node.js 22"
+environment: "Next.js 16、React 19、Node.js 22"
 ---
 
-> **示例说明**：以下代码按本文顺序组合，适用于 Next.js 16.3、React 19.2、Node.js 22 的浏览器客户端组件。`/api/chat` 需要由你自己的同源 Route Handler 提供流式 `Response`；示例覆盖取消、HTTP 错误与空响应处理，但不包含鉴权、重试、schema 校验、具体流协议解析或生产错误上报。
+> **范围说明**：下面的代码共享一套浏览器端状态机。API route、流协议、鉴权、重试和遥测是你自己的事。代码面向 Next.js 16 + React 19 的客户端组件，`/api/chat` 是一个同源 Route Handler，返回流式 `Response`。
 
-## 挑战在哪里
+我给一个内部工具做了一个聊天界面，后面接着 LLM 端点。第一版在演示里跑得很好。第二版在真实使用一周之后才算稳下来。区别不在模型——在于前端怎么处理流崩掉的时候。
 
-把大语言模型接入生产环境的 Web 应用，远不只是调一个 API。它要求我们重新思考几件事：
+## 最先崩掉的地方
 
-- **流式响应** —— 用户期待的是实时反馈，而不是盯着加载动画等十秒。
-- **错误边界** —— LLM 是非确定性的，界面必须能优雅降级。
-- **Token 管理** —— 上下文窗口有硬性上限，聪明的截断策略才能保住对话质量。
+第一版就是一个 `fetch` 调用、一个 `useState` 存响应文本、一个加载动画。一直到以下情况出现之前都没问题：
 
-## 流式架构
+1. 用户在流式输出中途导航离开了。fetch 还在跑。state 更新打到了一个已卸载的组件上。
+2. API 返回了 429。加载动画转到天荒地老。
+3. 模型返回了空响应。UI 什么都不显示，也不给任何反馈。
 
-任何 AI 界面的地基，都是一条稳固的流式管道：
+这些都是无聊的问题。但它们恰好是让用户不信任一个 AI 功能的那些问题。一个卡住的聊天比一个说"出了点问题"的聊天更糟糕。
+
+## 流式生成器
+
+地基是一个异步生成器，chunk 到达时逐个 yield：
 
 ```typescript {5,8,12,28}
 async function* streamResponse(prompt: string, signal: AbortSignal) {
@@ -58,11 +61,13 @@ async function* streamResponse(prompt: string, signal: AbortSignal) {
 }
 ```
 
-这个生成器模式跟 React 的状态模型能干净地组合在一起，也为取消、重试和背压处理留出了空间。
+`signal` 参数是取消能工作的关键。用户按"停止"或导航离开时，abort controller 一下子拆掉 fetch、reader 和生成器。`finally` 块无论生成器怎么退出都会做清理。
 
-## 用状态机管理对话
+末尾不带参数的 `decoder.decode()` 用来刷出 TextDecoder 内部缓冲区里残余的字节——这个细节在中日韩多字节文本里很重要。
 
-与其堆一堆临时的布尔标志，不如把对话状态建模成有限状态机：
+## 状态机
+
+不用 `isLoading` / `isError` / `hasData` 这些允许不可能组合的布尔值：
 
 ```typescript
 type ChatState =
@@ -72,11 +77,13 @@ type ChatState =
   | { status: 'complete'; response: string };
 ```
 
-每次状态转换都是显式的、可测试的，并且直接对应一种 UI 状态。再也不用写 `isLoading && !isError && hasResponse` 这种链式判断。
+四个状态。每个只有在那个状态下有意义的字段。你不能在 `streaming` 上访问 `error`。不能在 `complete` 上访问 `buffer`。UI 渲染函数对 `status` 做 `switch`，TypeScript 在每个分支里收窄。
 
-## React 集成模式
+这不是理论。`error` 上的 `lastMessage` 字段存在的原因是：流在句子中间断掉时，我需要展示断点之前已经到达的部分——用户想看到故障之前收到了什么，而不是一片空白。
 
-下面的 Hook 与上一节的 `streamResponse`、`ChatState` 放在同一个 `.tsx` 文件中即可运行；这里补出 imports 和 reducer，避免把未定义的依赖误读为完整实现。组件还需要在客户端组件中调用这个 Hook，并由界面根据 `state.status` 渲染发送、取消和错误状态。
+## Hook
+
+Hook 把生成器接到状态机上。棘手的部分是取消时的清理和防止过期闭包：
 
 ```tsx
 import { useCallback, useReducer, useRef } from 'react';
@@ -101,7 +108,11 @@ function chatReducer(state: ChatState, action: ChatAction): ChatState {
         ? { status: 'complete', response: state.buffer }
         : state;
     case 'ERROR':
-      return { status: 'error', error: action.payload, lastMessage: state.status === 'streaming' ? state.buffer : '' };
+      return {
+        status: 'error',
+        error: action.payload,
+        lastMessage: state.status === 'streaming' ? state.buffer : '',
+      };
     case 'CANCEL':
       return { status: 'idle' };
   }
@@ -116,7 +127,6 @@ function useAIStream() {
     abortRef.current = new AbortController();
 
     dispatch({ type: 'START' });
-
     const signal = abortRef.current.signal;
 
     try {
@@ -144,10 +154,18 @@ function useAIStream() {
 }
 ```
 
-## 几点心得
+`CHUNK` 的守卫（`state.status === 'streaming'`）防止迟到的 chunk 覆盖已完成或已出错的状态。catch 里的 `AbortError` 过滤防止用户主动取消被当作错误处理。`finally` 里的 `signal` 身份检查防止清理动作影响到已经开始的更新请求。
 
-1. **第一天就上流式** —— 后期改造流式非常痛苦。
-2. **为失败而设计** —— 每次 LLM 调用都可能超时、限流或胡说八道。
-3. **按 token 测延迟**，而不只看首字节时间。
-4. **把取消写进契约** —— 用户一定会在流式输出中途离开页面。
-5. **给状态加类型** —— 状态机能从根上排除不可能的 UI 组合。
+## 如果重来我会怎么做
+
+从一开始就加 per-token 延迟追踪。首字节时间告诉你 API 的情况。token 间延迟告诉你流式实现的情况。当用户说"感觉很慢"的时候，你需要第二个数字来诊断问题到底在模型、网络还是渲染。
+
+取消 UI 应该在 happy path 之前就搭好。"停止生成"不是锦上添花。用户一定会在流式输出中途离开页面，如果状态没有正确清理，下一次提交 prompt 就会跟一个僵尸生成器打架。
+
+五件我不断提醒自己的事：
+
+1. 第一天就上流式——后期改造流式非常痛苦。
+2. 为失败而设计——每次 LLM 调用都可能超时、限流或胡说八道。
+3. 按 token 测延迟，而不只看首字节时间。
+4. 把取消写进契约——用户一定会在流式输出中途离开页面。
+5. 给状态加类型——状态机从根上排除不可能的 UI 组合。
