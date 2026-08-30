@@ -10,7 +10,6 @@ import { compileMDXWithHeadings } from "@/components/MDXContent";
 import { TableOfContents } from "@/components/TableOfContents";
 import { safeJsonLd } from "@/lib/json-ld";
 import { ScrollProgress } from "@/components/ScrollProgress";
-import { GiscusComments } from "@/components/GiscusComments";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BlogProseGuard } from "@/components/BlogProseGuard";
 import { locales } from "@/i18n/config";
@@ -292,9 +291,6 @@ export default async function BlogPostPage({ params }: PageProps) {
           </div>
         </section>
       )}
-
-      {/* 留言（Giscus — GitHub Discussions） */}
-      <GiscusComments term={`blog/${post.slug}`} />
 
       <SiteFooter />
     </main>
