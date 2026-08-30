@@ -1,3 +1,12 @@
+### 页脚外链纵向布局修复（2026-08-30，已完成并上线）
+
+- ✅ 根因：`SiteFooter` 外链容器使用 `space-y-1`，但两个链接是 `inline-flex`，导致 GitHub 与 Cloudborne 在同一行粘连。
+- ✅ 修复：将外链容器改为 `flex flex-col items-start gap-1`，保留两个链接各自的 `min-h-11` 触控高度与焦点样式。
+- ✅ 回归覆盖：`SiteFooter.test.tsx` 增加外链容器纵向布局 class 断言；外链地址、target、rel 与可访问名称保持不变。
+- ✅ 验证：本地定向 Vitest 通过；GitHub CI `33304467868` 的完整测试、lint、TypeScript、production build 与 audit 通过；生产部署 workflow `33304527474` 成功；`git diff --check` 通过。
+- ✅ 生产核对：Vercel deployment `pier-blog-euq3t4sfl-jia-ethans-projects.vercel.app` Ready 并 alias 到 `https://ethanpier.com`；`/zh/portfolio` 返回 200，线上 HTML 已确认 `flex flex-col items-start gap-1`。
+- ➖ 边界：本轮完成线上结构核对，未重复执行 Safari、真实设备与主观视觉验收。
+
 ### 博客内容改写与全站只读选择边界（2026-08-30，已完成并上线）
 
 - ✅ 24 篇 MDX（12 主题 × 中英）从教程/技术说明改写为第一人称随笔；slug 与 `date` 保留，性能文 `updatedAt` 改为 2026-08-30。
