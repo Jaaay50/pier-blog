@@ -4,7 +4,9 @@
 - ✅ 去掉正文代码围栏与「测试环境」字段；系列改为「做这个站的时候 / 使用笔记」或留空；标签收成读者向词汇。
 - ✅ 博客列表、RSS、JSON-LD 介绍文案改为「工作、界面、等待和写作的观察」。
 - ✅ 验证：`npm test` 46 files / 327 tests、`npm run lint`、`npx tsc --noEmit`、`npm run build` 65 页通过。本地 production `PORT=3002` 抽查中英列表与 3 篇详情为 200，OG `type=blog` 1200×630 PNG，RSS/search-index 含新标题。
-- ➖ 未 push、未开 PR、未部署。原文备份在仓库外 `Documents/Codex/pier-blog-article-backups/20260830-essay-rewrite/`。
+- ✅ 交付：本地 commit `d5aef30cea74495c90585dada316734c9853d3e4`（`content/blog-essay-rewrite`，领先 `origin/main` 1）。
+- ➖ 未 push、未开 PR、未部署。原文备份在仓库外 `/Users/ethan/Documents/Codex/pier-blog-article-backups/20260830-essay-rewrite/`。
+- ℹ️ 收尾时工作区另有未提交改动（`SiteFooter` 去掉 RSS 链接、`layout`/`globals.css` 全站 `user-select: none`），不属于本提交，未纳入、未覆盖。
 
 ---
 
