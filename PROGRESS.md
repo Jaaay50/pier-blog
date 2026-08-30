@@ -1,12 +1,13 @@
-### 博客文章改写为个人随笔（2026-08-30，本地完成，未推送）
+### 博客内容改写与全站只读选择边界（2026-08-30，已完成并上线）
 
 - ✅ 24 篇 MDX（12 主题 × 中英）从教程/技术说明改写为第一人称随笔；slug 与 `date` 保留，性能文 `updatedAt` 改为 2026-08-30。
-- ✅ 去掉正文代码围栏与「测试环境」字段；系列改为「做这个站的时候 / 使用笔记」或留空；标签收成读者向词汇。
-- ✅ 博客列表、RSS、JSON-LD 介绍文案改为「工作、界面、等待和写作的观察」。
-- ✅ 验证：`npm test` 46 files / 327 tests、`npm run lint`、`npx tsc --noEmit`、`npm run build` 65 页通过。本地 production `PORT=3002` 抽查中英列表与 3 篇详情为 200，OG `type=blog` 1200×630 PNG，RSS/search-index 含新标题。
-- ✅ 交付：本地 commit `d5aef30cea74495c90585dada316734c9853d3e4`（`content/blog-essay-rewrite`，领先 `origin/main` 1）。
-- ➖ 未 push、未开 PR、未部署。原文备份在仓库外 `/Users/ethan/Documents/Codex/pier-blog-article-backups/20260830-essay-rewrite/`。
-- ℹ️ 收尾时工作区另有未提交改动（`SiteFooter` 去掉 RSS 链接、`layout`/`globals.css` 全站 `user-select: none`），不属于本提交，未纳入、未覆盖。
+- ✅ 去掉正文代码围栏与「测试环境」字段；系列改为「做这个站的时候 / 使用笔记」或留空；标签收成读者向词汇；博客列表、RSS、JSON-LD 介绍文案改为「工作、界面、等待和写作的观察」。
+- ✅ 全站 `body.site-readonly-selection` 默认禁止静态文案拖选，链接、按钮、输入框、滑杆、代码块和显式允许区域保持可用；博客正文原有 `BlogProseGuard` 继续负责复制边界。
+- ✅ 页脚移除 `RSS — English` 与 `RSS — 中文` 两个可见入口；`/feed.xml` 与 `/feed-zh.xml` 服务端点及相关 RSS 能力保留，线上均返回 `200 application/rss+xml`。
+- ✅ 验证：`npm test` 46 files / 327 tests、`npm run lint`、`npx tsc --noEmit`、`npm run build` 65 页、`git diff --check` 通过；GitHub CI `33303207224` 与生产部署 workflow `33303271473` 成功。
+- ✅ 交付：commits `d5aef30cea74495c90585dada316734c9853d3e4`、`24439036075117423ed30b4fe7e4bdcd5631c9ee`、`b1b61257f2c73307d673929ccd75867e337c1959` 已推送到 `origin/main`；生产 deployment `pier-blog-p3p87v8zo-jia-ethans-projects.vercel.app` 已 alias 到 `https://ethanpier.com`。
+- ✅ 线上核对：`/zh/lab`、`/en/lab`、`/zh/blog`、`/en/blog` 均为 200，HTML 含 `site-readonly-selection` 且页脚无 RSS anchor；两个 RSS endpoint 仍为 200。
+- ➖ 边界：只读选择是降低公开内容复制便利度，不是加密或绝对防复制；源码、网络响应、截图、Reader Mode 与禁用脚本仍可取得公开内容。原文备份保留在仓库外 `/Users/ethan/Documents/Codex/pier-blog-article-backups/20260830-essay-rewrite/`。
 
 ---
 

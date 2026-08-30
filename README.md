@@ -10,6 +10,7 @@ Personal blog & portfolio — exploring the intersection of AI, interaction desi
 - **WebGL 视觉系统** — Galaxy 星空 / Aurora 极光 / 流体 Shader 渐变，带完整设备分级与性能降级
 - **动效工程** — Lenis 平滑滚动 + GSAP ScrollTrigger + motion，View Transitions 页面转场与主题切换淡入淡出
 - **文章阅读体验** — 博客与潮汐共用精细化正文排版、代码/表格/引用样式；CJK Markdown 强调语法正确渲染，移动端目录抽屉支持焦点管理
+- **只读选择边界** — 静态文案默认不可直接拖选，链接、控件、代码块和正文复制边界保留可用；这是复制阻力，不是内容加密
 - **实验性布局** — 横向滚动叙事时间线、三层视差、SVG 路径动画、3D 翻转卡片
 - **数据可视化** — 零依赖 SVG 雷达图 / tag 条形图过滤 / 活动热力图
 - **全文搜索** — FlexSearch 客户端索引（⌘K），关键词高亮 + 键盘导航 + 相关文章推荐
@@ -56,7 +57,7 @@ When changing the OIDC provider or administrator email, update `src/app/.well-kn
 
 ## Project Log
 
-Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署；Phase 11A、11B P1、11D P1 与 11E P1 已完成生产闭环，Phase 11C P1 为有保留通过；2026-08-13 潮汐模型榜（PR #18）上线；2026-08-17 Tailscale OIDC WebFinger discovery 上线；2026-08-26（GitHub merge 记录为 2026-08-25 23:52 UTC）博客排版与卡片视觉优化（PR #29）已合并部署；2026-08-28 Cloudborne 导流、页面级 SEO 与文章示例修复（[PR #30](https://github.com/Jaaay50/pier-blog/pull/30)）已合并部署。Cloudborne 入口位于 About 首屏、工作经历后的独立产品卡片和页脚，顶部主导航仍保持五项。当前剩余项包括新 Tailnet 首台设备接入、Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收、服务器安全审计及 CSP nonce/hash 与 Trusted Types 增强；Cloudborne 内容系列与主题页等 Phase 2/3 工作尚未实现。完整记录见 [PROGRESS.md](./PROGRESS.md)，安全阶段见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。
+Phase 1–8 已收官；Phase 9 与 Phase 10.1–10.9 已实现并部署；Phase 11A、11B P1、11D P1 与 11E P1 已完成生产闭环，Phase 11C P1 为有保留通过；2026-08-13 潮汐模型榜（PR #18）上线；2026-08-17 Tailscale OIDC WebFinger discovery 上线；2026-08-26（GitHub merge 记录为 2026-08-25 23:52 UTC）博客排版与卡片视觉优化（PR #29）已合并部署；2026-08-28 Cloudborne 导流、页面级 SEO 与文章示例修复（[PR #30](https://github.com/Jaaay50/pier-blog/pull/30)）已合并部署；2026-08-30 24 篇双语博客文章改写为个人随笔，并上线全站静态文案只读选择边界，页脚移除两个 RSS 展示入口但保留 `/feed.xml` 与 `/feed-zh.xml` endpoint，commits `d5aef30` / `2443903` / `b1b6125`、CI `33303207224` 与生产部署 `33303271473` 均已完成，`ethanpier.com` 线上路由已核验。Cloudborne 入口位于 About 首屏、工作经历后的独立产品卡片和页脚，顶部主导航仍保持五项。当前剩余项包括新 Tailnet 首台设备接入、Hero/Lab/Safari/reduced-motion/Lighthouse 真机验收、服务器安全审计及 CSP nonce/hash 与 Trusted Types 增强；Cloudborne 内容系列与主题页等 Phase 2/3 工作尚未实现。完整记录见 [PROGRESS.md](./PROGRESS.md)，安全阶段见 [PHASE11-SECURITY-PLAN.md](./PHASE11-SECURITY-PLAN.md)。
 
 Currents（潮汐）模块技术方案与分阶段实施记录见 `/Users/ethan/pi-space/projects/currents-tides-aggregator.md` 与 `/Users/ethan/pi-space/projects/currents/`（本机）。截至 2026-08-11：阶段 A 详情页「报告内容问题」入口、阶段 B MCP Server + Agent Skill（服务端）、阶段 C 产品闭环（Currents 统一产品外壳、`/currents/agent` Agent 接入页、`/feedback` 全局反馈页、统一全站搜索）均已上线并完成生产验收；同日完成 Currents 响应式与动效统一修复（PR #3、merge commit `5361594`、生产部署 `pier-blog-9eixpss8u`）：外壳扩至 1760px 自适应编辑工作台，移动端改为「潮汐 · 当前页」文字产品导航 + 底部筛选面板，浅色表面统一暖纸语义层级，已读态改为局部标记（不再整卡降 opacity），今日要闻改为主故事 + 2×2 次要卡，内部导航恢复 TransitionLink/View Transitions。Review 后续修正已通过 commit `ff5beef` 与 Actions run `31459121708` 部署：侧栏改为 ≥1536px 显示，1280–1535px 渐进预留侧栏空间，日期标题取消白色渐变与吸顶层，并补齐导航、筛选面板和卡片状态问题；同日的 Agent/日报排版工作已完成多视口浏览器验收（见下）。注意区分：服务端部署 ≠ 客户端真实接入——具体客户端仍需逐一核验工具发现、五工具调用、凭据隔离与重启持久性。
 
