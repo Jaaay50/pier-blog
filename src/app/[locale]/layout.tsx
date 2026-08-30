@@ -138,7 +138,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
           }}
         />
       </head>
-      <body className="min-h-screen bg-[var(--bg-primary)] antialiased">
+      <body className="site-readonly-selection min-h-screen bg-[var(--bg-primary)] antialiased">
         <SpeculationRules />
         <div className="ambient-bg" aria-hidden="true">
           <div className="ambient-glow ambient-glow-1" />

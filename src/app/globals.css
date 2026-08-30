@@ -1886,6 +1886,45 @@ html[data-density="comfortable"] {
 }
 
 /* ============================================
+   全站只读选择边界
+   ============================================ */
+
+/**
+ * 降低全站静态文案被直接选中和复制的便利度，同时保留必要的交互文本。
+ * 文章正文另有 BlogProseGuard，负责 copy/contextmenu 事件校验与提示。
+ * 这不是内容保护：源码、网络响应、截图和禁用脚本仍可获取公开内容。
+ */
+
+.site-readonly-selection {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.site-readonly-selection :where(
+  a,
+  button,
+  input,
+  textarea,
+  select,
+  option,
+  pre,
+  code,
+  [contenteditable=""],
+  [contenteditable="true" i],
+  [contenteditable="plaintext-only" i],
+  [data-copy-allow]
+) {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* Keep the protected boundary intact inside explicitly non-editable subtrees. */
+.site-readonly-selection :where([contenteditable="false" i]) {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ============================================
    博客正文复制边界（Phase 11E P1）
    ============================================ */
 

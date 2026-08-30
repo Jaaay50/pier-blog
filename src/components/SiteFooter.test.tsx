@@ -29,6 +29,9 @@ describe("SiteFooter", () => {
     expect(navs[0].getAttribute("aria-label")).toBe("导航");
     expect(navs[0].textContent).not.toMatch(/Cloudborne/);
 
+    expect(screen.queryByRole("link", { name: /RSS — English/ })).toBeNull();
+    expect(screen.queryByRole("link", { name: /RSS — 中文/ })).toBeNull();
+
     const cloudborne = screen.getByRole("link", { name: /Cloudborne 独立站/ });
     expect(cloudborne.getAttribute("href")).toBe("https://cloudborne.cn");
     expect(cloudborne.getAttribute("target")).toBe("_blank");

@@ -10,16 +10,6 @@ interface SiteFooterProps {
   currentsWidth?: boolean;
 }
 
-function RssIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M4 11a9 9 0 0 1 9 9" />
-      <path d="M4 4a16 16 0 0 1 16 16" />
-      <circle cx="5" cy="19" r="1" />
-    </svg>
-  );
-}
-
 function GithubIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -83,26 +73,6 @@ export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
               {t('externalTitle')}
             </p>
             <div className="space-y-1">
-              <a
-                href="/feed.xml"
-                className="inline-flex min-h-11 max-w-full items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`${t('rssEn')} (${t('opensInNewWindow')})`}
-              >
-                <RssIcon />
-                {t('rssEn')}
-              </a>
-              <a
-                href="/feed-zh.xml"
-                className="inline-flex min-h-11 max-w-full items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`${t('rssZh')} (${t('opensInNewWindow')})`}
-              >
-                <RssIcon />
-                {t('rssZh')}
-              </a>
               <a
                 href="https://github.com/Jia-Ethan"
                 target="_blank"
