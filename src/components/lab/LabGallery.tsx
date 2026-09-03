@@ -37,7 +37,7 @@ function LabFigure({
   const desc = t(`demos.${demo.id}.desc`);
   const layer = t(`demos.${demo.id}.layer`);
   const tech = t(`demos.${demo.id}.tech`);
-  const alt = t("stillAlt", { title });
+  const alt = t(`demos.${demo.id}.stillAlt`);
 
   return (
     <figure className="group relative flex flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-card)]">

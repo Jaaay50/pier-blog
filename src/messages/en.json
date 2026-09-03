@@ -280,7 +280,6 @@
   },
   "home": {
     "role": "Full-Stack Engineer",
-    "heroTitle": "A pier has to hold at both ends",
     "heroSubtitle": "Full-stack engineer. Ingestion pipelines and event dedup on one end; on the other, an interface that still reads with the animation off.",
     "readArticles": "Read Articles",
     "aboutMe": "About Me",
@@ -293,8 +292,8 @@
       "grok": "Key management for Grok CLI tools"
     },
     "scrollHint": "Scroll to explore",
-    "skillsTitle": "More Than Just Code",
-    "skillsSubtitle": "Every card below is a live motion engine",
+    "skillsTitle": "The top layer is mine too",
+    "skillsSubtitle": "The layers underneath live in Currents. This is the interface in front of them.",
     "skills": {
       "webgl": {
         "title": "WebGL Particles",
@@ -439,43 +438,48 @@
     "viewSource": "View Source",
     "reducedMotion": "Motion disabled per system preference",
     "webglUnavailable": "WebGL unavailable on this device, showing static preview",
-    "stillAlt": "Still of {title}: the demo remains readable with 3D off",
     "demos": {
       "particles": {
         "title": "Particle System",
         "desc": "Real-time particle simulation: thousands of particles with mouse repulsion and 3D drift, all on the GPU.",
         "layer": "The GPU update step and mouse repulsion are hand-written. No Three.js.",
-        "tech": "WebGL · GLSL · 0 deps"
+        "tech": "WebGL · GLSL · 0 deps",
+        "stillAlt": "Sparse white points gathered into a loose cloud on a dark field, with a circular gap pushed open at the centre."
       },
       "shader": {
         "title": "Shader Mixer",
         "desc": "Live GLSL noise art: drag sliders to tune hue, flow speed and turbulence octaves — every frame computed in real time.",
         "layer": "The FBM noise fragment shader and uniform binding are hand-written.",
-        "tech": "WebGL · FBM Noise · 0 deps"
+        "tech": "WebGL · FBM Noise · 0 deps",
+        "stillAlt": "Soft patches of blue and rust-red bleeding into each other, like out-of-focus light."
       },
       "fluid": {
         "title": "Fluid Simulation",
         "desc": "Hand-written Navier-Stokes solver: ping-pong FBO, vorticity confinement, Jacobi pressure iterations — drag to inject velocity & dye.",
         "layer": "The full fluid pipeline is hand-written. No off-the-shelf fluid library.",
-        "tech": "WebGL2 · GLSL · 0 deps"
+        "tech": "WebGL2 · GLSL · 0 deps",
+        "stillAlt": "A flattened spiral torus of cyan grid lines on a dark field, with a pink glow at its centre."
       },
       "physics": {
         "title": "Physics Sandbox",
         "desc": "Verlet integration + spatial hash collision: click to spawn balls, drag to throw, gravity toggle, elastic collisions.",
         "layer": "The integrator and broad-phase collision are hand-written. No physics engine.",
-        "tech": "Canvas 2D · Verlet · 0 deps"
+        "tech": "Canvas 2D · Verlet · 0 deps",
+        "stillAlt": "Translucent blue, cyan and violet balls of different sizes scattered across a dark field, some overlapping."
       },
       "flow": {
         "title": "Flow Field Particles",
         "desc": "Curl noise divergence-free flow: 2500 particles with long trails, mouse attract/repel toggle.",
         "layer": "The curl-noise field and trail integration are hand-written. No particle library.",
-        "tech": "Canvas 2D · Curl Noise · 0 deps"
+        "tech": "Canvas 2D · Curl Noise · 0 deps",
+        "stillAlt": "Cyan dashed trails streaming along curved flow lines on a dark field, like silk combed by wind."
       },
       "morph": {
         "title": "3D Morph",
         "desc": "Parametric surface per-point morph: sphere→torus→cube→wave, drag to rotate, auto-cycle.",
         "layer": "The parametric surface and per-vertex morph are hand-written. No model files.",
-        "tech": "WebGL · ogl · 0 deps"
+        "tech": "WebGL · ogl · 0 deps",
+        "stillAlt": "Cyan dotted lines looping into overlapping ellipses on a dark field, like a torus knot not yet pulled tight."
       }
     }
   },

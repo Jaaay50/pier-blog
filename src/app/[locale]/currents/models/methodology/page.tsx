@@ -2,7 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { ModelsMethodologyClient } from "@/components/currents/ModelsMethodologyClient";
 import { locales } from "@/i18n/config";
-import { pageMetadata } from "@/lib/metadata";
+import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -19,6 +19,7 @@ export async function generateMetadata({
     title: `${t("modelsMethTitle")} — ${t("modelsTitle")}`,
     description: t("modelsMethSubtitle"),
     path: "/currents/models/methodology",
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

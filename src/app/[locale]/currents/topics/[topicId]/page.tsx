@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { CurrentsTopicDetailClient } from "@/components/currents/CurrentsTopicDetailClient";
 import { CURRENTS_TOPIC_IDS } from "@/lib/currents/topics";
-import { pageMetadata } from "@/lib/metadata";
+import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
 /** topicId 必须属于现有主题集合；其余输入不反射进 metadata，直接 404。 */
 function isKnownTopicId(topicId: string): boolean {
@@ -31,6 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${topicId} — ${t("topicsTitle")}`,
     description: t("topicsSubtitle"),
     path: `/currents/topics/${encoded}`,
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

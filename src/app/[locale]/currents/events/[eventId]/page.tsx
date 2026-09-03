@@ -5,7 +5,7 @@ import { isValidCurrentsResourceId, serverFetchEventDetail } from "@/lib/current
 import { safeJsonLd } from "@/lib/json-ld";
 import { CurrentsEventBody } from "@/components/currents/CurrentsEventBody";
 import type { CurrentsEventReportRole, CurrentsHotStatus } from "@/lib/currents/types";
-import { SITE_URL, pageMetadata } from "@/lib/metadata";
+import { SITE_URL, currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -52,6 +52,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     type: "article",
     publishedTime: event.firstSeenAt,
     modifiedTime: event.latestActivityAt,
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

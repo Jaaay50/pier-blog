@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { serverFetchDailyLatest } from "@/lib/currents/api";
 import { CurrentsDailyBody } from "@/components/currents/CurrentsDailyBody";
-import { pageMetadata } from "@/lib/metadata";
+import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -30,6 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     description: report?.lead?.title ?? t("subtitle"),
     path: "/currents/daily",
     type: "article",
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

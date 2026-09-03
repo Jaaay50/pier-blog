@@ -24,13 +24,15 @@ const ParticleTitle = dynamic(
 );
 
 interface ImmersiveHeroProps {
-  title: string;
+  /** 测试可覆写；页面不传，避免 SSR HTML / messages / RSC 各写一遍连续标题。 */
+  title?: string;
   subtitle: string;
   children?: ReactNode;
 }
 
 /** 方案 D：只强调「全栈的栈 / 栈桥的栈」里作为双关落点的那个「栈」。 */
 const STACK_PUN_TITLE = "全栈的栈，也是栈桥的栈";
+const EN_TITLE = "A pier has to hold at both ends";
 const STACK_PUN_INDICES = new Set([3, 10]);
 
 function TitleGlyphs({
@@ -97,6 +99,8 @@ export function ImmersiveHero({
   const { resolvedTheme } = useTheme();
   const quality = useWebGLQuality();
   const locale = useLocale();
+  const isZh = locale === "zh";
+  const resolvedTitle = title ?? (isZh ? STACK_PUN_TITLE : EN_TITLE);
   const mounted = quality !== null;
   const { scrollY } = useScroll();
 
@@ -105,7 +109,6 @@ export function ImmersiveHero({
   const bgScale = useTransform(scrollY, [0, 800], [1, 1.15]);
 
   const isDark = mounted && resolvedTheme === "dark";
-  const isZh = locale === "zh";
 
   // Phase 9.1 粒子标题门控
   const canUseParticles = mounted && quality && quality.enabled;
@@ -160,14 +163,20 @@ export function ImmersiveHero({
         className="relative z-10 flex h-full flex-col items-center justify-center px-6 text-center"
         style={{ y: contentY, opacity: contentOpacity }}
       >
-        {/* 主标题：粒子重组（WebGL 可用）或逐字上浮降级 */}
-        <h1 className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]">
-          <span className="sr-only">{title}</span>
+        {/* 主标题：可访问名只来自 aria-label；字形层仅供视觉/采样，不进辅助技术。 */}
+        <h1
+          aria-label={resolvedTitle}
+          className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]"
+        >
           {!mounted ? (
             /* SSR/水合前标题：ParticleGate 判定粒子可用时由 CSS 首帧隐藏。
-               逐字拆开，避免 HTML 里出现两份连续标题。 */
-            <span aria-hidden="true" className="hero-title-ssr flex flex-wrap justify-center">
-              <TitleGlyphs title={title} particleMode isZh={isZh} />
+               逐字拆开，避免 HTML 里再出现一份连续标题。 */
+            <span
+              aria-hidden="true"
+              tabIndex={-1}
+              className="hero-title-ssr flex flex-wrap justify-center"
+            >
+              <TitleGlyphs title={resolvedTitle} particleMode isZh={isZh} />
             </span>
           ) : (
             <>
@@ -177,16 +186,17 @@ export function ImmersiveHero({
                 key={particleMode ? "particle" : "fallback"}
                 ref={anchorRef}
                 aria-hidden="true"
+                tabIndex={-1}
                 className={`flex flex-wrap justify-center ${
                   particleMode ? "opacity-0" : "opacity-100"
                 }`}
               >
-                <TitleGlyphs title={title} particleMode={particleMode} isZh={isZh} />
+                <TitleGlyphs title={resolvedTitle} particleMode={particleMode} isZh={isZh} />
               </span>
               {/* 粒子层：直接从碎裂态聚合成字；失败时回退 DOM 标题 */}
               {canUseParticles && !particleFailed && (
                 <ParticleTitle
-                  title={title}
+                  title={resolvedTitle}
                   anchorRef={anchorRef}
                   isDark={isDark}
                   quality={quality}

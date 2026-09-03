@@ -42,10 +42,7 @@ export default async function HomePage({
       <Navbar />
 
       {/* 第一屏：全屏沉浸式 Hero */}
-      <ImmersiveHero
-        title={t("heroTitle")}
-        subtitle={t("heroSubtitle")}
-      >
+      <ImmersiveHero subtitle={t("heroSubtitle")}>
         <MagneticWrapper strength={0.25}>
           <TransitionLink
             href="/blog"
