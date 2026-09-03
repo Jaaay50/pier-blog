@@ -11,6 +11,7 @@ import {
 } from "@/lib/currents/models-types";
 import { TransitionLink } from "@/components/TransitionLink";
 import { ModelTopicLink } from "@/components/currents/ModelTopicLink";
+import { pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -18,16 +19,10 @@ export function generateStaticParams() {
   return []; // 运行时按需生成，不预构建
 }
 
-const SITE_URL = "https://ethanpier.com";
-const OG_IMAGE = `${SITE_URL}/og?type=site`;
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
-}
-
-function modelPath(locale: string, slug: string) {
-  return `/${locale}/currents/models/${slug}`;
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -37,23 +32,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!detail) return {};
   const t = await getTranslations({ locale, namespace: "currents" });
 
-  const title = `${detail.model.name} — ${t("modelsTitle")} · Pier`;
-  const description = t("modelsDetailDescription", { name: detail.model.name, vendor: detail.model.vendor });
-  const canonicalUrl = `${SITE_URL}${modelPath(locale, slug)}`;
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        en: `${SITE_URL}${modelPath("en", slug)}`,
-        zh: `${SITE_URL}${modelPath("zh", slug)}`,
-        "x-default": `${SITE_URL}${modelPath("en", slug)}`,
-      },
-    },
-    openGraph: { title, description, type: "website", url: canonicalUrl, images: [{ url: OG_IMAGE, width: 1200, height: 630 }] },
-    twitter: { card: "summary_large_image", title, description, images: [OG_IMAGE] },
-  };
+  return pageMetadata(locale, {
+    title: `${detail.model.name} — ${t("modelsTitle")}`,
+    description: t("modelsDetailDescription", { name: detail.model.name, vendor: detail.model.vendor }),
+    path: `/currents/models/${slug}`,
+  });
 }
 
 const CATEGORY_KEY: Record<ModelsCategory, string> = {

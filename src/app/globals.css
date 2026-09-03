@@ -1558,10 +1558,27 @@ html[data-particles-ready] .hero-title-ssr {
   animation: hero-gate-reveal 0.4s ease 3s forwards;
 }
 
+/* Hero 方案 D：只标「全栈的栈 / 栈桥的栈」里作为双关落点的两个「栈」 */
+.hero-stack-glyph {
+  font-weight: 650;
+  color: var(--accent);
+}
+
 @keyframes hero-gate-reveal {
   to {
     opacity: 1;
   }
+}
+
+/* Currents 首屏：无脚本看服务端列表；水合后交给客户端时间线 */
+.currents-client-feed {
+  display: none;
+}
+html.currents-hydrated .currents-ssr-feed {
+  display: none;
+}
+html.currents-hydrated .currents-client-feed {
+  display: block;
 }
 
 /* ============================================

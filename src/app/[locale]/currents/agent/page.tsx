@@ -4,8 +4,8 @@ import { locales } from "@/i18n/config";
 import { TransitionLink } from "@/components/TransitionLink";
 import { AgentCopyBlock, AgentCopyChip } from "@/components/currents/AgentCopyBlock";
 import { AgentToc } from "@/components/currents/AgentToc";
+import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 
-const SITE_URL = "https://ethanpier.com";
 const MCP_ENDPOINT = "https://currents-mcp.ethanpier.com/mcp";
 const CONTACT_EMAIL = "ethan_pier@icloud.com";
 
@@ -20,19 +20,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "agent" });
-
-  return {
-    title: `${t("title")} — Pier`,
+  return pageMetadata(locale, {
+    title: t("title"),
     description: t("subtitle"),
-    alternates: {
-      canonical: `${SITE_URL}/${locale}/currents/agent`,
-      languages: {
-        en: `${SITE_URL}/en/currents/agent`,
-        zh: `${SITE_URL}/zh/currents/agent`,
-        "x-default": `${SITE_URL}/en/currents/agent`,
-      },
-    },
-  };
+    path: "/currents/agent",
+    image: ogCardUrl("currents", locale),
+  });
 }
 
 function Section({

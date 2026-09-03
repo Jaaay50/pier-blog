@@ -3,14 +3,13 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { isValidCurrentsDailyDate, serverFetchDailyByDate } from "@/lib/currents/api";
 import { CurrentsDailyBody } from "@/components/currents/CurrentsDailyBody";
+import { pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
 export function generateStaticParams() {
   return [];
 }
-
-const SITE_URL = "https://ethanpier.com";
 
 interface PageProps {
   params: Promise<{ locale: string; date: string }>;
@@ -28,22 +27,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   } catch {
     // 页面体会同步触发相同请求并正确抛出 → error.tsx；metadata 不二次抛出。
   }
-  const title = `${t("dailyTitle")} ${date} — 潮汐 · Currents`;
-  const description = report?.lead?.title ?? t("subtitle");
-  const canonicalUrl = `${SITE_URL}/${locale}/currents/daily/${date}`;
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        en: `${SITE_URL}/en/currents/daily/${date}`,
-        zh: `${SITE_URL}/zh/currents/daily/${date}`,
-        "x-default": `${SITE_URL}/en/currents/daily/${date}`,
-      },
-    },
-    openGraph: { title, description, type: "article", url: canonicalUrl, locale: locale === "zh" ? "zh_CN" : "en_US" },
-  };
+  return pageMetadata(locale, {
+    title: `${t("dailyTitle")} ${date}`,
+    description: report?.lead?.title ?? t("subtitle"),
+    path: `/currents/daily/${date}`,
+    type: "article",
+  });
 }
 
 export default async function CurrentsDailyDatePage({ params }: PageProps) {

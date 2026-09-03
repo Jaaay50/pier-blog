@@ -12,6 +12,7 @@ import { WebVitals } from "@/components/WebVitals";
 import { SpeculationRules } from "@/components/SpeculationRules";
 import { ParticleGateScript } from "@/components/ParticleGate";
 import { locales, type Locale } from "@/i18n/config";
+import { localizedMetadata, SITE_URL } from "@/lib/site-metadata";
 import "../globals.css";
 
 const inter = Inter({
@@ -57,42 +58,27 @@ const dancingScript = Dancing_Script({
   preload: false,
 });
 
-export const metadata: Metadata = {
-  metadataBase: new URL("https://ethanpier.com"),
-  title: "Pier — Frontend Engineer",
-  description:
-    "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",
-  alternates: {
-    types: {
-      "application/rss+xml": [
-        { url: "/feed.xml", title: "Ethan Pier — Blog (English)" },
-        { url: "/feed-zh.xml", title: "Ethan Pier — 博客（中文）" },
-      ],
-    },
-  },
-  openGraph: {
-    title: "Pier — Frontend Engineer",
-    description:
-      "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",
-    type: "website",
-    images: [
-      {
-        url: "https://ethanpier.com/og?type=site",
-        width: 1200,
-        height: 630,
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const meta = localizedMetadata(locale, "home");
+  return {
+    metadataBase: new URL(SITE_URL),
+    ...meta,
+    alternates: {
+      ...meta.alternates,
+      types: {
+        "application/rss+xml": [
+          { url: "/feed.xml", title: "Ethan Pier — Blog (English)" },
+          { url: "/feed-zh.xml", title: "Ethan Pier — 博客（中文）" },
+        ],
       },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Pier — Frontend Engineer",
-    description:
-      "Personal blog and portfolio. Exploring the intersection of AI, interaction design, and modern web engineering.",
-    images: [
-      "https://ethanpier.com/og?type=site",
-    ],
-  },
-};
+    },
+  };
+}
 
 interface LocaleLayoutProps {
   children: React.ReactNode;

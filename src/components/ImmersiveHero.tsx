@@ -29,6 +29,60 @@ interface ImmersiveHeroProps {
   children?: ReactNode;
 }
 
+/** 方案 D：只强调「全栈的栈 / 栈桥的栈」里作为双关落点的那个「栈」。 */
+const STACK_PUN_TITLE = "全栈的栈，也是栈桥的栈";
+const STACK_PUN_INDICES = new Set([3, 10]);
+
+function TitleGlyphs({
+  title,
+  particleMode,
+  isZh,
+}: {
+  title: string;
+  particleMode: boolean;
+  isZh: boolean;
+}) {
+  const highlight = title === STACK_PUN_TITLE ? STACK_PUN_INDICES : null;
+  const words = title.split(" ");
+  let i = -1;
+  return (
+    <>
+      {words.map((word, wi) => (
+        <span key={wi} className="inline-flex whitespace-nowrap">
+          {Array.from(word).map((char) => {
+            i += 1;
+            const idx = i;
+            const glyphClass = `inline-block${highlight?.has(idx) ? " hero-stack-glyph" : ""}`;
+            return particleMode ? (
+              <span key={idx} data-ptchar className={glyphClass}>
+                {char}
+              </span>
+            ) : (
+              <motion.span
+                key={idx}
+                data-ptchar
+                className={glyphClass}
+                initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
+                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                transition={{
+                  duration: 0.7,
+                  delay: 0.25 + idx * (isZh ? 0.08 : 0.055),
+                  ease: [0.22, 1, 0.36, 1],
+                }}
+              >
+                {char}
+              </motion.span>
+            );
+          })}
+          {wi < words.length - 1 && <span className="inline-block">&nbsp;</span>}
+        </span>
+      ))}
+    </>
+  );
+}
+
+
+
 /**
  * 全屏沉浸式 Hero
  * - 深色：Galaxy 星空 + 粒子重组标题
@@ -52,8 +106,6 @@ export function ImmersiveHero({
 
   const isDark = mounted && resolvedTheme === "dark";
   const isZh = locale === "zh";
-  // 逐字揭示：中文每字一个单元、英文每词整体不断行，节奏一致
-  const words = title.split(" ");
 
   // Phase 9.1 粒子标题门控
   const canUseParticles = mounted && quality && quality.enabled;
@@ -112,9 +164,10 @@ export function ImmersiveHero({
         <h1 className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]">
           <span className="sr-only">{title}</span>
           {!mounted ? (
-            /* SSR/水合前标题：ParticleGate 判定粒子可用时由 CSS 首帧隐藏 */
-            <span aria-hidden="true" className="hero-title-ssr">
-              {title}
+            /* SSR/水合前标题：ParticleGate 判定粒子可用时由 CSS 首帧隐藏。
+               逐字拆开，避免 HTML 里出现两份连续标题。 */
+            <span aria-hidden="true" className="hero-title-ssr flex flex-wrap justify-center">
+              <TitleGlyphs title={title} particleMode isZh={isZh} />
             </span>
           ) : (
             <>
@@ -128,40 +181,7 @@ export function ImmersiveHero({
                   particleMode ? "opacity-0" : "opacity-100"
                 }`}
               >
-                {(() => {
-                  let i = -1;
-                  return words.map((word, wi) => (
-                    <span key={wi} className="inline-flex whitespace-nowrap">
-                      {Array.from(word).map((char) => {
-                        i += 1;
-                        const idx = i;
-                        return particleMode ? (
-                          <span key={idx} data-ptchar className="inline-block">
-                            {char}
-                          </span>
-                        ) : (
-                          <motion.span
-                            key={idx}
-                            data-ptchar
-                            className="inline-block"
-                            initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
-                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                            transition={{
-                              duration: 0.7,
-                              delay: 0.25 + idx * (isZh ? 0.08 : 0.055),
-                              ease: [0.22, 1, 0.36, 1],
-                            }}
-                          >
-                            {char}
-                          </motion.span>
-                        );
-                      })}
-                      {wi < words.length - 1 && (
-                        <span className="inline-block">&nbsp;</span>
-                      )}
-                    </span>
-                  ));
-                })()}
+                <TitleGlyphs title={title} particleMode={particleMode} isZh={isZh} />
               </span>
               {/* 粒子层：直接从碎裂态聚合成字；失败时回退 DOM 标题 */}
               {canUseParticles && !particleFailed && (
@@ -182,7 +202,7 @@ export function ImmersiveHero({
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.2, delay: 1.2 }}
-          className="mb-12 max-w-xl"
+          className="mb-12 max-w-2xl"
         >
           <ShinyText
             text={subtitle}

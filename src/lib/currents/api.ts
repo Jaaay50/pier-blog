@@ -361,6 +361,24 @@ export const serverFetchItemDetail = (id: string, locale: string) =>
 export const serverFetchSources = () =>
   serverFetch<{ sources: CurrentsSource[] }>("/v1/sources", 3600);
 
+/** 列表页首屏：失败返回 null，不让 ISR 页面因上游抖动变成 500。 */
+export function serverFetchItems(opts: FetchItemsParams) {
+  const params = new URLSearchParams({
+    locale: opts.locale,
+    limit: String(opts.limit ?? 20),
+  });
+  if (opts.view) params.set("view", opts.view);
+  if (opts.category) params.set("category", opts.category);
+  if (opts.q && opts.q.trim().length >= 2) params.set("q", opts.q.trim());
+  if (opts.source) params.set("source", opts.source);
+  if (opts.minScore != null) params.set("minScore", String(opts.minScore));
+  if (opts.maxScore != null) params.set("maxScore", String(opts.maxScore));
+  if (opts.from) params.set("from", opts.from);
+  if (opts.to) params.set("to", opts.to);
+  if (opts.cursor) params.set("cursor", opts.cursor);
+  return serverFetch<CurrentsItemsResponse>(`/v1/items?${params.toString()}`, 300);
+}
+
 export const serverFetchDailyLatest = (locale: string) =>
   serverFetchDetail<CurrentsDailyReport>(`/v1/dailies/latest?locale=${encodeURIComponent(locale)}`, 300);
 

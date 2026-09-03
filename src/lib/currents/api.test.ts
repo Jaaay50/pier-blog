@@ -5,6 +5,7 @@ import {
   serverFetchDailyLatest,
   serverFetchDailyByDate,
   serverFetchSources,
+  serverFetchItems,
   CurrentsApiError,
   CurrentsServerFetchError,
   fetchModelsLeaderboard,
@@ -351,6 +352,25 @@ describe("serverFetchSources：辅助数据仍保持宽松 null 语义（不因 
   it("200 + 合法 JSON → 正常返回", async () => {
     mockFetch(() => jsonResponse(200, { sources: [] }));
     await expect(serverFetchSources()).resolves.toEqual({ sources: [] });
+  });
+});
+
+describe("serverFetchItems：列表页首屏", () => {
+  it("把 locale/view/limit 编进 /v1/items，失败返回 null", async () => {
+    const fetchMock = vi.fn(() =>
+      jsonResponse(200, { items: [{ id: "a", title: "T" }], nextCursor: null, hasMore: false, meta: { totalApprox: 1, generatedAt: "2026-09-03T00:00:00.000Z" } }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const res = await serverFetchItems({ locale: "zh", view: "selected", limit: 20 });
+    expect(res?.items).toHaveLength(1);
+    const [url] = fetchMock.mock.calls[0] as unknown as [string];
+    expect(url).toContain("/v1/items?");
+    expect(url).toContain("locale=zh");
+    expect(url).toContain("view=selected");
+    expect(url).toContain("limit=20");
+
+    mockFetch(() => jsonResponse(503, { error: "down" }));
+    await expect(serverFetchItems({ locale: "en", view: "selected" })).resolves.toBeNull();
   });
 });
 

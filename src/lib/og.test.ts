@@ -18,6 +18,9 @@ afterEach(() => {
 describe("parseOgParams：只接受稳定资源标识", () => {
   it("四种合法请求形态", () => {
     expect(parseOgParams(params({ type: "site" }))).toEqual({ type: "site" });
+    expect(parseOgParams(params({ type: "lab" }))).toEqual({ type: "lab", locale: "en" });
+    expect(parseOgParams(params({ type: "lab", locale: "zh" }))).toEqual({ type: "lab", locale: "zh" });
+    expect(parseOgParams(params({ type: "currents", locale: "zh" }))).toEqual({ type: "currents", locale: "zh" });
     expect(parseOgParams(params({ type: "blog", locale: "zh", slug: "nextjs-ssg-cold-start" }))).toEqual({
       type: "blog",
       locale: "zh",
@@ -65,9 +68,20 @@ describe("parseOgParams：只接受稳定资源标识", () => {
 describe("resolveOgData：从可信来源解析内容", () => {
   it("site：固定站点卡片，不含任何请求可控文案", async () => {
     await expect(resolveOgData({ type: "site" })).resolves.toEqual({
-      title: "Pier — Frontend Engineer",
+      title: "Pier — Full-Stack Engineer · AI-Native Products",
       description: "Personal blog and portfolio by Ethan Pier",
       tags: [],
+    });
+  });
+
+  it("lab / currents：按 locale 输出固定卡片，motif 区分静帧", async () => {
+    await expect(resolveOgData({ type: "lab", locale: "zh" })).resolves.toMatchObject({
+      title: "船塢",
+      motif: "lab",
+    });
+    await expect(resolveOgData({ type: "currents", locale: "en" })).resolves.toMatchObject({
+      title: "Currents",
+      motif: "currents",
     });
   });
 

@@ -4,8 +4,7 @@ import { Waterline } from "@/components/Waterline";
 import { TransitionLink } from "@/components/TransitionLink";
 import { locales } from "@/i18n/config";
 import { changelogEntries, type ChangelogItemType } from "@/lib/currents/changelog";
-
-const SITE_URL = "https://ethanpier.com";
+import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -18,28 +17,13 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "changelog" });
-  const title = `${t("title")} — 潮汐 · Currents`;
-  const description = t("subtitle");
-  const canonicalUrl = `${SITE_URL}/${locale}/currents/changelog`;
-  return {
-    title,
-    description,
-    alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        en: `${SITE_URL}/en/currents/changelog`,
-        zh: `${SITE_URL}/zh/currents/changelog`,
-        "x-default": `${SITE_URL}/en/currents/changelog`,
-      },
-    },
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      url: canonicalUrl,
-      locale: locale === "zh" ? "zh_CN" : "en_US",
-    },
-  };
+  return pageMetadata(locale, {
+    title: t("title"),
+    description: t("subtitle"),
+    path: "/currents/changelog",
+    type: "article",
+    image: ogCardUrl("currents", locale),
+  });
 }
 
 const TYPE_BADGE_CLASS: Record<ChangelogItemType, string> = {

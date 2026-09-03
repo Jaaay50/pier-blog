@@ -6,7 +6,8 @@ import DecryptedText from "@/components/reactbits/DecryptedText";
 import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { BlogStatsFilter } from "@/components/viz/BlogStatsFilter";
 import { SiteFooter } from "@/components/SiteFooter";
-import { pageJsonLd, SITE_URL } from "@/lib/site-metadata";
+import { pageJsonLd } from "@/lib/site-metadata";
+import { pageMetadata } from "@/lib/metadata";
 import { safeJsonLd } from "@/lib/json-ld";
 
 export async function generateMetadata({
@@ -16,33 +17,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "blog" });
-
-  return {
-    title: `${t("title")} — Pier`,
+  return pageMetadata(locale, {
+    title: t("title"),
     description: t("subtitle"),
-    alternates: {
-      canonical: `${SITE_URL}/${locale}/blog`,
-      languages: {
-        en: `${SITE_URL}/en/blog`,
-        zh: `${SITE_URL}/zh/blog`,
-        "x-default": `${SITE_URL}/en/blog`,
-      },
-    },
-    openGraph: {
-      title: t("title"),
-      description: t("subtitle"),
-      type: "website",
-      url: `${SITE_URL}/${locale}/blog`,
-      locale: locale === "zh" ? "zh_CN" : "en_US",
-      images: [{ url: `${SITE_URL}/og?type=site`, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: t("title"),
-      description: t("subtitle"),
-      images: [`${SITE_URL}/og?type=site`],
-    },
-  };
+    path: "/blog",
+  });
 }
 
 export default async function BlogPage({

@@ -1,11 +1,28 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { LabClientContent } from "@/components/lab/LabClientContent";
+import { LabGallery } from "@/components/lab/LabGallery";
 import { locales } from "@/i18n/config";
+import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "lab" });
+  return pageMetadata(locale, {
+    title: t("title"),
+    description: t("metaDescription"),
+    path: "/lab",
+    image: ogCardUrl("lab", locale),
+  });
 }
 
 export default async function LabPage({
@@ -29,7 +46,7 @@ export default async function LabPage({
             {t("subtitle")}
           </p>
         </header>
-        <LabClientContent />
+        <LabGallery />
       </div>
       <SiteFooter />
     </main>

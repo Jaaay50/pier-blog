@@ -17,6 +17,7 @@
   "currents": {
     "title": "潮汐",
     "subtitle": "AI 前沿论文、产品、研究与行业动态。",
+    "metaDescription": "AI 前沿论文、产品、研究与行业动态。每日自动采集十余家信源，AI 生成双语摘要与评分，多信源事件自动合并去重。",
     "all": "全部",
     "models": "模型",
     "products": "产品",
@@ -278,9 +279,9 @@
     "menuClose": "关闭导航菜单"
   },
   "home": {
-    "role": "前端工程师",
-    "heroTitle": "这里有我做过的东西",
-    "heroSubtitle": "全栈工程师。热爱打造有温度、有生命力的数字体验。",
+    "role": "全栈工程师",
+    "heroTitle": "全栈的栈，也是栈桥的栈",
+    "heroSubtitle": "一头连着采集管线与事件去重，一头连着你眼前这块屏幕。中间那段路，我自己走完。",
     "readArticles": "阅读文章",
     "aboutMe": "关于我",
     "openSource": "开源项目",
@@ -309,6 +310,11 @@
       }
     },
     "projectsTitle": "精选开源项目",
+    "currentsTitle": "潮汐 · Currents",
+    "currentsSubtitle": "一个人做完的 AI 资讯产品，从采集到 Agent 接口",
+    "currentsBody": "每天自动采集十余家信源，AI 生成双语摘要与 0–100 评分；同一事件的多家报道自动合并去重，合并血缘可追溯；五个只读工具经 MCP 开放给你的 Agent。",
+    "currentsEnter": "进入潮汐",
+    "currentsAgent": "查看 Agent 接入",
     "labTeaser": "这些效果全部零依赖手写——GLSL、物理模拟、算法可视化",
     "enterLab": "进入船塢"
   },
@@ -340,13 +346,16 @@
     "allProjects": "浮標",
     "viewProject": "查看项目",
     "viewCode": "源码",
+    "currentsName": "潮汐 · Currents",
+    "currentsDesc": "端到端自建的 AI 资讯产品：采集管线、评分系统、事件层与 Agent 接口",
+    "currentsAgent": "了解 Agent 接入",
     "techStack": "技術棧",
     "launched": "上線日期"
   },
   "about": {
     "label": "关于我",
     "title": "岸",
-    "intro": "专注打造交互式、高性能、无障碍的网页体验。我相信优秀的界面是隐形的——它们自然、灵敏、有生命力。",
+    "intro": "全栈工程师。我更在意一件东西关掉之后还剩下什么——动画关掉，鼠标推开，三维起不来的时候。",
     "technicalStack": "技术栈",
     "experience": "工作经历",
     "getInTouch": "联系我",
@@ -358,19 +367,20 @@
     "opensInNewWindow": "新窗口打开",
     "skills": {
       "frontend": "前端",
+      "backend": "后端与数据",
       "ai": "AI 与集成",
       "engineering": "工程",
       "design": "设计"
     },
     "experiences": {
-      "role1Title": "前端工程师",
+      "role1Title": "全栈工程师",
       "role1Company": "构建 AI 原生产品",
       "role1Period": "2023 — 至今",
-      "role1Desc": "打造集成 AI 能力的高性能 Web 应用。专注流式界面、实时协作与精致的微交互。",
-      "role2Title": "全栈开发",
+      "role1Desc": "端到端交付 AI 原生产品：多信源采集与评分管线、事件层去重与合并血缘、带鉴权的 MCP 服务，以及它们前面的流式界面与微交互。",
+      "role2Title": "Web 开发",
       "role2Company": "Web 应用与工具",
       "role2Period": "2021 — 2023",
-      "role2Desc": "交付基于 React、Node.js 和云基础设施的生产系统。专注开发体验、组件架构与构建优化。"
+      "role2Desc": "交付基于 React、Node.js 与云基础设施的生产系统。专注组件架构、构建优化与开发体验。"
     },
     "radarTitle": "技能雷达",
     "activityTitle": "写作活跃度",
@@ -378,16 +388,17 @@
     "activityCount": "目前已发布 {count} 篇文章，文章库增长后会显示更多活动。",
     "radar": {
       "frontend": "前端",
+      "backend": "后端",
+      "pipelines": "数据与管线",
+      "aiEngineering": "AI 工程",
       "motion": "动效",
-      "ai": "AI",
-      "engineering": "工程",
       "design": "设计",
       "performance": "性能"
     }
   },
   "footer": {
     "builtWith": "使用 Next.js、React 和 Tailwind CSS 构建。",
-    "tagline": "用温度与生命力打造数字体验。",
+    "tagline": "做站，也写做站时出的错。",
     "navTitle": "导航",
     "subscribeTitle": "订阅",
     "externalTitle": "外部链接",
@@ -424,38 +435,46 @@
   "lab": {
     "title": "船塢",
     "subtitle": "从第一性原理出发的交互实验——WebGL shader、物理引擎、算法可视化，全部零依赖手写。",
+    "metaDescription": "六个从零手写的交互实验：WebGL shader、物理模拟、流场与算法可视化，零依赖。每个演示关掉三维之后，仍留有能读的静帧与说明。",
     "viewSource": "查看源码",
     "reducedMotion": "已按系统偏好停用动效",
     "webglUnavailable": "当前设备不支持 WebGL，展示静态预览",
+    "stillAlt": "{title}静帧：关掉三维之后仍能看懂这个演示在做什么",
     "demos": {
       "particles": {
         "title": "粒子系统",
-        "desc": "实时粒子模拟：数千粒子的鼠标斥力场与三维漂移，全部在 GPU 上完成",
+        "desc": "实时粒子模拟：数千粒子的鼠标斥力场与三维漂移，全部在 GPU 上完成。",
+        "layer": "手写了 GLSL 粒子更新与鼠标斥力，没有用 Three.js。",
         "tech": "WebGL · GLSL · 零依赖"
       },
       "shader": {
         "title": "Shader 调色台",
-        "desc": "实时 GLSL 噪声艺术：拖动滑杆调节色相、流速与湍流层数，每一帧都是实时计算",
+        "desc": "实时 GLSL 噪声艺术：拖动滑杆调节色相、流速与湍流层数，每一帧都是实时计算。",
+        "layer": "手写 FBM 噪声 fragment shader 与参数绑定。",
         "tech": "WebGL · FBM 噪声 · 零依赖"
       },
       "fluid": {
         "title": "流体模拟",
-        "desc": "自写 Navier-Stokes 求解器：ping-pong FBO、涡量约束、Jacobi 压力迭代——拖拽注入速度与染料",
+        "desc": "自写 Navier-Stokes 求解器：ping-pong FBO、涡量约束、Jacobi 压力迭代——拖拽注入速度与染料。",
+        "layer": "手写整条流体管线，没有现成的流体库。",
         "tech": "WebGL2 · GLSL · 零依赖"
       },
       "physics": {
         "title": "物理沙盒",
-        "desc": "Verlet 积分 + 空间哈希碰撞：点击生成小球、拖拽投掷、重力开关、弹性碰撞",
+        "desc": "Verlet 积分 + 空间哈希碰撞：点击生成小球、拖拽投掷、重力开关、弹性碰撞。",
+        "layer": "手写积分器与宽相碰撞，没有物理引擎。",
         "tech": "Canvas 2D · Verlet · 零依赖"
       },
       "flow": {
         "title": "流场粒子",
-        "desc": "Curl noise 无散度流场：2500 粒子长拖尾、鼠标吸引/排斥切换",
+        "desc": "Curl noise 无散度流场：2500 粒子长拖尾、鼠标吸引/排斥切换。",
+        "layer": "手写 curl noise 场与粒子拖尾，没有粒子库。",
         "tech": "Canvas 2D · Curl Noise · 零依赖"
       },
       "morph": {
         "title": "3D 形变",
-        "desc": "参数曲面 per-point morph：球→环面结→立方→波面，拖拽旋转、自动轮播",
+        "desc": "参数曲面 per-point morph：球→环面结→立方→波面，拖拽旋转、自动轮播。",
+        "layer": "手写参数曲面与 per-vertex morph，没有建模文件。",
         "tech": "WebGL · ogl · 零依赖"
       }
     }
