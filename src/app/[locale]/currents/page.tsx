@@ -1,10 +1,12 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { CurrentsClient } from "@/components/currents/CurrentsClient";
+import { CurrentsServerFeed } from "@/components/currents/CurrentsServerFeed";
 import { locales } from "@/i18n/config";
 import { pageJsonLd } from "@/lib/site-metadata";
 import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 import { safeJsonLd } from "@/lib/json-ld";
+import { serverFetchItems, serverFetchSources } from "@/lib/currents/api";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -25,10 +27,10 @@ export async function generateMetadata({
   });
 }
 
+export const revalidate = 300;
+
 /**
- * 潮汐 · Currents — SSG 静态壳 + 客户端数据岛（方案 13.2）。
- * 本文件保持纯 Server Component：不调用 cookies()/headers()/getLocale()，
- * 所有 API 数据获取都在 CurrentsClient（"use client"）中完成。
+ * 潮汐 · Currents — ISR 首屏直出前 20 条；筛选、密度、已读弱化仍由客户端接管。
  */
 export default async function CurrentsPage({
   params,
@@ -39,6 +41,19 @@ export default async function CurrentsPage({
   setRequestLocale(locale);
   const t = await getTranslations("currents");
   const tNav = await getTranslations("currentsNav");
+  const [itemsRes, sourcesRes] = await Promise.all([
+    serverFetchItems({ locale, view: "selected", limit: 20 }),
+    serverFetchSources(),
+  ]);
+  const initial =
+    itemsRes && itemsRes.items.length > 0
+      ? {
+          items: itemsRes.items,
+          nextCursor: itemsRes.nextCursor,
+          hasMore: itemsRes.hasMore,
+          sources: (sourcesRes?.sources ?? []).filter((s) => s.enabled !== false),
+        }
+      : null;
 
   return (
     <>
@@ -53,8 +68,12 @@ export default async function CurrentsPage({
         </p>
       </header>
 
-      {/* 数据岛：sticky toolbar + 时间线 + 阅读层 */}
-      <CurrentsClient />
+      {initial ? (
+        <CurrentsServerFeed locale={locale} items={initial.items} sources={initial.sources} />
+      ) : null}
+      <div className="currents-client-feed">
+        <CurrentsClient initial={initial} />
+      </div>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: safeJsonLd(pageJsonLd(locale, "currents")) }}

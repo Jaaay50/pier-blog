@@ -431,35 +431,42 @@
     "viewSource": "View Source",
     "reducedMotion": "Motion disabled per system preference",
     "webglUnavailable": "WebGL unavailable on this device, showing static preview",
+    "stillAlt": "Still of {title}: the demo remains readable with 3D off",
     "demos": {
       "particles": {
         "title": "Particle System",
-        "desc": "Real-time particle simulation: thousands of particles with mouse repulsion and 3D drift, all on the GPU",
+        "desc": "Real-time particle simulation: thousands of particles with mouse repulsion and 3D drift, all on the GPU.",
+        "layer": "The GPU update step and mouse repulsion are hand-written. No Three.js.",
         "tech": "WebGL · GLSL · 0 deps"
       },
       "shader": {
         "title": "Shader Mixer",
-        "desc": "Live GLSL noise art: drag sliders to tune hue, flow speed and turbulence octaves — every frame computed in real time",
+        "desc": "Live GLSL noise art: drag sliders to tune hue, flow speed and turbulence octaves — every frame computed in real time.",
+        "layer": "The FBM noise fragment shader and uniform binding are hand-written.",
         "tech": "WebGL · FBM Noise · 0 deps"
       },
       "fluid": {
         "title": "Fluid Simulation",
-        "desc": "Hand-written Navier-Stokes solver: ping-pong FBO, vorticity confinement, Jacobi pressure iterations — drag to inject velocity & dye",
+        "desc": "Hand-written Navier-Stokes solver: ping-pong FBO, vorticity confinement, Jacobi pressure iterations — drag to inject velocity & dye.",
+        "layer": "The full fluid pipeline is hand-written. No off-the-shelf fluid library.",
         "tech": "WebGL2 · GLSL · 0 deps"
       },
       "physics": {
         "title": "Physics Sandbox",
-        "desc": "Verlet integration + spatial hash collision: click to spawn balls, drag to throw, gravity toggle, elastic collisions",
+        "desc": "Verlet integration + spatial hash collision: click to spawn balls, drag to throw, gravity toggle, elastic collisions.",
+        "layer": "The integrator and broad-phase collision are hand-written. No physics engine.",
         "tech": "Canvas 2D · Verlet · 0 deps"
       },
       "flow": {
         "title": "Flow Field Particles",
-        "desc": "Curl noise divergence-free flow: 2500 particles with long trails, mouse attract/repel toggle",
+        "desc": "Curl noise divergence-free flow: 2500 particles with long trails, mouse attract/repel toggle.",
+        "layer": "The curl-noise field and trail integration are hand-written. No particle library.",
         "tech": "Canvas 2D · Curl Noise · 0 deps"
       },
       "morph": {
         "title": "3D Morph",
-        "desc": "Parametric surface per-point morph: sphere→torus→cube→wave, drag to rotate, auto-cycle",
+        "desc": "Parametric surface per-point morph: sphere→torus→cube→wave, drag to rotate, auto-cycle.",
+        "layer": "The parametric surface and per-vertex morph are hand-written. No model files.",
         "tech": "WebGL · ogl · 0 deps"
       }
     }

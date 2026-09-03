@@ -1570,6 +1570,17 @@ html[data-particles-ready] .hero-title-ssr {
   }
 }
 
+/* Currents 首屏：无脚本看服务端列表；水合后交给客户端时间线 */
+.currents-client-feed {
+  display: none;
+}
+html.currents-hydrated .currents-ssr-feed {
+  display: none;
+}
+html.currents-hydrated .currents-client-feed {
+  display: block;
+}
+
 /* ============================================
    潮汐 · Currents（Phase 4）
    ============================================ */

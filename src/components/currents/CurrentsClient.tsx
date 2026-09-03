@@ -20,6 +20,13 @@ import { CurrentsError } from "./CurrentsError";
 
 const PAGE_SIZE = 20;
 
+export interface CurrentsInitialData {
+  items: CurrentsListItem[];
+  nextCursor: string | null;
+  hasMore: boolean;
+  sources: CurrentsSource[];
+}
+
 interface ListState {
   status: "loading" | "ok" | "error";
   items: CurrentsListItem[];
@@ -76,7 +83,7 @@ function listReducer(state: ListState, action: ListAction): ListState {
   }
 }
 
-function CurrentsClientInner() {
+function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null }) {
   const t = useTranslations("currents");
   const locale = useLocale();
   const router = useRouter();
@@ -95,10 +102,35 @@ function CurrentsClientInner() {
   const favoritesOnly = searchParams.get("favorites") === "1";
   const favorites = useFavorites();
   const density = useDensity();
-  const [sources, setSources] = useState<CurrentsSource[]>([]);
-  const [sourceMap, setSourceMap] = useState<Map<string, CurrentsSource>>(new Map());
-  const [list, dispatch] = useReducer(listReducer, initialListState);
+  const isDefaultView =
+    view === "selected" &&
+    category === "all" &&
+    query === "" &&
+    source === "" &&
+    minScore === "";
+  const ssrItems = initial?.items ?? [];
+  const useSsrFirstPaint = ssrItems.length > 0 && isDefaultView;
+  const [sources, setSources] = useState<CurrentsSource[]>(() => initial?.sources ?? []);
+  const [sourceMap, setSourceMap] = useState<Map<string, CurrentsSource>>(
+    () => new Map((initial?.sources ?? []).map((s) => [s.id, s])),
+  );
+  const [list, dispatch] = useReducer(
+    listReducer,
+    useSsrFirstPaint
+      ? {
+          status: "ok",
+          items: ssrItems,
+          nextCursor: initial?.nextCursor ?? null,
+          hasMore: initial?.hasMore ?? false,
+          loadingMore: false,
+          loadMoreError: false,
+        }
+      : initialListState,
+  );
   const [retryCount, setRetryCount] = useState(0);
+  const ssrFilterKeyRef = useRef(
+    useSsrFirstPaint ? `${locale}|selected|all|||` : null,
+  );
 
   // 旧链接兼容：/currents?item=<id> → /currents/<id>（客户端兜底，首帧执行）
   useEffect(() => {
@@ -150,6 +182,11 @@ function CurrentsClientInner() {
 
   // ---- 首屏 / 筛选变化加载 ----
   useEffect(() => {
+    const keyWithoutRetry = `${locale}|${view}|${category}|${query}|${source}|${minScore}`;
+    if (ssrFilterKeyRef.current === keyWithoutRetry && retryCount === 0) {
+      return;
+    }
+
     const seq = ++requestSeqRef.current;
     const controller = new AbortController();
     autoLoadPausedRef.current = false;
@@ -303,11 +340,22 @@ function CurrentsClientInner() {
   );
 }
 
+function CurrentsHydrationFlag() {
+  useEffect(() => {
+    document.documentElement.classList.add("currents-hydrated");
+    return () => document.documentElement.classList.remove("currents-hydrated");
+  }, []);
+  return null;
+}
+
 /** useSearchParams 需要 Suspense 边界以保持页面 SSG */
-export function CurrentsClient() {
+export function CurrentsClient({ initial }: { initial?: CurrentsInitialData | null } = {}) {
   return (
-    <Suspense fallback={<div className="px-6 py-10"><CurrentsSkeleton /></div>}>
-      <CurrentsClientInner />
-    </Suspense>
+    <>
+      <CurrentsHydrationFlag />
+      <Suspense fallback={<div className="px-6 py-10"><CurrentsSkeleton /></div>}>
+        <CurrentsClientInner initial={initial} />
+      </Suspense>
+    </>
   );
 }

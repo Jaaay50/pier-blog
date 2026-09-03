@@ -2,7 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
-import { LabClientContent } from "@/components/lab/LabClientContent";
+import { LabGallery } from "@/components/lab/LabGallery";
 import { locales } from "@/i18n/config";
 import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 
@@ -46,7 +46,7 @@ export default async function LabPage({
             {t("subtitle")}
           </p>
         </header>
-        <LabClientContent />
+        <LabGallery />
       </div>
       <SiteFooter />
     </main>

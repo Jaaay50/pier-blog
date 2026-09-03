@@ -68,6 +68,16 @@ export default async function AboutPage({
     },
   ];
 
+  const radarAxes = [
+    { label: t("radar.frontend"), value: 92 },
+    { label: t("radar.backend"), value: 84 },
+    { label: t("radar.pipelines"), value: 90 },
+    { label: t("radar.aiEngineering"), value: 82 },
+    { label: t("radar.motion"), value: 88 },
+    { label: t("radar.design"), value: 75 },
+    { label: t("radar.performance"), value: 86 },
+  ];
+
   const experiences = [
     {
       title: t("experiences.role1Title"),
@@ -161,17 +171,15 @@ export default async function AboutPage({
               <h2 className="mb-6 text-2xl font-bold tracking-tight">
                 {t("radarTitle")}
               </h2>
-              <SkillRadar
-                axes={[
-                  { label: t("radar.frontend"), value: 92 },
-                  { label: t("radar.backend"), value: 84 },
-                  { label: t("radar.pipelines"), value: 90 },
-                  { label: t("radar.aiEngineering"), value: 82 },
-                  { label: t("radar.motion"), value: 88 },
-                  { label: t("radar.design"), value: 75 },
-                  { label: t("radar.performance"), value: 86 },
-                ]}
-              />
+              <SkillRadar axes={radarAxes} />
+              <dl className="sr-only">
+                {radarAxes.map((axis) => (
+                  <div key={axis.label}>
+                    <dt>{axis.label}</dt>
+                    <dd>{axis.value}</dd>
+                  </div>
+                ))}
+              </dl>
             </div>
             <div className="min-w-0">
               <h2 className="mb-6 text-2xl font-bold tracking-tight">
@@ -182,6 +190,14 @@ export default async function AboutPage({
                 emptyMessage={t("activityEmpty")}
                 countMessage={t("activityCount", { count: posts.length })}
               />
+              <ol className="sr-only">
+                {posts.map((post) => (
+                  <li key={post.slug}>
+                    <time dateTime={post.date}>{post.date}</time>
+                    {post.title}
+                  </li>
+                ))}
+              </ol>
             </div>
           </div>
         </div>

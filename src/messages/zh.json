@@ -431,35 +431,42 @@
     "viewSource": "查看源码",
     "reducedMotion": "已按系统偏好停用动效",
     "webglUnavailable": "当前设备不支持 WebGL，展示静态预览",
+    "stillAlt": "{title}静帧：关掉三维之后仍能看懂这个演示在做什么",
     "demos": {
       "particles": {
         "title": "粒子系统",
-        "desc": "实时粒子模拟：数千粒子的鼠标斥力场与三维漂移，全部在 GPU 上完成",
+        "desc": "实时粒子模拟：数千粒子的鼠标斥力场与三维漂移，全部在 GPU 上完成。",
+        "layer": "手写了 GLSL 粒子更新与鼠标斥力，没有用 Three.js。",
         "tech": "WebGL · GLSL · 零依赖"
       },
       "shader": {
         "title": "Shader 调色台",
-        "desc": "实时 GLSL 噪声艺术：拖动滑杆调节色相、流速与湍流层数，每一帧都是实时计算",
+        "desc": "实时 GLSL 噪声艺术：拖动滑杆调节色相、流速与湍流层数，每一帧都是实时计算。",
+        "layer": "手写 FBM 噪声 fragment shader 与参数绑定。",
         "tech": "WebGL · FBM 噪声 · 零依赖"
       },
       "fluid": {
         "title": "流体模拟",
-        "desc": "自写 Navier-Stokes 求解器：ping-pong FBO、涡量约束、Jacobi 压力迭代——拖拽注入速度与染料",
+        "desc": "自写 Navier-Stokes 求解器：ping-pong FBO、涡量约束、Jacobi 压力迭代——拖拽注入速度与染料。",
+        "layer": "手写整条流体管线，没有现成的流体库。",
         "tech": "WebGL2 · GLSL · 零依赖"
       },
       "physics": {
         "title": "物理沙盒",
-        "desc": "Verlet 积分 + 空间哈希碰撞：点击生成小球、拖拽投掷、重力开关、弹性碰撞",
+        "desc": "Verlet 积分 + 空间哈希碰撞：点击生成小球、拖拽投掷、重力开关、弹性碰撞。",
+        "layer": "手写积分器与宽相碰撞，没有物理引擎。",
         "tech": "Canvas 2D · Verlet · 零依赖"
       },
       "flow": {
         "title": "流场粒子",
-        "desc": "Curl noise 无散度流场：2500 粒子长拖尾、鼠标吸引/排斥切换",
+        "desc": "Curl noise 无散度流场：2500 粒子长拖尾、鼠标吸引/排斥切换。",
+        "layer": "手写 curl noise 场与粒子拖尾，没有粒子库。",
         "tech": "Canvas 2D · Curl Noise · 零依赖"
       },
       "morph": {
         "title": "3D 形变",
-        "desc": "参数曲面 per-point morph：球→环面结→立方→波面，拖拽旋转、自动轮播",
+        "desc": "参数曲面 per-point morph：球→环面结→立方→波面，拖拽旋转、自动轮播。",
+        "layer": "手写参数曲面与 per-vertex morph，没有建模文件。",
         "tech": "WebGL · ogl · 零依赖"
       }
     }
