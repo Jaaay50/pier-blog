@@ -37,12 +37,30 @@ export default async function AboutPage({
       items: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Three.js", "Framer Motion"],
     },
     {
+      category: t("skills.backend"),
+      items: [
+        "Node.js",
+        "Python",
+        locale === "zh" ? "API 设计" : "API Design",
+        locale === "zh" ? "数据管线" : "Data Pipelines",
+        locale === "zh" ? "调度与任务" : "Scheduling",
+        locale === "zh" ? "存储与检索" : "Storage & Retrieval",
+        locale === "zh" ? "全文搜索" : "Full-Text Search",
+        locale === "zh" ? "MCP 服务与鉴权" : "MCP Services & Auth",
+      ],
+    },
+    {
       category: t("skills.ai"),
       items: ["LLM APIs", "Streaming", "RAG", "Agent Systems", "Prompt Engineering"],
     },
     {
       category: t("skills.engineering"),
-      items: ["System Design", "Performance Optimization", "CI/CD", "Node.js", "Python"],
+      items: [
+        "System Design",
+        "Performance Optimization",
+        "CI/CD",
+        locale === "zh" ? "可观测性" : "Observability",
+      ],
     },
     {
       category: t("skills.design"),
@@ -146,9 +164,10 @@ export default async function AboutPage({
               <SkillRadar
                 axes={[
                   { label: t("radar.frontend"), value: 92 },
+                  { label: t("radar.backend"), value: 84 },
+                  { label: t("radar.pipelines"), value: 90 },
+                  { label: t("radar.aiEngineering"), value: 82 },
                   { label: t("radar.motion"), value: 88 },
-                  { label: t("radar.ai"), value: 80 },
-                  { label: t("radar.engineering"), value: 85 },
                   { label: t("radar.design"), value: 75 },
                   { label: t("radar.performance"), value: 86 },
                 ]}

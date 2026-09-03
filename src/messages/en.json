@@ -359,6 +359,7 @@
     "opensInNewWindow": "opens in a new window",
     "skills": {
       "frontend": "Frontend",
+      "backend": "Backend & Data",
       "ai": "AI & Integration",
       "engineering": "Engineering",
       "design": "Design"
@@ -379,9 +380,10 @@
     "activityCount": "{count} articles published so far. More activity will appear as the archive grows.",
     "radar": {
       "frontend": "Frontend",
+      "backend": "Backend",
+      "pipelines": "Data & Pipelines",
+      "aiEngineering": "AI Engineering",
       "motion": "Motion",
-      "ai": "AI",
-      "engineering": "Engineering",
       "design": "Design",
       "performance": "Performance"
     }

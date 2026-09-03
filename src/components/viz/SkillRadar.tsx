@@ -43,8 +43,9 @@ export function SkillRadar({ axes, size = 320, className = "" }: SkillRadarProps
 
   const cx = size / 2;
   const cy = size / 2;
-  const radius = size * 0.36;
+  const radius = size * 0.34;
   const n = axes.length;
+  const pad = Math.max(36, size * 0.16);
 
   /** 第 i 轴、比例 t（0-1）处的坐标；从正上方起顺时针 */
   const point = (i: number, t: number) => {
@@ -63,7 +64,7 @@ export function SkillRadar({ axes, size = 320, className = "" }: SkillRadarProps
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <svg
-        viewBox={`0 0 ${size} ${size}`}
+        viewBox={`${-pad} ${-pad} ${size + pad * 2} ${size + pad * 2}`}
         className="h-auto w-full"
         role="img"
         aria-label={`Skill radar: ${axes
@@ -140,17 +141,24 @@ export function SkillRadar({ axes, size = 320, className = "" }: SkillRadarProps
           />
         ))}
 
-        {/* 轴标签 */}
+        {/* 轴标签：按象限改锚点，七轴时长标签（数据与管线 / Data & Pipelines）不互相重叠 */}
         {axes.map((a, i) => {
-          const p = point(i, 1.22);
+          const p = point(i, 1.28);
+          const dx = p.x - cx;
+          const dy = p.y - cy;
+          const textAnchor = dx > 10 ? "start" : dx < -10 ? "end" : "middle";
+          const y = dy > 12 ? p.y + 6 : dy < -12 ? p.y - 4 : p.y;
+          const longLabel = a.label.length > 6;
           return (
             <text
               key={a.label}
               x={p.x}
-              y={p.y}
-              textAnchor="middle"
+              y={y}
+              textAnchor={textAnchor}
               dominantBaseline="middle"
-              className="fill-[var(--text-secondary)] text-[11px] font-medium"
+              className={`fill-[var(--text-secondary)] font-medium ${
+                longLabel ? "text-[10px]" : "text-[11px]"
+              }`}
             >
               {a.label}
             </text>

@@ -359,6 +359,7 @@
     "opensInNewWindow": "新窗口打开",
     "skills": {
       "frontend": "前端",
+      "backend": "后端与数据",
       "ai": "AI 与集成",
       "engineering": "工程",
       "design": "设计"
@@ -379,9 +380,10 @@
     "activityCount": "目前已发布 {count} 篇文章，文章库增长后会显示更多活动。",
     "radar": {
       "frontend": "前端",
+      "backend": "后端",
+      "pipelines": "数据与管线",
+      "aiEngineering": "AI 工程",
       "motion": "动效",
-      "ai": "AI",
-      "engineering": "工程",
       "design": "设计",
       "performance": "性能"
     }
