@@ -6,9 +6,9 @@ import { LabGallery } from "./LabGallery";
 
 vi.mock("next-intl/server", () => ({
   getTranslations: vi.fn(async () => {
-    const t = (key: string, values?: { title?: string }) => {
-      if (key === "stillAlt") return `${values?.title ?? ""} still`;
+    const t = (key: string) => {
       const parts = key.split(".");
+      if (parts[2] === "stillAlt") return `${parts[1]}-alt`;
       return parts[parts.length - 1];
     };
     return t;
@@ -31,5 +31,15 @@ describe("LabGallery", () => {
     }
     expect(screen.getAllByText("layer")).toHaveLength(6);
     expect(screen.getAllByText("title")).toHaveLength(6);
+    const alts = images.map((img) => img.getAttribute("alt"));
+    expect(alts).toEqual([
+      "fluid-alt",
+      "physics-alt",
+      "flow-alt",
+      "particles-alt",
+      "morph-alt",
+      "shader-alt",
+    ]);
+    expect(new Set(alts).size).toBe(6);
   });
 });

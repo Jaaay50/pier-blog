@@ -2,7 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { CurrentsHotClient } from "@/components/currents/CurrentsHotClient";
 import { locales } from "@/i18n/config";
-import { pageMetadata } from "@/lib/metadata";
+import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -16,9 +16,10 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "currents" });
   return pageMetadata(locale, {
-    title: `${t("hotTitle")} — ${t("title")}`,
+    title: t("hotTitle"),
     description: t("hotSubtitle"),
     path: "/currents/hot",
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

@@ -5,7 +5,7 @@ import { isValidCurrentsResourceId, serverFetchItemDetail, serverFetchSources } 
 import { safeJsonLd } from "@/lib/json-ld";
 import { renderMarkdown } from "@/lib/currents/markdown";
 import { CurrentsDetailBody } from "@/components/currents/CurrentsDetailBody";
-import { SITE_URL, pageMetadata } from "@/lib/metadata";
+import { SITE_URL, currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -45,6 +45,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     type: "article",
     publishedTime: item.publishedAt ?? undefined,
     tags: item.tags ?? undefined,
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

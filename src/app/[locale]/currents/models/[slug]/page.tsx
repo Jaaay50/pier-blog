@@ -11,7 +11,7 @@ import {
 } from "@/lib/currents/models-types";
 import { TransitionLink } from "@/components/TransitionLink";
 import { ModelTopicLink } from "@/components/currents/ModelTopicLink";
-import { pageMetadata } from "@/lib/metadata";
+import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
@@ -36,6 +36,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     title: `${detail.model.name} — ${t("modelsTitle")}`,
     description: t("modelsDetailDescription", { name: detail.model.name, vendor: detail.model.vendor }),
     path: `/currents/models/${slug}`,
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

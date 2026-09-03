@@ -26,13 +26,19 @@ function normalizePath(path: string): string {
 }
 
 /**
- * title 不含 " — Pier" 后缀，由本函数统一加。
- * 已是 "Pier — …" 或已以 " — Pier" 结尾的绝对标题不再叠加。
+ * title 不含站点后缀，由本函数统一加。
+ * 默认 " — Pier"；潮汐子页可覆写为 "潮汐 · Currents" / "Currents"。
+ * 已是 "Pier — …" 或已以该后缀结尾的绝对标题不再叠加。
  */
-export function formatPageTitle(title: string): string {
+export function formatPageTitle(title: string, suffix = "Pier"): string {
   const trimmed = title.trim();
-  if (trimmed.startsWith("Pier — ") || trimmed.endsWith(" — Pier")) return trimmed;
-  return `${trimmed} — Pier`;
+  const mark = ` — ${suffix}`;
+  if (trimmed.startsWith("Pier — ") || trimmed.endsWith(mark)) return trimmed;
+  return `${trimmed}${mark}`;
+}
+
+export function currentsTitleSuffix(locale: string): string {
+  return asSiteLocale(locale) === "zh" ? "潮汐 · Currents" : "Currents";
 }
 
 export function buildMetadata(opts: {
@@ -45,12 +51,13 @@ export function buildMetadata(opts: {
   publishedTime?: string;
   modifiedTime?: string;
   tags?: string[];
+  titleSuffix?: string;
 }): Metadata {
   const { locale, title, description, image, type = "website" } = opts;
   const path = normalizePath(opts.path);
   const url = `${SITE_URL}/${locale}${path}`;
   const ogImage = image ?? `${SITE_URL}/og?type=site`;
-  const fullTitle = formatPageTitle(title);
+  const fullTitle = formatPageTitle(title, opts.titleSuffix ?? "Pier");
 
   return {
     title: fullTitle,

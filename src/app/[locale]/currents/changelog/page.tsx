@@ -4,7 +4,7 @@ import { Waterline } from "@/components/Waterline";
 import { TransitionLink } from "@/components/TransitionLink";
 import { locales } from "@/i18n/config";
 import { changelogEntries, type ChangelogItemType } from "@/lib/currents/changelog";
-import { ogCardUrl, pageMetadata } from "@/lib/metadata";
+import { currentsTitleSuffix, ogCardUrl, pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -23,6 +23,7 @@ export async function generateMetadata({
     path: "/currents/changelog",
     type: "article",
     image: ogCardUrl("currents", locale),
+    titleSuffix: currentsTitleSuffix(locale),
   });
 }
 

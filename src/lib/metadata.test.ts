@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { SITE_URL, buildMetadata, formatPageTitle, ogCardUrl, pageMetadata } from "./metadata";
+import {
+  SITE_URL,
+  buildMetadata,
+  currentsTitleSuffix,
+  formatPageTitle,
+  ogCardUrl,
+  pageMetadata,
+} from "./metadata";
 
 describe("formatPageTitle", () => {
   it("appends the Pier suffix once", () => {
@@ -7,6 +14,17 @@ describe("formatPageTitle", () => {
     expect(formatPageTitle("Lab — Pier")).toBe("Lab — Pier");
     expect(formatPageTitle("Pier — Full-Stack Engineer · AI-Native Products")).toBe(
       "Pier — Full-Stack Engineer · AI-Native Products",
+    );
+  });
+
+  it("accepts a currents brand suffix without stacking Pier", () => {
+    expect(formatPageTitle("更新日志", "潮汐 · Currents")).toBe("更新日志 — 潮汐 · Currents");
+    expect(formatPageTitle("Changelog", "Currents")).toBe("Changelog — Currents");
+    expect(formatPageTitle("更新日志 — 潮汐 · Currents", "潮汐 · Currents")).toBe(
+      "更新日志 — 潮汐 · Currents",
+    );
+    expect(formatPageTitle("Pier — 全栈工程师 · AI 原生产品", "潮汐 · Currents")).toBe(
+      "Pier — 全栈工程师 · AI 原生产品",
     );
   });
 });
@@ -100,5 +118,27 @@ describe("buildMetadata", () => {
     const meta = pageMetadata("fr", { title: "Lab", description: "x", path: "/lab" });
     expect(meta.alternates?.canonical).toBe(`${SITE_URL}/en/lab`);
     expect(meta.openGraph).toMatchObject({ locale: "en_US" });
+  });
+
+  it("titleSuffix restores the Currents brand on changelog without touching default Pier pages", () => {
+    const changelog = buildMetadata({
+      locale: "zh",
+      title: "更新日志",
+      description: "x",
+      path: "/currents/changelog",
+      titleSuffix: currentsTitleSuffix("zh"),
+    });
+    expect(changelog.title).toBe("更新日志 — 潮汐 · Currents");
+    expect(changelog.openGraph).toMatchObject({ title: "更新日志 — 潮汐 · Currents" });
+    expect(changelog.twitter).toMatchObject({ title: "更新日志 — 潮汐 · Currents" });
+
+    const lab = buildMetadata({
+      locale: "zh",
+      title: "船塢",
+      description: "x",
+      path: "/lab",
+    });
+    expect(lab.title).toBe("船塢 — Pier");
+    expect(currentsTitleSuffix("en")).toBe("Currents");
   });
 });
