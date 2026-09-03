@@ -8,13 +8,13 @@ const localeCopy = {
     site: "Pier",
     homeTitle: "Pier — Full-Stack Engineer · AI-Native Products",
     homeDescription:
-      "Frontend engineering, AI-native products, interaction design, and the craft of building for the web.",
+      "Full-stack engineering, AI-native products, data pipelines, and the craft of building for the web.",
     aboutTitle: "About Me",
     aboutDescription:
-      "About Ethan Pier: frontend engineering, AI-native products, performance, accessibility, and interaction design.",
+      "About Ethan Pier: full-stack engineering, AI-native products, data pipelines, performance, and accessibility.",
     portfolioTitle: "Portfolio",
     portfolioDescription:
-      "Selected products and open-source tools by Ethan Pier, spanning frontend engineering, AI workflows, and developer tooling.",
+      "Selected products and open-source tools by Ethan Pier, spanning AI products, full-stack engineering, data pipelines, and developer tooling.",
     blogTitle: "Tides",
     blogDescription:
       "Notes on work, interfaces, waiting, and writing.",
@@ -26,13 +26,13 @@ const localeCopy = {
     site: "Pier",
     homeTitle: "Pier — 全栈工程师 · AI 原生产品",
     homeDescription:
-      "记录 AI 原生产品、前端工程、交互设计与 Web 构建实践的个人博客与作品集。",
+      "记录 AI 原生产品、全栈工程、数据管线与 Web 构建实践的个人博客与作品集。",
     aboutTitle: "关于我",
     aboutDescription:
-      "Ethan Pier 的个人介绍：前端工程、AI 原生产品、性能优化、无障碍与交互设计。",
+      "Ethan Pier 的个人介绍：全栈工程、AI 原生产品、数据管线、性能优化与无障碍。",
     portfolioTitle: "作品集",
     portfolioDescription:
-      "Ethan Pier 的精选作品与开源工具，涵盖前端工程、AI 工作流与开发者工具。",
+      "Ethan Pier 的精选作品与开源工具，涵盖 AI 产品、全栈工程、数据管线与开发者工具。",
     blogTitle: "潮聲",
     blogDescription:
       "一些关于工作、界面、等待和写作的观察。",
@@ -105,7 +105,7 @@ export function pageJsonLd(locale: string, kind: JsonLdKind) {
     "@type": "Person",
     name: "Ethan Pier",
     url: SITE_URL,
-    jobTitle: "Frontend Engineer",
+    jobTitle: "Full-Stack Engineer",
     sameAs: ["https://github.com/Jia-Ethan"],
   };
 

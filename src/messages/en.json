@@ -278,7 +278,7 @@
     "menuClose": "Close navigation menu"
   },
   "home": {
-    "role": "Frontend Engineer",
+    "role": "Full-Stack Engineer",
     "heroTitle": "Here's what I've built",
     "heroSubtitle": "Full-stack engineer. Building digital experiences with warmth and vitality.",
     "readArticles": "Read Articles",
@@ -346,7 +346,7 @@
   "about": {
     "label": "About Me",
     "title": "Ashore",
-    "intro": "Frontend engineer focused on crafting interactive, performant, and accessible web experiences. I believe great interfaces are invisible — they feel natural, responsive, and alive.",
+    "intro": "Full-stack engineer. What interests me most is what's left when you turn a thing off — the animation, the mouse, the 3D that never starts.",
     "technicalStack": "Technical Stack",
     "experience": "Experience",
     "getInTouch": "Get in Touch",
@@ -363,14 +363,14 @@
       "design": "Design"
     },
     "experiences": {
-      "role1Title": "Frontend Engineer",
+      "role1Title": "Full-Stack Engineer",
       "role1Company": "Building AI-native products",
       "role1Period": "2023 — Present",
-      "role1Desc": "Crafting high-performance web applications that integrate AI capabilities. Focus on streaming interfaces, real-time collaboration, and delightful micro-interactions.",
-      "role2Title": "Full-Stack Developer",
+      "role1Desc": "End-to-end delivery of AI-native products: multi-source ingestion and scoring pipelines, event-level deduplication with traceable merge lineage, authenticated MCP services, and the streaming interfaces in front of them.",
+      "role2Title": "Web Developer",
       "role2Company": "Web Applications & Tooling",
       "role2Period": "2021 — 2023",
-      "role2Desc": "Delivered production systems with React, Node.js, and cloud infrastructure. Focused on developer experience, component architecture, and build optimization."
+      "role2Desc": "Delivered production systems with React, Node.js, and cloud infrastructure. Focused on component architecture, build optimization, and developer experience."
     },
     "radarTitle": "Skill Radar",
     "activityTitle": "Writing Activity",

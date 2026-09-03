@@ -278,7 +278,7 @@
     "menuClose": "关闭导航菜单"
   },
   "home": {
-    "role": "前端工程师",
+    "role": "全栈工程师",
     "heroTitle": "这里有我做过的东西",
     "heroSubtitle": "全栈工程师。热爱打造有温度、有生命力的数字体验。",
     "readArticles": "阅读文章",
@@ -346,7 +346,7 @@
   "about": {
     "label": "关于我",
     "title": "岸",
-    "intro": "专注打造交互式、高性能、无障碍的网页体验。我相信优秀的界面是隐形的——它们自然、灵敏、有生命力。",
+    "intro": "全栈工程师。我更在意一件东西关掉之后还剩下什么——动画关掉，鼠标推开，三维起不来的时候。",
     "technicalStack": "技术栈",
     "experience": "工作经历",
     "getInTouch": "联系我",
@@ -363,14 +363,14 @@
       "design": "设计"
     },
     "experiences": {
-      "role1Title": "前端工程师",
+      "role1Title": "全栈工程师",
       "role1Company": "构建 AI 原生产品",
       "role1Period": "2023 — 至今",
-      "role1Desc": "打造集成 AI 能力的高性能 Web 应用。专注流式界面、实时协作与精致的微交互。",
-      "role2Title": "全栈开发",
+      "role1Desc": "端到端交付 AI 原生产品：多信源采集与评分管线、事件层去重与合并血缘、带鉴权的 MCP 服务，以及它们前面的流式界面与微交互。",
+      "role2Title": "Web 开发",
       "role2Company": "Web 应用与工具",
       "role2Period": "2021 — 2023",
-      "role2Desc": "交付基于 React、Node.js 和云基础设施的生产系统。专注开发体验、组件架构与构建优化。"
+      "role2Desc": "交付基于 React、Node.js 与云基础设施的生产系统。专注组件架构、构建优化与开发体验。"
     },
     "radarTitle": "技能雷达",
     "activityTitle": "写作活跃度",

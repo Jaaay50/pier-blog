@@ -69,4 +69,13 @@ describe("pageJsonLd", () => {
       inLanguage: "zh-CN",
     });
   });
+
+  it("describes Ethan as a full-stack engineer", () => {
+    expect(pageJsonLd("en", "home")).toMatchObject({
+      author: { jobTitle: "Full-Stack Engineer" },
+    });
+    expect(localizedMetadata("zh", "home").description).toContain("全栈工程");
+    expect(localizedMetadata("en", "about").description).toContain("full-stack engineering");
+    expect(localizedMetadata("zh", "portfolio").description).toContain("数据管线");
+  });
 });
