@@ -279,8 +279,8 @@
   },
   "home": {
     "role": "全栈工程师",
-    "heroTitle": "这里有我做过的东西",
-    "heroSubtitle": "全栈工程师。热爱打造有温度、有生命力的数字体验。",
+    "heroTitle": "全栈的栈，也是栈桥的栈",
+    "heroSubtitle": "一头连着采集管线与事件去重，一头连着你眼前这块屏幕。中间那段路，我自己走完。",
     "readArticles": "阅读文章",
     "aboutMe": "关于我",
     "openSource": "开源项目",
@@ -387,7 +387,7 @@
   },
   "footer": {
     "builtWith": "使用 Next.js、React 和 Tailwind CSS 构建。",
-    "tagline": "用温度与生命力打造数字体验。",
+    "tagline": "做站，也写做站时出的错。",
     "navTitle": "导航",
     "subscribeTitle": "订阅",
     "externalTitle": "外部链接",

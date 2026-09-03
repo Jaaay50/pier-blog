@@ -279,8 +279,8 @@
   },
   "home": {
     "role": "Full-Stack Engineer",
-    "heroTitle": "Here's what I've built",
-    "heroSubtitle": "Full-stack engineer. Building digital experiences with warmth and vitality.",
+    "heroTitle": "A pier has to hold at both ends",
+    "heroSubtitle": "Full-stack engineer. Ingestion pipelines and event dedup on one end; on the other, an interface that still reads with the animation off.",
     "readArticles": "Read Articles",
     "aboutMe": "About Me",
     "openSource": "Open Source",
@@ -387,7 +387,7 @@
   },
   "footer": {
     "builtWith": "Built with Next.js, React, and Tailwind CSS.",
-    "tagline": "Building digital experiences with warmth and vitality.",
+    "tagline": "I build things, and write down what I got wrong.",
     "navTitle": "Navigation",
     "subscribeTitle": "Subscribe",
     "externalTitle": "External links",
