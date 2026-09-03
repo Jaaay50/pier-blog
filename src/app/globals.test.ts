@@ -41,6 +41,14 @@ describe("hero ambient seam", () => {
   });
 });
 
+describe("hero CJK title punctuation", () => {
+  it("halves the fullwidth comma box so the mark sits between neighboring glyphs", () => {
+    expect(css).toMatch(
+      /\.hero-cjk-punct\s*\{[^}]*width:\s*0\.5em;[^}]*min-width:\s*0;/,
+    );
+  });
+});
+
 describe("article TOC", () => {
   it("hides the mobile TOC on desktop so accessible names are not duplicated", () => {
     expect(css).toMatch(

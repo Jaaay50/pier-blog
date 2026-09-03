@@ -66,11 +66,28 @@ describe("ImmersiveHero", () => {
     const h1 = document.querySelector("h1");
     expect(h1?.getAttribute("aria-label")).toBe(title);
     expect(h1?.outerHTML.match(/A pier has to hold/g)).toHaveLength(1);
+    expect(h1?.querySelector(".hero-cjk-punct")).toBeNull();
   });
 
   it("defaults to the Chinese pun when no title prop is passed", () => {
     render(<ImmersiveHero subtitle="副标题" />);
     const h1 = document.querySelector("h1");
     expect(h1?.getAttribute("aria-label")).toBe("全栈的栈，也是栈桥的栈");
+  });
+
+  it("marks the fullwidth comma so CSS can center it between neighboring glyphs", () => {
+    render(<ImmersiveHero subtitle="副标题" />);
+    const punct = document.querySelector(".hero-cjk-punct");
+    expect(punct?.textContent).toBe("，");
+    expect(document.querySelectorAll(".hero-cjk-punct")).toHaveLength(1);
+  });
+
+  it("gives the Chinese subtitle a line long enough to stay on one row", () => {
+    render(
+      <ImmersiveHero subtitle="一头连着采集管线与事件去重，一头连着你眼前这块屏幕。中间那段路，我自己走完。" />,
+    );
+    const wrap = document.querySelector(".hero-subtitle");
+    expect(wrap?.className).toContain("max-w-[52rem]");
+    expect(wrap?.className).not.toContain("max-w-2xl");
   });
 });

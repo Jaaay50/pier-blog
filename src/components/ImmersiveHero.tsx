@@ -34,6 +34,8 @@ interface ImmersiveHeroProps {
 const STACK_PUN_TITLE = "全栈的栈，也是栈桥的栈";
 const EN_TITLE = "A pier has to hold at both ends";
 const STACK_PUN_INDICES = new Set([3, 10]);
+/** 全角标点墨水偏左，单独成盒后右侧会空出大半个字宽。 */
+const CJK_PUNCT = /[，。、；：！？]/;
 
 function TitleGlyphs({
   title,
@@ -54,7 +56,13 @@ function TitleGlyphs({
           {Array.from(word).map((char) => {
             i += 1;
             const idx = i;
-            const glyphClass = `inline-block${highlight?.has(idx) ? " hero-stack-glyph" : ""}`;
+            const glyphClass = [
+              "inline-block",
+              highlight?.has(idx) ? "hero-stack-glyph" : "",
+              CJK_PUNCT.test(char) ? "hero-cjk-punct" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
             return particleMode ? (
               <span key={idx} data-ptchar className={glyphClass}>
                 {char}
@@ -207,19 +215,19 @@ export function ImmersiveHero({
           )}
         </h1>
 
-        {/* 副标题 */}
+        {/* 副标题：中文无空格可断，max-w-2xl 会因多一个字折行。 */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 1.2, delay: 1.2 }}
-          className="mb-12 max-w-2xl"
+          className={`hero-subtitle mb-12 ${isZh ? "max-w-[52rem]" : "max-w-2xl"}`}
         >
           <ShinyText
             text={subtitle}
             speed={3}
             color={isDark ? "#a1a1a1" : "#5e5d59"}
             shineColor={isDark ? "#e0ecff" : "#d97757"}
-            className="text-base leading-relaxed tracking-wide md:text-lg"
+            className={`text-base leading-relaxed md:text-lg ${isZh ? "" : "tracking-wide"}`}
           />
         </motion.div>
 

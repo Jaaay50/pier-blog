@@ -1564,6 +1564,15 @@ html[data-particles-ready] .hero-title-ssr {
   color: var(--accent);
 }
 
+/* 全角标点墨水约在 0.18–0.33em（SC 宋/楷），逐字 inline-flex 后右侧空 0.7em。
+   收成半宽，让逗号落在两字中点。粒子采样读 DOM rect，会跟着走。
+   min-width:0 抵消 flex item 的 min-width:auto，否则 width 会被 1em 字形顶住。 */
+.hero-cjk-punct {
+  width: 0.5em;
+  min-width: 0;
+  letter-spacing: 0;
+}
+
 @keyframes hero-gate-reveal {
   to {
     opacity: 1;
