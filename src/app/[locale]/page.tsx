@@ -115,7 +115,34 @@ export default async function HomePage({
         ]}
       />
 
-      {/* 第四屏：Lab 引流带 */}
+      {/* 潮汐：全栈主证据，插在开源项目与 Lab 之间 */}
+      <section className="site-content py-24">
+        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
+          {t("currentsTitle")}
+        </p>
+        <h2 className="font-display mb-5 max-w-3xl text-3xl font-semibold tracking-tight md:text-4xl">
+          {t("currentsSubtitle")}
+        </h2>
+        <p className="mb-8 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
+          {t("currentsBody")}
+        </p>
+        <div className="flex flex-wrap gap-4">
+          <TransitionLink
+            href="/currents"
+            className="rounded-xl bg-[var(--bg-card)]/80 px-6 py-3 font-medium backdrop-blur-md border border-[var(--border)] transition-all hover:border-[var(--border-hover)]"
+          >
+            {t("currentsEnter")} →
+          </TransitionLink>
+          <TransitionLink
+            href="/currents/agent"
+            className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+          >
+            {t("currentsAgent")} →
+          </TransitionLink>
+        </div>
+      </section>
+
+      {/* Lab 引流带：排在潮汐后面 */}
       <LabTeaser label={t("labTeaser")} enterLab={t("enterLab")} />
 
       {/* 第五屏：文章横向滚动画廊 */}

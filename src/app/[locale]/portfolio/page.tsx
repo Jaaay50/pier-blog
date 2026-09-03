@@ -9,6 +9,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { getGitHubStats } from "@/lib/github";
 import { localizedMetadata, pageJsonLd } from "@/lib/site-metadata";
 import { safeJsonLd } from "@/lib/json-ld";
+import { TransitionLink } from "@/components/TransitionLink";
 
 export async function generateMetadata({
   params,
@@ -30,12 +31,26 @@ interface Project {
   featured: boolean;
   /** 对应 getGitHubStats() 返回数组的下标；无则不显示 star/fork */
   statsIndex?: number;
+  /** 站内作品：url 走 TransitionLink，可附第二条 CTA */
+  internal?: boolean;
+  secondaryHref?: string;
 }
 
 // 互动作品（磷光分区已下线）
 
 // 作品元数据（文案走 i18n，这里只放结构化信息）
 const PROJECTS: Project[] = [
+  {
+    id: "currents",
+    name: "Currents",
+    tagline: { key: "projects.currents" },
+    url: "/currents",
+    tech: ["Next.js", "Node.js", "LLM", "MCP"],
+    launched: "2026",
+    featured: true,
+    internal: true,
+    secondaryHref: "/currents/agent",
+  },
   {
     id: "codex-keysmith",
     name: "Codex Keysmith",
@@ -97,7 +112,15 @@ export default async function PortfolioPage({
   const featured = PROJECTS.filter((p) => p.featured);
   const rest = PROJECTS.filter((p) => !p.featured);
 
-  const taglineOf = (p: Project) => tHome(p.tagline.key);
+  const taglineOf = (p: Project) =>
+    p.id === "currents" ? t("currentsDesc") : tHome(p.tagline.key);
+  const nameOf = (p: Project) => (p.id === "currents" ? t("currentsName") : p.name);
+  const techOf = (p: Project) =>
+    p.id === "currents"
+      ? locale === "zh"
+        ? ["Next.js", "Node.js", "数据管线", "LLM", "MCP"]
+        : ["Next.js", "Node.js", "Data Pipeline", "LLM", "MCP"]
+      : p.tech;
 
   return (
     <main className="min-h-screen">
@@ -156,7 +179,7 @@ export default async function PortfolioPage({
 
                   {/* 名称 + 简介 */}
                   <h3 className="mb-2 text-xl font-bold transition-colors">
-                    {project.name}
+                    {nameOf(project)}
                   </h3>
                   <p className="mb-6 flex-1 text-sm leading-relaxed text-[var(--text-secondary)]">
                     {taglineOf(project)}
@@ -164,7 +187,7 @@ export default async function PortfolioPage({
 
                   {/* 技术栈标签 */}
                   <div className="mb-6 flex flex-wrap gap-2">
-                    {project.tech.map((tech) => (
+                    {techOf(project).map((tech) => (
                       <span
                         key={tech}
                         className="rounded bg-[var(--bg-primary)] px-2 py-0.5 text-xs text-[var(--text-muted)]"
@@ -176,14 +199,33 @@ export default async function PortfolioPage({
 
                   {/* 底部：链接 + stars */}
                   <div className="flex items-center justify-between border-t border-[var(--border)] pt-4">
-                    <a
-                      href={project.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-sm font-medium text-[var(--accent)] transition-opacity hover:opacity-80"
-                    >
-                      {t("viewProject")} →
-                    </a>
+                    <div className="flex flex-wrap items-center gap-4">
+                      {project.internal ? (
+                        <TransitionLink
+                          href={project.url}
+                          className="text-sm font-medium text-[var(--accent)] transition-opacity hover:opacity-80"
+                        >
+                          {t("viewProject")} →
+                        </TransitionLink>
+                      ) : (
+                        <a
+                          href={project.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm font-medium text-[var(--accent)] transition-opacity hover:opacity-80"
+                        >
+                          {t("viewProject")} →
+                        </a>
+                      )}
+                      {project.secondaryHref ? (
+                        <TransitionLink
+                          href={project.secondaryHref}
+                          className="text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
+                        >
+                          {t("currentsAgent")} →
+                        </TransitionLink>
+                      ) : null}
+                    </div>
                     {stats && (
                       <span className="flex items-center gap-3 text-xs text-[var(--text-muted)]">
                         <span>★ {stats.stars}</span>

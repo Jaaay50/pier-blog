@@ -310,6 +310,11 @@
       }
     },
     "projectsTitle": "精选开源项目",
+    "currentsTitle": "潮汐 · Currents",
+    "currentsSubtitle": "一个人做完的 AI 资讯产品，从采集到 Agent 接口",
+    "currentsBody": "每天自动采集十余家信源，AI 生成双语摘要与 0–100 评分；同一事件的多家报道自动合并去重，合并血缘可追溯；五个只读工具经 MCP 开放给你的 Agent。",
+    "currentsEnter": "进入潮汐",
+    "currentsAgent": "查看 Agent 接入",
     "labTeaser": "这些效果全部零依赖手写——GLSL、物理模拟、算法可视化",
     "enterLab": "进入船塢"
   },
@@ -341,6 +346,9 @@
     "allProjects": "浮標",
     "viewProject": "查看项目",
     "viewCode": "源码",
+    "currentsName": "潮汐 · Currents",
+    "currentsDesc": "端到端自建的 AI 资讯产品：采集管线、评分系统、事件层与 Agent 接口",
+    "currentsAgent": "了解 Agent 接入",
     "techStack": "技術棧",
     "launched": "上線日期"
   },
