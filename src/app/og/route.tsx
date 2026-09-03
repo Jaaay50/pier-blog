@@ -3,9 +3,9 @@ import { type NextRequest } from "next/server";
 import { parseOgParams, resolveOgData, type OgCardData } from "@/lib/og";
 
 /**
- * /og — 社交卡片图片。只接受稳定的可信资源标识（type=site / blog /
- * currents-item / currents-event，见 src/lib/og.ts），展示内容一律从仓库
- * 文章或 Currents API 解析，不再反射任何公开 query 文案。
+ * /og — 社交卡片图片。只接受稳定的可信资源标识（type=site / lab /
+ * currents / blog / currents-item / currents-event，见 src/lib/og.ts），
+ * 展示内容一律从仓库文章或 Currents API 解析，不再反射任何公开 query 文案。
  *
  * 缓存边界：
  * - 成功图片：稳定 CDN 缓存（s-maxage=86400 + swr），资源内容变化靠 CDN 过期收敛；
@@ -49,9 +49,42 @@ function tagAccent(tag: string): { main: string; soft: string } {
   return map[tag] ?? { main: "#6a9bcc", soft: "rgba(106,155,204,0.22)" };
 }
 
+/** 船塢 OG：用确定性点阵模拟粒子 demo 的静帧，而不是再写一句标题。 */
+function labParticleStill(accent: string) {
+  const dots: { left: number; top: number; size: number; opacity: number }[] = [];
+  for (let i = 0; i < 42; i++) {
+    const u = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+    const v = (Math.sin(i * 78.233) * 96421.173) % 1;
+    const x = Math.abs(u);
+    const y = Math.abs(v);
+    dots.push({
+      left: 720 + x * 420,
+      top: 80 + y * 420,
+      size: 4 + (i % 5),
+      opacity: 0.22 + (i % 7) * 0.08,
+    });
+  }
+  return dots.map((dot, i) => (
+    <div
+      key={i}
+      style={{
+        position: "absolute",
+        left: `${dot.left}px`,
+        top: `${dot.top}px`,
+        width: `${dot.size}px`,
+        height: `${dot.size}px`,
+        borderRadius: "50%",
+        background: accent,
+        opacity: dot.opacity,
+        display: "flex",
+      }}
+    />
+  ));
+}
+
 function renderCard(data: OgCardData): ImageResponse {
-  const { title, description, tags, readMin } = data;
-  const accent = tagAccent(tags[0] ?? "");
+  const { title, description, tags, readMin, motif } = data;
+  const accent = tagAccent(tags[0] ?? (motif === "lab" ? "Animation" : motif === "currents" ? "AI" : ""));
 
   return new ImageResponse(
     (
@@ -94,6 +127,8 @@ function renderCard(data: OgCardData): ImageResponse {
           }}
         />
 
+        {motif === "lab" ? labParticleStill(accent.main) : null}
+
         {/* 网格纹理：纵向桩柱阴影，呼应「码头」 */}
         <div
           style={{
@@ -133,6 +168,15 @@ function renderCard(data: OgCardData): ImageResponse {
             strokeWidth="2"
             fill="none"
           />
+          {motif === "currents" ? (
+            <path
+              d="M0,90 C140,40 280,140 420,90 C560,40 700,140 840,90 C980,40 1120,140 1260,90"
+              stroke={accent.main}
+              strokeOpacity="0.55"
+              strokeWidth="3"
+              fill="none"
+            />
+          ) : null}
         </svg>
 
         {/* 顶部：站点标识 */}

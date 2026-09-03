@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SITE_URL, buildMetadata, formatPageTitle, pageMetadata } from "./metadata";
+import { SITE_URL, buildMetadata, formatPageTitle, ogCardUrl, pageMetadata } from "./metadata";
 
 describe("formatPageTitle", () => {
   it("appends the Pier suffix once", () => {
@@ -88,6 +88,12 @@ describe("buildMetadata", () => {
       title: "A post — Pier",
       images: [image],
     });
+  });
+
+  it("ogCardUrl stamps locale only for lab/currents", () => {
+    expect(ogCardUrl("site")).toBe(`${SITE_URL}/og?type=site`);
+    expect(ogCardUrl("lab", "zh")).toBe(`${SITE_URL}/og?type=lab&locale=zh`);
+    expect(ogCardUrl("currents", "en")).toBe(`${SITE_URL}/og?type=currents&locale=en`);
   });
 
   it("pageMetadata coerces unknown locales to en", () => {

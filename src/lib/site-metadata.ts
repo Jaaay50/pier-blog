@@ -20,7 +20,7 @@ const localeCopy = {
       "Notes on work, interfaces, waiting, and writing.",
     currentsTitle: "Currents",
     currentsDescription:
-      "AI frontiers: papers, products, research, and industry moves.",
+      "AI papers, products, research, and industry news. A dozen sources ingested daily, with AI-generated bilingual summaries and scoring; reports on the same event merge automatically.",
   },
   zh: {
     site: "Pier",
@@ -37,7 +37,8 @@ const localeCopy = {
     blogDescription:
       "一些关于工作、界面、等待和写作的观察。",
     currentsTitle: "潮汐",
-    currentsDescription: "AI 前沿论文、产品、研究与行业动态。",
+    currentsDescription:
+      "AI 前沿论文、产品、研究与行业动态。每日自动采集十余家信源，AI 生成双语摘要与评分，多信源事件自动合并去重。",
   },
 } as const;
 

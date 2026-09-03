@@ -20,6 +20,8 @@ import { locales, type Locale } from "@/i18n/config";
 
 export type OgRequest =
   | { type: "site" }
+  | { type: "lab"; locale: Locale }
+  | { type: "currents"; locale: Locale }
   | { type: "blog"; locale: Locale; slug: string }
   | { type: "currents-item"; locale: Locale; id: string }
   | { type: "currents-event"; locale: Locale; eventId: string };
@@ -30,6 +32,8 @@ export interface OgCardData {
   tags: string[];
   /** 仅博客文章卡片展示阅读时长 */
   readMin?: string;
+  /** lab 卡片叠一层粒子静帧；currents 加强水面波形 */
+  motif?: "lab" | "currents";
 }
 
 /** 与后端 /v1 契约一致的资源 ID 白名单字符集 */
@@ -45,6 +49,8 @@ const MAX_OG_TAG_LENGTH = 32;
 
 const ALLOWED_PARAMS: Record<OgRequest["type"], readonly string[]> = {
   site: [],
+  lab: ["locale"],
+  currents: ["locale"],
   blog: ["locale", "slug"],
   "currents-item": ["locale", "id"],
   "currents-event": ["locale", "eventId"],
@@ -75,6 +81,13 @@ export function parseOgParams(params: URLSearchParams): OgRequest | null {
   }
 
   if (type === "site") return { type: "site" };
+
+  if (type === "lab" || type === "currents") {
+    const localeParam = params.get("locale");
+    if (localeParam === null) return { type, locale: "en" };
+    if (!isLocale(localeParam)) return null;
+    return { type, locale: localeParam };
+  }
 
   const locale = params.get("locale");
   if (!isLocale(locale)) return null;
@@ -123,6 +136,30 @@ export async function resolveOgData(request: OgRequest): Promise<OgCardData | nu
         description: "Personal blog and portfolio by Ethan Pier",
         tags: [],
       };
+
+    case "lab": {
+      const zh = request.locale === "zh";
+      return {
+        title: zh ? "船塢" : "Lab",
+        description: zh
+          ? "六个从零手写的交互实验：WebGL shader、物理模拟、流场与算法可视化，零依赖。"
+          : "Six interactive experiments written from scratch — WebGL shaders, physics, flow fields, zero dependencies.",
+        tags: zh ? ["WebGL", "物理", "零依赖"] : ["WebGL", "Physics", "Zero-dep"],
+        motif: "lab",
+      };
+    }
+
+    case "currents": {
+      const zh = request.locale === "zh";
+      return {
+        title: zh ? "潮汐 · Currents" : "Currents",
+        description: zh
+          ? "每日采集十余家信源，AI 双语摘要与评分，多信源事件自动合并去重。"
+          : "A dozen sources ingested daily, with bilingual summaries, scoring, and event merge.",
+        tags: zh ? ["采集管线", "事件层", "MCP"] : ["Ingestion", "Events", "MCP"],
+        motif: "currents",
+      };
+    }
 
     case "blog": {
       const post = getPostBySlug(request.slug, request.locale);

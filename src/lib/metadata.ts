@@ -8,6 +8,18 @@ export function asSiteLocale(locale: string): SiteLocale {
   return locale === "zh" ? "zh" : "en";
 }
 
+export function ogCardUrl(
+  type: "site" | "lab" | "currents",
+  locale?: string,
+): string {
+  const url = new URL(`${SITE_URL}/og`);
+  url.searchParams.set("type", type);
+  if (type !== "site") {
+    url.searchParams.set("locale", asSiteLocale(locale ?? "en"));
+  }
+  return url.toString();
+}
+
 function normalizePath(path: string): string {
   if (!path || path === "/") return "";
   return path.startsWith("/") ? path : `/${path}`;

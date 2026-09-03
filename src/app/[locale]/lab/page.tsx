@@ -4,7 +4,7 @@ import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { LabClientContent } from "@/components/lab/LabClientContent";
 import { locales } from "@/i18n/config";
-import { pageMetadata } from "@/lib/metadata";
+import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -19,8 +19,9 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: "lab" });
   return pageMetadata(locale, {
     title: t("title"),
-    description: t("subtitle"),
+    description: t("metaDescription"),
     path: "/lab",
+    image: ogCardUrl("lab", locale),
   });
 }
 

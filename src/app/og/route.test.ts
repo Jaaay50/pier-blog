@@ -73,6 +73,14 @@ describe("GET /og：资源解析与缓存边界", () => {
     expect(res.headers.get("cache-control")).toBe("no-store");
   });
 
+  it("lab / currents 卡片成功渲染 PNG", async () => {
+    for (const query of ["?type=lab&locale=zh", "?type=currents&locale=en"]) {
+      const res = await GET(ogRequest(query));
+      expect(res.status, query).toBe(200);
+      expect(res.headers.get("content-type")).toBe("image/png");
+    }
+  });
+
   it("site 卡片成功渲染 PNG，带稳定 CDN 缓存策略", async () => {
     const res = await GET(ogRequest("?type=site"));
     expect(res.status).toBe(200);

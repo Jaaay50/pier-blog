@@ -17,6 +17,7 @@
   "currents": {
     "title": "潮汐",
     "subtitle": "AI 前沿论文、产品、研究与行业动态。",
+    "metaDescription": "AI 前沿论文、产品、研究与行业动态。每日自动采集十余家信源，AI 生成双语摘要与评分，多信源事件自动合并去重。",
     "all": "全部",
     "models": "模型",
     "products": "产品",
@@ -424,6 +425,7 @@
   "lab": {
     "title": "船塢",
     "subtitle": "从第一性原理出发的交互实验——WebGL shader、物理引擎、算法可视化，全部零依赖手写。",
+    "metaDescription": "六个从零手写的交互实验：WebGL shader、物理模拟、流场与算法可视化，零依赖。每个演示关掉三维之后，仍留有能读的静帧与说明。",
     "viewSource": "查看源码",
     "reducedMotion": "已按系统偏好停用动效",
     "webglUnavailable": "当前设备不支持 WebGL，展示静态预览",

@@ -3,7 +3,7 @@ import { type Metadata } from "next";
 import { CurrentsClient } from "@/components/currents/CurrentsClient";
 import { locales } from "@/i18n/config";
 import { pageJsonLd } from "@/lib/site-metadata";
-import { pageMetadata } from "@/lib/metadata";
+import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 import { safeJsonLd } from "@/lib/json-ld";
 
 export function generateStaticParams() {
@@ -19,8 +19,9 @@ export async function generateMetadata({
   const t = await getTranslations({ locale, namespace: "currents" });
   return pageMetadata(locale, {
     title: t("title"),
-    description: t("subtitle"),
+    description: t("metaDescription"),
     path: "/currents",
+    image: ogCardUrl("currents", locale),
   });
 }
 

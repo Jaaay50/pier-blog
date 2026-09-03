@@ -4,7 +4,7 @@ import { locales } from "@/i18n/config";
 import { TransitionLink } from "@/components/TransitionLink";
 import { AgentCopyBlock, AgentCopyChip } from "@/components/currents/AgentCopyBlock";
 import { AgentToc } from "@/components/currents/AgentToc";
-import { pageMetadata } from "@/lib/metadata";
+import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 
 const MCP_ENDPOINT = "https://currents-mcp.ethanpier.com/mcp";
 const CONTACT_EMAIL = "ethan_pier@icloud.com";
@@ -24,6 +24,7 @@ export async function generateMetadata({
     title: t("title"),
     description: t("subtitle"),
     path: "/currents/agent",
+    image: ogCardUrl("currents", locale),
   });
 }
 
