@@ -2,9 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { ModelsLeaderboardClient } from "@/components/currents/ModelsLeaderboardClient";
 import { locales } from "@/i18n/config";
-
-const SITE_URL = "https://ethanpier.com";
-const OG_IMAGE = `${SITE_URL}/og?type=site`;
+import { pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -17,32 +15,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "currents" });
-
-  return {
-    title: `${t("modelsTitle")} — ${t("title")} · Pier`,
+  return pageMetadata(locale, {
+    title: `${t("modelsTitle")} — ${t("title")}`,
     description: t("modelsSubtitle"),
-    alternates: {
-      canonical: `${SITE_URL}/${locale}/currents/models`,
-      languages: {
-        en: `${SITE_URL}/en/currents/models`,
-        zh: `${SITE_URL}/zh/currents/models`,
-        "x-default": `${SITE_URL}/en/currents/models`,
-      },
-    },
-    openGraph: {
-      title: t("modelsTitle"),
-      description: t("modelsSubtitle"),
-      type: "website",
-      url: `${SITE_URL}/${locale}/currents/models`,
-      images: [{ url: OG_IMAGE, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: t("modelsTitle"),
-      description: t("modelsSubtitle"),
-      images: [OG_IMAGE],
-    },
-  };
+    path: "/currents/models",
+  });
 }
 
 /** 潮汐 · 模型榜 — SSG 静态壳 + 客户端数据岛（同 /currents/hot 架构） */

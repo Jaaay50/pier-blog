@@ -5,9 +5,7 @@ import { SiteFooter } from "@/components/SiteFooter";
 import { CurrentsShell } from "@/components/currents/CurrentsShell";
 import { SiteFeedbackForm, type SiteFeedbackLabels } from "@/components/feedback/SiteFeedbackForm";
 import { locales } from "@/i18n/config";
-
-
-const SITE_URL = "https://ethanpier.com";
+import { pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -20,19 +18,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "feedbackPage" });
-
-  return {
-    title: `${t("title")} — Pier`,
+  return pageMetadata(locale, {
+    title: t("title"),
     description: t("subtitle"),
-    alternates: {
-      canonical: `${SITE_URL}/${locale}/feedback`,
-      languages: {
-        en: `${SITE_URL}/en/feedback`,
-        zh: `${SITE_URL}/zh/feedback`,
-        "x-default": `${SITE_URL}/en/feedback`,
-      },
-    },
-  };
+    path: "/feedback",
+  });
 }
 
 /**

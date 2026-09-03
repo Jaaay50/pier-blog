@@ -13,12 +13,11 @@ import { ScrollProgress } from "@/components/ScrollProgress";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BlogProseGuard } from "@/components/BlogProseGuard";
 import { locales } from "@/i18n/config";
+import { SITE_URL, pageMetadata } from "@/lib/metadata";
 
 interface PageProps {
   params: Promise<{ locale: string; slug: string }>;
 }
-
-const SITE_URL = "https://ethanpier.com";
 
 /** /og 只接受可信资源标识（locale+slug），文案由 /og 自行从仓库文章解析。 */
 function buildOgImageUrl(locale: string, slug: string): string {
@@ -34,38 +33,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const post = getPostBySlug(slug, locale);
   if (!post) return {};
 
-  const ogImage = buildOgImageUrl(locale, slug);
-  const canonicalUrl = `${SITE_URL}/${locale}/blog/${slug}`;
-
-  return {
-    title: `${post.title} — Pier`,
+  return pageMetadata(locale, {
+    title: post.title,
     description: post.description,
-    alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        en: `${SITE_URL}/en/blog/${slug}`,
-        zh: `${SITE_URL}/zh/blog/${slug}`,
-        "x-default": `${SITE_URL}/en/blog/${slug}`,
-      },
-    },
-    openGraph: {
-      title: post.title,
-      description: post.description,
-      type: "article",
-      url: canonicalUrl,
-      publishedTime: post.date,
-      modifiedTime: post.updatedAt ?? post.date,
-      tags: post.tags,
-      locale: locale === "zh" ? "zh_CN" : "en_US",
-      images: [{ url: ogImage, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: post.title,
-      description: post.description,
-      images: [ogImage],
-    },
-  };
+    path: `/blog/${slug}`,
+    image: buildOgImageUrl(locale, slug),
+    type: "article",
+    publishedTime: post.date,
+    modifiedTime: post.updatedAt ?? post.date,
+    tags: post.tags,
+  });
 }
 
 /**

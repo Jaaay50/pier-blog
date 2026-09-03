@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { CurrentsTopicDetailClient } from "@/components/currents/CurrentsTopicDetailClient";
 import { CURRENTS_TOPIC_IDS } from "@/lib/currents/topics";
+import { pageMetadata } from "@/lib/metadata";
 
 /** topicId 必须属于现有主题集合；其余输入不反射进 metadata，直接 404。 */
 function isKnownTopicId(topicId: string): boolean {
@@ -15,8 +16,6 @@ export function generateStaticParams() {
   return []; // 主题页运行时按需生成
 }
 
-const SITE_URL = "https://ethanpier.com";
-
 interface PageProps {
   params: Promise<{ locale: string; topicId: string }>;
 }
@@ -26,26 +25,13 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   // 未知主题不生成 metadata（页面体同步 404），阻断任意文本反射进 title/canonical
   if (!isKnownTopicId(topicId)) return {};
   const t = await getTranslations({ locale, namespace: "currents" });
-  const canonical = `${SITE_URL}/${locale}/currents/topics/${encodeURIComponent(topicId)}`;
+  const encoded = encodeURIComponent(topicId);
 
-  return {
-    title: `${topicId} — ${t("topicsTitle")} · Pier`,
+  return pageMetadata(locale, {
+    title: `${topicId} — ${t("topicsTitle")}`,
     description: t("topicsSubtitle"),
-    alternates: {
-      canonical,
-      languages: {
-        en: `${SITE_URL}/en/currents/topics/${encodeURIComponent(topicId)}`,
-        zh: `${SITE_URL}/zh/currents/topics/${encodeURIComponent(topicId)}`,
-        "x-default": `${SITE_URL}/en/currents/topics/${encodeURIComponent(topicId)}`,
-      },
-    },
-    openGraph: {
-      title: `${topicId} — ${t("topicsTitle")}`,
-      description: t("topicsSubtitle"),
-      type: "website",
-      url: canonical,
-    },
-  };
+    path: `/currents/topics/${encoded}`,
+  });
 }
 
 /** 潮汐 · 主题详情 — ISR 壳 + 客户端数据岛（复用时间线组件） */

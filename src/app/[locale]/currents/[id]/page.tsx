@@ -5,14 +5,13 @@ import { isValidCurrentsResourceId, serverFetchItemDetail, serverFetchSources } 
 import { safeJsonLd } from "@/lib/json-ld";
 import { renderMarkdown } from "@/lib/currents/markdown";
 import { CurrentsDetailBody } from "@/components/currents/CurrentsDetailBody";
+import { SITE_URL, pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
 export function generateStaticParams() {
   return []; // 运行时按需生成，不预构建
 }
-
-const SITE_URL = "https://ethanpier.com";
 
 interface PageProps {
   params: Promise<{ locale: string; id: string }>;
@@ -37,37 +36,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
   const title = item.title ?? item.originalTitle ?? "";
   const description = item.summary ?? item.reason ?? "";
-  const ogImage = buildOgImageUrl(locale, id);
-  const canonicalUrl = `${SITE_URL}/${locale}/currents/${id}`;
 
-  return {
-    title: `${title} — 潮汐 · Currents`,
+  return pageMetadata(locale, {
+    title,
     description,
-    alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        en: `${SITE_URL}/en/currents/${id}`,
-        zh: `${SITE_URL}/zh/currents/${id}`,
-        "x-default": `${SITE_URL}/en/currents/${id}`,
-      },
-    },
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      url: canonicalUrl,
-      publishedTime: item.publishedAt ?? undefined,
-      tags: item.tags ?? undefined,
-      locale: locale === "zh" ? "zh_CN" : "en_US",
-      images: [{ url: ogImage, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+    path: `/currents/${id}`,
+    image: buildOgImageUrl(locale, id),
+    type: "article",
+    publishedTime: item.publishedAt ?? undefined,
+    tags: item.tags ?? undefined,
+  });
 }
 
 export default async function CurrentsDetailPage({ params }: PageProps) {

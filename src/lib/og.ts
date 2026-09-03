@@ -119,7 +119,7 @@ export async function resolveOgData(request: OgRequest): Promise<OgCardData | nu
   switch (request.type) {
     case "site":
       return {
-        title: "Pier — Frontend Engineer",
+        title: "Pier — Full-Stack Engineer · AI-Native Products",
         description: "Personal blog and portfolio by Ethan Pier",
         tags: [],
       };

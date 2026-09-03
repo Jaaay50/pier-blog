@@ -65,7 +65,7 @@ describe("parseOgParams：只接受稳定资源标识", () => {
 describe("resolveOgData：从可信来源解析内容", () => {
   it("site：固定站点卡片，不含任何请求可控文案", async () => {
     await expect(resolveOgData({ type: "site" })).resolves.toEqual({
-      title: "Pier — Frontend Engineer",
+      title: "Pier — Full-Stack Engineer · AI-Native Products",
       description: "Personal blog and portfolio by Ethan Pier",
       tags: [],
     });

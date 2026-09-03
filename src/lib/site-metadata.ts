@@ -1,58 +1,58 @@
 import type { Metadata } from "next";
+import { SITE_URL, asSiteLocale, buildMetadata, formatPageTitle, type SiteLocale } from "./metadata";
 
-export const SITE_URL = "https://ethanpier.com";
+export { SITE_URL, asSiteLocale, type SiteLocale };
 
 const localeCopy = {
   en: {
     site: "Pier",
-    homeTitle: "Pier — Frontend Engineer",
+    homeTitle: "Pier — Full-Stack Engineer · AI-Native Products",
     homeDescription:
       "Frontend engineering, AI-native products, interaction design, and the craft of building for the web.",
-    aboutTitle: "About Me — Pier",
+    aboutTitle: "About Me",
     aboutDescription:
       "About Ethan Pier: frontend engineering, AI-native products, performance, accessibility, and interaction design.",
-    portfolioTitle: "Portfolio — Pier",
+    portfolioTitle: "Portfolio",
     portfolioDescription:
       "Selected products and open-source tools by Ethan Pier, spanning frontend engineering, AI workflows, and developer tooling.",
-    blogTitle: "Tides — Pier",
+    blogTitle: "Tides",
     blogDescription:
       "Notes on work, interfaces, waiting, and writing.",
-    currentsTitle: "Currents — Pier",
+    currentsTitle: "Currents",
     currentsDescription:
       "AI frontiers: papers, products, research, and industry moves.",
   },
   zh: {
     site: "Pier",
-    homeTitle: "Pier — 前端工程师",
+    homeTitle: "Pier — 全栈工程师 · AI 原生产品",
     homeDescription:
       "记录 AI 原生产品、前端工程、交互设计与 Web 构建实践的个人博客与作品集。",
-    aboutTitle: "关于我 — Pier",
+    aboutTitle: "关于我",
     aboutDescription:
       "Ethan Pier 的个人介绍：前端工程、AI 原生产品、性能优化、无障碍与交互设计。",
-    portfolioTitle: "作品集 — Pier",
+    portfolioTitle: "作品集",
     portfolioDescription:
       "Ethan Pier 的精选作品与开源工具，涵盖前端工程、AI 工作流与开发者工具。",
-    blogTitle: "潮聲 — Pier",
+    blogTitle: "潮聲",
     blogDescription:
       "一些关于工作、界面、等待和写作的观察。",
-    currentsTitle: "潮汐 — Pier",
+    currentsTitle: "潮汐",
     currentsDescription: "AI 前沿论文、产品、研究与行业动态。",
   },
 } as const;
 
-export type SiteLocale = keyof typeof localeCopy;
 export type MetadataKind = "home" | "about" | "portfolio";
 export type JsonLdKind = MetadataKind | "blog" | "currents";
 
 function siteLocale(locale: string): SiteLocale {
-  return locale === "zh" ? "zh" : "en";
+  return asSiteLocale(locale);
 }
 
 function pagePath(locale: SiteLocale, kind: JsonLdKind): string {
-  return `${SITE_URL}/${locale}${kind === "home" ? "" : `/${kind}`}`;
+  return kind === "home" ? "" : `/${kind}`;
 }
 
-function pageTitle(locale: SiteLocale, kind: JsonLdKind): string {
+function pageHeading(locale: SiteLocale, kind: JsonLdKind): string {
   const copy = localeCopy[locale];
   switch (kind) {
     case "home":
@@ -66,6 +66,10 @@ function pageTitle(locale: SiteLocale, kind: JsonLdKind): string {
     case "currents":
       return copy.currentsTitle;
   }
+}
+
+function pageTitle(locale: SiteLocale, kind: JsonLdKind): string {
+  return formatPageTitle(pageHeading(locale, kind));
 }
 
 function pageDescription(locale: SiteLocale, kind: JsonLdKind): string {
@@ -86,43 +90,17 @@ function pageDescription(locale: SiteLocale, kind: JsonLdKind): string {
 
 export function localizedMetadata(locale: string, kind: MetadataKind): Metadata {
   const safeLocale = siteLocale(locale);
-  const copy = localeCopy[safeLocale];
-  const title = pageTitle(safeLocale, kind);
-  const description = pageDescription(safeLocale, kind);
-  const canonical = pagePath(safeLocale, kind);
-
-  return {
-    title,
-    description,
-    alternates: {
-      canonical,
-      languages: {
-        en: pagePath("en", kind),
-        zh: pagePath("zh", kind),
-        "x-default": pagePath("en", kind),
-      },
-    },
-    openGraph: {
-      title,
-      description,
-      type: "website",
-      url: canonical,
-      locale: safeLocale === "zh" ? "zh_CN" : "en_US",
-      siteName: copy.site,
-      images: [{ url: `${SITE_URL}/og?type=site`, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [`${SITE_URL}/og?type=site`],
-    },
-  };
+  return buildMetadata({
+    locale: safeLocale,
+    title: pageHeading(safeLocale, kind),
+    description: pageDescription(safeLocale, kind),
+    path: pagePath(safeLocale, kind),
+  });
 }
 
 export function pageJsonLd(locale: string, kind: JsonLdKind) {
   const safeLocale = siteLocale(locale);
-  const url = pagePath(safeLocale, kind);
+  const url = `${SITE_URL}/${safeLocale}${pagePath(safeLocale, kind)}`;
   const person = {
     "@type": "Person",
     name: "Ethan Pier",

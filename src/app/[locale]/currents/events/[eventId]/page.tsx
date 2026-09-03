@@ -5,14 +5,13 @@ import { isValidCurrentsResourceId, serverFetchEventDetail } from "@/lib/current
 import { safeJsonLd } from "@/lib/json-ld";
 import { CurrentsEventBody } from "@/components/currents/CurrentsEventBody";
 import type { CurrentsEventReportRole, CurrentsHotStatus } from "@/lib/currents/types";
+import { SITE_URL, pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 300;
 export const dynamicParams = true;
 export function generateStaticParams() {
   return []; // 运行时按需生成，不预构建
 }
-
-const SITE_URL = "https://ethanpier.com";
 
 interface PageProps {
   params: Promise<{ locale: string; eventId: string }>;
@@ -44,37 +43,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const canonicalId = event.eventId;
   const title = event.title ?? "";
   const description = event.summary ?? event.progress ?? "";
-  const ogImage = buildOgImageUrl(locale, canonicalId);
-  const canonicalUrl = `${SITE_URL}${eventPath(locale, canonicalId)}`;
 
-  return {
-    title: `${title} — 潮汐 · Currents`,
+  return pageMetadata(locale, {
+    title,
     description,
-    alternates: {
-      canonical: canonicalUrl,
-      languages: {
-        en: `${SITE_URL}${eventPath("en", canonicalId)}`,
-        zh: `${SITE_URL}${eventPath("zh", canonicalId)}`,
-        "x-default": `${SITE_URL}${eventPath("en", canonicalId)}`,
-      },
-    },
-    openGraph: {
-      title,
-      description,
-      type: "article",
-      url: canonicalUrl,
-      publishedTime: event.firstSeenAt,
-      modifiedTime: event.latestActivityAt,
-      locale: locale === "zh" ? "zh_CN" : "en_US",
-      images: [{ url: ogImage, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title,
-      description,
-      images: [ogImage],
-    },
-  };
+    path: `/currents/events/${canonicalId}`,
+    image: buildOgImageUrl(locale, canonicalId),
+    type: "article",
+    publishedTime: event.firstSeenAt,
+    modifiedTime: event.latestActivityAt,
+  });
 }
 
 export default async function CurrentsEventPage({ params }: PageProps) {

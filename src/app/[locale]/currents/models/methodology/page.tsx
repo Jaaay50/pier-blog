@@ -2,9 +2,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { type Metadata } from "next";
 import { ModelsMethodologyClient } from "@/components/currents/ModelsMethodologyClient";
 import { locales } from "@/i18n/config";
-
-const SITE_URL = "https://ethanpier.com";
-const OG_IMAGE = `${SITE_URL}/og?type=site`;
+import { pageMetadata } from "@/lib/metadata";
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -17,32 +15,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: "currents" });
-
-  return {
-    title: `${t("modelsMethTitle")} — ${t("modelsTitle")} · Pier`,
+  return pageMetadata(locale, {
+    title: `${t("modelsMethTitle")} — ${t("modelsTitle")}`,
     description: t("modelsMethSubtitle"),
-    alternates: {
-      canonical: `${SITE_URL}/${locale}/currents/models/methodology`,
-      languages: {
-        en: `${SITE_URL}/en/currents/models/methodology`,
-        zh: `${SITE_URL}/zh/currents/models/methodology`,
-        "x-default": `${SITE_URL}/en/currents/models/methodology`,
-      },
-    },
-    openGraph: {
-      title: t("modelsMethTitle"),
-      description: t("modelsMethSubtitle"),
-      type: "website",
-      url: `${SITE_URL}/${locale}/currents/models/methodology`,
-      images: [{ url: OG_IMAGE, width: 1200, height: 630 }],
-    },
-    twitter: {
-      card: "summary_large_image",
-      title: t("modelsMethTitle"),
-      description: t("modelsMethSubtitle"),
-      images: [OG_IMAGE],
-    },
-  };
+    path: "/currents/models/methodology",
+  });
 }
 
 /**
