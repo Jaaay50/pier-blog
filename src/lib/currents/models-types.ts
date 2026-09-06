@@ -6,6 +6,21 @@
 export type ModelsCategory = "overall" | "coding" | "agent" | "reasoning" | "value";
 export type ModelsView = "released" | "preview";
 
+export interface ModelsUpdate {
+  lastAttemptAt: string | null;
+  lastCompleteSuccessAt: string | null;
+  lastPublishedAt: string | null;
+  lastContentChangeAt: string | null;
+  nextScheduledCheckAt: string | null;
+  status: "never" | "ok" | "partial" | "failed" | "stale" | "running";
+  sources: Array<{
+    sourceId: string;
+    status: "ok" | "unchanged" | "failed" | "skipped";
+    checkedAt: string | null;
+    error: string | null;
+  }>;
+}
+
 export const MODELS_CATEGORIES: readonly ModelsCategory[] = [
   "overall",
   "coding",
@@ -67,6 +82,7 @@ export interface ModelsLeaderboardResponse {
   items: ModelsLeaderboardRow[];
   observing: ModelsLeaderboardRow[];
   meta: {
+    update?: ModelsUpdate;
     scoringVersion: string;
     computedAt: string | null;
     empty: boolean;
@@ -141,6 +157,7 @@ export interface ModelsDetailResponse {
 }
 
 export interface ModelsMetaResponse {
+  update?: ModelsUpdate;
   schemaVersion: number;
   scoringVersion: string;
   scoringParams: {
@@ -186,6 +203,24 @@ function isString(value: unknown): value is string {
 
 function isNullableString(value: unknown): value is string | null {
   return value === null || isString(value);
+}
+
+function isNullableTimestamp(value: unknown): boolean {
+  return value === null || (isString(value) && Number.isFinite(Date.parse(value)));
+}
+
+export function isModelsUpdate(value: unknown): value is ModelsUpdate {
+  if (!isRecord(value)) return false;
+  if (!["never", "ok", "partial", "failed", "stale", "running"].includes(value.status as string)) return false;
+  if (!["lastAttemptAt", "lastCompleteSuccessAt", "lastPublishedAt", "lastContentChangeAt", "nextScheduledCheckAt"].every((key) => isNullableTimestamp(value[key]))) return false;
+  if (!Array.isArray(value.sources)) return false;
+  const ids = new Set<string>();
+  return value.sources.every((source) => {
+    if (!isRecord(source) || !isString(source.sourceId) || !source.sourceId.trim() || ids.has(source.sourceId)) return false;
+    ids.add(source.sourceId);
+    return ["ok", "unchanged", "failed", "skipped"].includes(source.status as string)
+      && isNullableTimestamp(source.checkedAt) && isNullableString(source.error);
+  });
 }
 
 function isFiniteNumber(value: unknown): value is number {
@@ -296,6 +331,7 @@ export function isModelsLeaderboardResponse(
     && value.meta.observingCount === value.observing.length
     && Array.isArray(value.meta.sources)
     && value.meta.sources.every(isModelsSourceMeta)
+    && (value.meta.update === undefined || isModelsUpdate(value.meta.update))
     && isString(value.meta.generatedAt);
 }
 
@@ -317,7 +353,8 @@ export function isModelsMetaResponse(value: unknown): value is ModelsMetaRespons
   if (!Array.isArray(value.sources) || !value.sources.every(isModelsSourceMeta)) return false;
   if (!Array.isArray(value.models) || !value.models.every(isMetaModel)) return false;
   if (!isNumberRecord(value.modelCounts) || !Object.values(value.modelCounts).every(isNonNegativeInteger)) return false;
-  return isNonNegativeInteger(value.pendingCount) && isNullableString(value.computedAt) && isString(value.generatedAt);
+  return isNonNegativeInteger(value.pendingCount) && isNullableString(value.computedAt) && isString(value.generatedAt)
+    && (value.update === undefined || isModelsUpdate(value.update));
 }
 
 function isDetailBoard(value: unknown): boolean {

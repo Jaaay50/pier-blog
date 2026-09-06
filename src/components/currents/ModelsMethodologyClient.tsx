@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { fetchModelsMeta } from "@/lib/currents/api";
 import type { ModelsMetaResponse } from "@/lib/currents/models-types";
 import { CurrentsError } from "./CurrentsError";
+import { ModelsUpdateStatus } from "./ModelsUpdateStatus";
 
 const CATEGORY_KEY: Record<string, string> = {
   overall: "modelsCatOverall",
@@ -86,6 +87,7 @@ export function ModelsMethodologyClient() {
 
   return (
     <div className="space-y-8">
+      <ModelsUpdateStatus update={data.update} detailed sourceNames={Object.fromEntries(data.sources.map((source) => [source.id, source.name]))} />
       {/* 来源状态 */}
       <section aria-labelledby="meth-sources">
         <h2 id="meth-sources" className="mb-3 text-base font-semibold text-[var(--text-primary)]">

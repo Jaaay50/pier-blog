@@ -109,6 +109,21 @@ const validMeta = {
 };
 
 describe("模型列表与 meta 运行时守卫", () => {
+  const update = {
+    lastAttemptAt: "2026-09-07T01:00:00.000Z", lastCompleteSuccessAt: null,
+    lastPublishedAt: null, lastContentChangeAt: null, nextScheduledCheckAt: null,
+    status: "partial", sources: [{ sourceId: "epoch", status: "failed", checkedAt: null, error: "timeout" }],
+  };
+
+  it("接受可选运行状态，拒绝畸形状态、时间和来源字段", () => {
+    expect(isModelsMetaResponse({ ...validMeta, update })).toBe(true);
+    expect(isModelsLeaderboardResponse({ ...validLeaderboard, meta: { ...validLeaderboard.meta, update } })).toBe(true);
+    for (const invalid of [null, {}, { ...update, status: "fresh" }, { ...update, lastAttemptAt: "not-a-date" }, { ...update, nextScheduledCheckAt: undefined }, { ...update, sources: [{ ...update.sources[0], status: "fresh" }] }, { ...update, sources: [update.sources[0], update.sources[0]] }, { ...update, sources: [{ ...update.sources[0], error: 1 }] }]) {
+      expect(isModelsMetaResponse({ ...validMeta, update: invalid })).toBe(false);
+      expect(isModelsLeaderboardResponse({ ...validLeaderboard, meta: { ...validLeaderboard.meta, update: invalid } })).toBe(false);
+    }
+  });
+
   it("接受完整契约，并拒绝请求维度错配与嵌套缺失", () => {
     expect(isModelsLeaderboardResponse(validLeaderboard, "overall", "released")).toBe(true);
     expect(isModelsLeaderboardResponse(validLeaderboard, "coding", "released")).toBe(false);

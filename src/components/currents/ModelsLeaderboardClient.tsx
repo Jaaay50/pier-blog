@@ -13,6 +13,7 @@ import {
   type ModelsView,
 } from "@/lib/currents/models-types";
 import { CurrentsError } from "./CurrentsError";
+import { ModelsUpdateStatus } from "./ModelsUpdateStatus";
 
 const FOCUS_CLASS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
@@ -416,9 +417,11 @@ export function ModelsLeaderboardClient() {
               {t("modelsStaleSourcesNote", { count: staleSources.length })}
             </span>
           )}
-          {computedAt && <span className="tabular-nums">{t("modelsComputedAt", { time: computedAt })}</span>}
+          {!currentData?.meta.update && computedAt && <span className="tabular-nums">{t("modelsComputedAt", { time: computedAt })}</span>}
         </div>
       </div>
+
+      {currentData && <ModelsUpdateStatus update={currentData.meta.update} />}
 
       <div
         id={panelId}

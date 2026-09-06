@@ -2,9 +2,9 @@ import { getTranslations } from "next-intl/server";
 import { setRequestLocale } from "next-intl/server";
 import { Navbar } from "@/components/Navbar";
 import { ImmersiveHero } from "@/components/ImmersiveHero";
-import { SkillsShowcase } from "@/components/SkillsShowcase";
+import { HomeFeature } from "@/components/home/HomeFeature";
 import { ProjectsBento } from "@/components/ProjectsBento";
-import { HorizontalArticles } from "@/components/HorizontalArticles";
+import { RecentArticles } from "@/components/home/RecentArticles";
 import { LabTeaser } from "@/components/LabTeaser";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Waterline } from "@/components/Waterline";
@@ -53,24 +53,13 @@ export default async function HomePage({
         </MagneticWrapper>
       </ImmersiveHero>
 
-      {/* 第二屏：技能展示（活动效 demo 卡片） */}
-      <SkillsShowcase
-        title={t("skillsTitle")}
-        subtitle={t("skillsSubtitle")}
-        skills={{
-          webgl: {
-            title: t("skills.webgl.title"),
-            desc: t("skills.webgl.desc"),
-          },
-          motion: {
-            title: t("skills.motion.title"),
-            desc: t("skills.motion.desc"),
-          },
-          craft: {
-            title: t("skills.craft.title"),
-            desc: t("skills.craft.desc"),
-          },
-        }}
+      <HomeFeature locale={locale} />
+
+      <RecentArticles
+        title={t("recentArticles")}
+        posts={posts}
+        readMore={tBlog("readMore")}
+        locale={locale}
       />
 
       {/* 第三屏：项目展示 Bento Grid */}
@@ -112,42 +101,7 @@ export default async function HomePage({
         ]}
       />
 
-      {/* 潮汐：全栈主证据，插在开源项目与 Lab 之间 */}
-      <section className="site-content py-24">
-        <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--text-muted)]">
-          {t("currentsTitle")}
-        </p>
-        <h2 className="font-display mb-5 max-w-3xl text-3xl font-semibold tracking-tight md:text-4xl">
-          {t("currentsSubtitle")}
-        </h2>
-        <p className="mb-8 max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
-          {t("currentsBody")}
-        </p>
-        <div className="flex flex-wrap gap-4">
-          <TransitionLink
-            href="/currents"
-            className="rounded-xl bg-[var(--bg-card)]/80 px-6 py-3 font-medium backdrop-blur-md border border-[var(--border)] transition-all hover:border-[var(--border-hover)]"
-          >
-            {t("currentsEnter")} →
-          </TransitionLink>
-          <TransitionLink
-            href="/currents/agent"
-            className="inline-flex min-h-11 items-center px-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)]"
-          >
-            {t("currentsAgent")} →
-          </TransitionLink>
-        </div>
-      </section>
-
-      {/* Lab 引流带：排在潮汐后面 */}
       <LabTeaser label={t("labTeaser")} enterLab={t("enterLab")} />
-
-      {/* 第五屏：文章横向滚动画廊 */}
-      <HorizontalArticles
-        title={t("recentArticles")}
-        posts={posts}
-        readMore={tBlog("readMore")}
-      />
 
       {/* 静态发丝分隔线（原 WaveGrid 3D 波浪，视觉减法后移除；Phase 10.3 组件化为 Waterline） */}
       <Waterline className="my-24" />

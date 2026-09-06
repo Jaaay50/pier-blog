@@ -5,6 +5,7 @@ import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelsLeaderboardClient } from "./ModelsLeaderboardClient";
 import type { ModelsLeaderboardResponse, ModelsLeaderboardRow } from "@/lib/currents/models-types";
+import zh from "@/messages/zh.json";
 
 const mockFetchLeaderboard = vi.fn();
 
@@ -22,6 +23,7 @@ vi.mock("@/components/TransitionLink", () => ({
 
 const messages = {
   currents: {
+    ...zh.currents,
     modelsCatLabel: "榜单类别",
     modelsCatOverall: "综合",
     modelsCatCoding: "编程",
@@ -54,7 +56,7 @@ const messages = {
     modelsStale: "数据陈旧",
     modelsStaleTooltip: "来源陈旧：{sources}",
     modelsStaleSourcesNote: "{count} 个来源数据陈旧",
-    modelsComputedAt: "数据更新于 {time}",
+    modelsComputedAt: "榜单计算于 {time}",
     modelsMainBoard: "主榜",
     modelsObserving: "观察中",
     modelsObservingNote: "覆盖不足说明",
@@ -156,7 +158,7 @@ describe("ModelsLeaderboardClient", () => {
     expect(screen.getByText("观察中")).toBeTruthy();
     expect(screen.getAllByText("GLM-5.2").length).toBeGreaterThanOrEqual(1);
     // 数据时间
-    expect(screen.getByText(/数据更新于/)).toBeTruthy();
+    expect(screen.getByText(/榜单计算于/)).toBeTruthy();
   });
 
   it("五类 tab 切换触发对应 category 请求", async () => {
@@ -311,8 +313,30 @@ describe("ModelsLeaderboardClient", () => {
     await screen.findByText("1 个来源数据陈旧");
     fireEvent.click(screen.getByRole("tab", { name: "编程" }));
     expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
-    expect(screen.queryByText(/数据更新于/)).toBeNull();
+    expect(screen.queryByText(/榜单计算于/)).toBeNull();
     await screen.findByRole("button", { name: "重试" });
     expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
+  });
+
+  it("新版状态区分检查与内容变化，切换失败不残留上一榜状态", async () => {
+    mockFetchLeaderboard.mockResolvedValueOnce(response({ meta: {
+      ...response().meta,
+      update: {
+        lastAttemptAt: "2026-09-07T01:00:00.000Z", lastContentChangeAt: "2026-08-13T10:00:00.000Z",
+        lastCompleteSuccessAt: null, lastPublishedAt: null, nextScheduledCheckAt: null,
+        status: "partial", sources: [],
+      },
+    } }));
+    mockFetchLeaderboard.mockRejectedValueOnce(new Error("network"));
+    renderClient();
+    await screen.findByText(/部分来源检查失败/);
+    expect(screen.getByText(/最近检查/)).toBeTruthy();
+    expect(screen.getByText(/成绩变化/)).toBeTruthy();
+    expect(screen.queryByText(/榜单计算于/)).toBeNull();
+    expect(screen.queryByText(/下次计划检查/)).toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "编程" }));
+    expect(screen.queryByText(/最近检查/)).toBeNull();
+    await screen.findByRole("button", { name: "重试" });
+    expect(screen.queryByText(/部分来源检查失败/)).toBeNull();
   });
 });
