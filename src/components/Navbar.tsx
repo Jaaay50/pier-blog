@@ -20,10 +20,6 @@ export function Navbar() {
   const locale = useLocale();
   const t = useTranslations("nav");
   const [menuOpen, setMenuOpen] = useState(false);
-  // Currents 产品面使用与 CurrentsShell 同一轴线（--currents-shell-max，1760px）；
-  // 其他页面使用 site-shell（1440px）
-  const isCurrentsProduct =
-    pathname.startsWith("/currents") || pathname === "/feedback";
 
   const navLinks = [
     { href: "/blog", label: t("blog"), title: t("blogHint") },
@@ -89,11 +85,7 @@ export function Navbar() {
       data-site-navbar
       className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--bg-primary)]/80 backdrop-blur-sm"
     >
-      <div
-        className={`mx-auto py-4 ${
-          isCurrentsProduct ? "currents-shell-container" : "site-shell"
-        }`}
-      >
+      <div className="site-shell mx-auto py-4">
         <div className="flex items-center justify-between">
           <MagneticWrapper strength={0.2}>
             <TransitionLink

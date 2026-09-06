@@ -9,8 +9,8 @@ import { TransitionLink } from "@/components/TransitionLink";
 
 /**
  * 潮汐 · Currents 统一产品外壳。
- * - 容器：自适应编辑工作台，max 1760px，与 Navbar / SiteFooter 同一轴线
- *   （宽度经由 --currents-shell-max CSS 变量共享）
+ * - 容器：自适应编辑工作台，max 1760px（--currents-shell-max）；
+ *   Navbar / SiteFooter 独立使用全站 1440px 版心，跨路由保持稳定
  * - 1280–1535px：左侧预留空间从 0 连续增长到 256px，不在断点瞬间挤压正文
  * - 宽屏（≥2xl / 1536px）：224px 粘性左侧栏 + 内容区（minmax(0,1fr)）
  * - 紧凑布局（<2xl）：文字产品导航按钮「潮汐 · 当前页」+ AnimatePresence 展开面板

@@ -1646,7 +1646,7 @@ html.currents-hydrated .currents-client-feed {
   --currents-time-w: 3.5rem;
   --currents-time-gap: 1rem;
   --currents-node: 0.625rem;
-  /* 产品外壳共享宽度：Navbar / CurrentsShell / SiteFooter 同一轴线
+  /* 潮汐正文工作台宽度独立于全站 Navbar / SiteFooter 的 1440px 版心。
      目标 max 1760px + 自适应 gutter，不超宽铺满也不在中屏留巨边 */
   --currents-shell-max: 1760px;
 }

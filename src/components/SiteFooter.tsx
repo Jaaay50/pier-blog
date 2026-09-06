@@ -5,11 +5,6 @@ import { PierWordmark } from '@/components/brand/PierWordmark';
 import { PierGlyph } from '@/components/brand/PierGlyph';
 import { useTranslations } from 'next-intl';
 
-interface SiteFooterProps {
-  /** Currents 产品面：使用 --currents-shell-max（1760px）自适应工作台宽度 */
-  currentsWidth?: boolean;
-}
-
 function GithubIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -18,7 +13,7 @@ function GithubIcon() {
   );
 }
 
-export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
+export function SiteFooter() {
   const t = useTranslations('footer');
   const tNav = useTranslations('nav');
 
@@ -28,7 +23,7 @@ export function SiteFooter({ currentsWidth = false }: SiteFooterProps) {
       <div className="pointer-events-none absolute -bottom-6 -right-4" aria-hidden>
         <PierGlyph size={140} className="text-[var(--text-muted)] opacity-[0.04]" />
       </div>
-      <div className={currentsWidth ? 'currents-shell-container mx-auto py-12' : 'site-shell mx-auto py-12'}>
+      <div className="site-shell mx-auto py-12">
         {/* Three-column grid */}
         <div className="grid min-w-0 gap-10 sm:grid-cols-3">
           {/* Col 1: Brand */}

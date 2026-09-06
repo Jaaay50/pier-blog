@@ -4,6 +4,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import zh from "@/messages/zh.json";
+import en from "@/messages/en.json";
 import { SiteFooter } from "./SiteFooter";
 
 vi.mock("@/components/TransitionLink", () => ({
@@ -17,6 +18,16 @@ afterEach(() => {
 });
 
 describe("SiteFooter", () => {
+  it.each(["zh", "en"])("uses the shared site shell in %s", (locale) => {
+    const { container } = render(
+      <NextIntlClientProvider locale={locale} messages={locale === "zh" ? zh : en}>
+        <SiteFooter />
+      </NextIntlClientProvider>,
+    );
+    expect(container.querySelector("footer > .site-shell")?.className).toBe("site-shell mx-auto py-12");
+    expect(container.querySelector(".currents-shell-container")).toBeNull();
+  });
+
   it("只把站内导航包成 nav，Cloudborne 留在品牌外链列", () => {
     render(
       <NextIntlClientProvider locale="zh" messages={zh}>

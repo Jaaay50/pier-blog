@@ -124,6 +124,25 @@ afterEach(() => {
 });
 
 describe('TransitionLink', () => {
+  it.each(['reduced-motion', 'unsupported'])('%s keeps native navigation', (mode) => {
+    const transition = installViewTransitionMock();
+    if (mode === 'unsupported') {
+      Reflect.deleteProperty(document, 'startViewTransition');
+    } else {
+      Object.defineProperty(window, 'matchMedia', {
+        configurable: true,
+        value: vi.fn(() => ({ matches: true })),
+      });
+    }
+    render(<TransitionLink href="/blog" target="_blank">打开页面</TransitionLink>);
+    const click = new MouseEvent('click', { bubbles: true, cancelable: true });
+    fireEvent(screen.getByRole('link', { name: '打开页面' }), click);
+
+    expect(click.defaultPrevented).toBe(false);
+    expect(transition.startViewTransition).not.toHaveBeenCalled();
+    expect(mockRouterPush).not.toHaveBeenCalled();
+  });
+
   it('query-only 导航在查询参数 commit 后立即结算转场', async () => {
     const transition = installViewTransitionMock();
     const animationFrame = installAnimationFrameMock();

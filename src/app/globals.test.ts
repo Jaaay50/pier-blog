@@ -4,6 +4,12 @@ import { describe, expect, it } from "vitest";
 const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
 
 describe("site layout widths", () => {
+  it("separates the shared navigation shell from the wider currents workspace", () => {
+    expect(css).toMatch(/\.site-shell\s*\{[^}]*max-width:\s*1440px;/);
+    expect(css).toMatch(/--currents-shell-max:\s*1760px;/);
+    expect(css).toMatch(/\.currents-shell-container\s*\{[^}]*max-width:\s*var\(--currents-shell-max\);/);
+  });
+
   it("expands structural content only on ultrawide screens", () => {
     expect(css).toMatch(
       /@media\s*\(min-width:\s*1920px\)\s*\{\s*\.site-content,\s*\.site-content-no-px\s*\{[^}]*max-width:\s*1440px;/,

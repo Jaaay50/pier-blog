@@ -86,7 +86,7 @@ export default async function FeedbackPage({
         </div>
       </CurrentsShell>
 
-      <SiteFooter currentsWidth />
+      <SiteFooter />
     </main>
   );
 }

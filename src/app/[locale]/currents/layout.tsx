@@ -14,7 +14,7 @@ export default function CurrentsLayout({ children }: { children: ReactNode }) {
     <main className="relative min-h-screen">
       <Navbar />
       <CurrentsShell>{children}</CurrentsShell>
-      <SiteFooter currentsWidth />
+      <SiteFooter />
     </main>
   );
 }
