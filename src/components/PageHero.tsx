@@ -20,7 +20,10 @@ export function PageHero({ label, title, description }: PageHeroProps) {
         <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
           <ThemedGradientText>{title}</ThemedGradientText>
         </h1>
-        <p className="max-w-2xl text-lg text-[var(--text-secondary)]">{description}</p>
+        {/* Reserve the longest current intro at each width; longer copy can still grow. */}
+        <p className="min-h-[6lh] max-w-2xl text-lg text-[var(--text-secondary)] min-[360px]:min-h-[5lh] sm:min-h-[3lh] md:min-h-[2lh]">
+          {description}
+        </p>
       </div>
     </header>
   );
