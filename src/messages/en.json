@@ -447,6 +447,7 @@
     "retry": "Retry"
   },
   "lab": {
+    "label": "Experiments",
     "title": "Lab",
     "subtitle": "Interactive experiments built from first principles — WebGL shaders, physics engines, algorithm visualizations. All hand-written, zero dependencies.",
     "metaDescription": "Six interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithm visualization, zero dependencies. Every demo keeps a readable still and description with 3D off.",

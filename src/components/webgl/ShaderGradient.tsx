@@ -102,6 +102,7 @@ interface ShaderGradientProps {
   speed?: number;
   dpr?: number;
   className?: string;
+  onReadyChange?: (ready: boolean) => void;
 }
 
 /**
@@ -115,6 +116,7 @@ export default function ShaderGradient({
   speed = 1,
   dpr = 1,
   className = '',
+  onReadyChange,
 }: ShaderGradientProps) {
   const ctnRef = useRef<HTMLDivElement>(null);
 
@@ -122,76 +124,112 @@ export default function ShaderGradient({
     const ctn = ctnRef.current;
     if (!ctn) return;
 
-    const renderer = new Renderer({ alpha: true, premultipliedAlpha: true, dpr });
-    const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 0);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
-
-    const geometry = new Triangle(gl);
-    const program = new Program(gl, {
-      vertex: VERT,
-      fragment: FRAG,
-      uniforms: {
-        uTime: { value: 0 },
-        uResolution: { value: [1, 1] },
-        uColorA: { value: hexToVec3(colors[0]) },
-        uColorB: { value: hexToVec3(colors[1]) },
-        uColorC: { value: hexToVec3(colors[2]) },
-        uIntensity: { value: intensity },
-        uSpeed: { value: speed },
-      },
-    });
-    const mesh = new Mesh(gl, { geometry, program });
-
-    const resize = () => {
-      renderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
-      program.uniforms.uResolution.value = [gl.canvas.width, gl.canvas.height];
-    };
-    window.addEventListener('resize', resize);
-    resize();
-
-    ctn.appendChild(gl.canvas);
-    gl.canvas.style.position = 'absolute';
-    gl.canvas.style.inset = '0';
-
+    let renderer: Renderer | undefined;
+    let geometry: Triangle | undefined;
+    let program: Program | undefined;
+    let stopGate = () => {};
+    let removeResize = () => {};
     let rafId: number | null = null;
     let lastTime: number | null = null;
-    let elapsed = 0;
-
-    const update = (t: number) => {
-      rafId = requestAnimationFrame(update);
-      if (lastTime !== null) elapsed += t - lastTime;
-      lastTime = t;
-      program.uniforms.uTime.value = elapsed * 0.001;
-      renderer.render({ scene: mesh });
-    };
-    const startLoop = () => {
-      if (rafId === null) rafId = requestAnimationFrame(update);
-    };
+    let disposed = false;
     const stopLoop = () => {
-      if (rafId !== null) {
-        cancelAnimationFrame(rafId);
-        rafId = null;
-        lastTime = null;
-      }
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      rafId = null;
+      lastTime = null;
     };
-
-    startLoop();
-    const stopGate = observeRenderGate(ctn, active =>
-      active ? startLoop() : stopLoop()
-    );
-
-    return () => {
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
       stopGate();
       stopLoop();
-      window.removeEventListener('resize', resize);
-      if (gl.canvas.parentNode === ctn) ctn.removeChild(gl.canvas);
-      gl.getExtension('WEBGL_lose_context')?.loseContext();
+      removeResize();
+      const gl = renderer?.gl;
+      if (gl) {
+        gl.canvas.removeEventListener('webglcontextlost', dispose);
+        geometry?.remove();
+        program?.remove();
+        if (gl.canvas.parentNode === ctn) ctn.removeChild(gl.canvas);
+        gl.getExtension('WEBGL_lose_context')?.loseContext();
+      }
+      onReadyChange?.(false);
     };
+
+    try {
+      renderer = new Renderer({ alpha: true, premultipliedAlpha: true, dpr });
+      const activeRenderer = renderer;
+      const gl = renderer.gl;
+      gl.clearColor(0, 0, 0, 0);
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+      geometry = new Triangle(gl);
+      program = new Program(gl, {
+        vertex: VERT,
+        fragment: FRAG,
+        uniforms: {
+          uTime: { value: 0 },
+          uResolution: { value: [1, 1] },
+          uColorA: { value: hexToVec3(colors[0]) },
+          uColorB: { value: hexToVec3(colors[1]) },
+          uColorC: { value: hexToVec3(colors[2]) },
+          uIntensity: { value: intensity },
+          uSpeed: { value: speed },
+        },
+      });
+      const activeProgram = program;
+      const mesh = new Mesh(gl, { geometry, program });
+
+      const resize = () => {
+        activeRenderer.setSize(ctn.offsetWidth, ctn.offsetHeight);
+        activeProgram.uniforms.uResolution.value = [gl.canvas.width, gl.canvas.height];
+      };
+      window.addEventListener('resize', resize);
+      removeResize = () => window.removeEventListener('resize', resize);
+      resize();
+
+      ctn.appendChild(gl.canvas);
+      gl.canvas.style.position = 'absolute';
+      gl.canvas.style.inset = '0';
+      gl.canvas.addEventListener('webglcontextlost', dispose);
+
+      let elapsed = 0;
+      let ready = false;
+
+      const update = (t: number) => {
+        rafId = null;
+        if (disposed) return;
+        if (lastTime !== null) elapsed += t - lastTime;
+        lastTime = t;
+        activeProgram.uniforms.uTime.value = elapsed * 0.001;
+        try {
+          activeRenderer.render({ scene: mesh });
+          if (disposed) return;
+          if (!ready) {
+            ready = true;
+            onReadyChange?.(true);
+          }
+          rafId = requestAnimationFrame(update);
+        } catch {
+          dispose();
+        }
+      };
+      const startLoop = () => {
+        if (!disposed && rafId === null) rafId = requestAnimationFrame(update);
+      };
+
+      // Wait for the visibility gate before spending a frame on an offscreen hero.
+      stopGate = observeRenderGate(ctn, active =>
+        active ? startLoop() : stopLoop()
+      );
+    } catch {
+      // Capability probing can succeed before the browser exhausts its contexts.
+      dispose();
+    }
+
+    return dispose;
     // colors 数组字面量每次渲染都是新引用，用展开值做依赖
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [colors[0], colors[1], colors[2], intensity, speed, dpr]);
+  }, [colors[0], colors[1], colors[2], intensity, speed, dpr, onReadyChange]);
 
   return (
     <div

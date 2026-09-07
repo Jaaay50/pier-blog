@@ -409,19 +409,9 @@ html.custom-cursor-on body {
   margin-right: auto;
 }
 
-/* About 作为长内容页使用静态光场，避免首屏 WebGL 与滚动动画叠加。 */
-.about-hero-gradient {
-  background:
-    radial-gradient(circle at 72% 18%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 42%),
-    radial-gradient(circle at 20% 72%, color-mix(in srgb, var(--gradient-text-3) 10%, transparent), transparent 48%);
-}
-
-.about-title-gradient {
-  color: var(--gradient-text-2);
-  background-image: linear-gradient(120deg, var(--gradient-text-1), var(--gradient-text-2) 52%, var(--gradient-text-3));
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+.currents-home-shell .currents-highlights,
+.currents-home-shell .currents-ssr-feed {
+  padding-top: 0;
 }
 
 .about-contact-panel {

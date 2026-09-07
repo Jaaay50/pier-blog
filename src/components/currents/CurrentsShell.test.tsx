@@ -4,6 +4,7 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { CurrentsShell } from "./CurrentsShell";
+import { renderToString } from "react-dom/server";
 
 const mockPathname = vi.fn<() => string>(() => "/currents");
 const mockSearchParams = vi.fn<() => URLSearchParams>(() => new URLSearchParams());
@@ -53,10 +54,10 @@ const messages = {
 const MAIN_LABELS = ["精选", "全部动态", "热点榜", "模型榜", "AI 日报", "主题", "收藏", "Agent 接入"];
 const AUX_LABELS = ["搜索", "更新日志", "反馈"];
 
-function renderShell() {
+function renderShell(homeHeader?: React.ReactNode) {
   return render(
     <NextIntlClientProvider locale="zh" messages={messages}>
-      <CurrentsShell>
+      <CurrentsShell homeHeader={homeHeader}>
         <div>content</div>
       </CurrentsShell>
     </NextIntlClientProvider>,
@@ -76,6 +77,37 @@ beforeEach(() => {
 afterEach(() => cleanup());
 
 describe("CurrentsShell", () => {
+  it.each(["", "view=all", "view=papers", "view=all&favorites=1"])("keeps the root hero above navigation for %s", (query) => {
+    mockSearchParams.mockReturnValue(new URLSearchParams(query));
+    const { container } = renderShell(<header><h1>Hero</h1></header>);
+    const hero = screen.getByRole("heading", { level: 1 });
+    const body = container.querySelector(".currents-home-shell");
+    expect(body).toBeTruthy();
+    expect(hero.closest("header")?.nextElementSibling).toBe(body);
+    const navigation = screen.getByRole("button", { name: /潮汐/ }).parentElement;
+    expect(navigation?.className).toContain("relative");
+    expect(navigation?.className).not.toContain("sticky");
+  });
+
+  it.each(["/currents/hot", "/currents/models", "/currents/daily", "/currents/topics", "/currents/agent", "/currents/changelog", "/currents/item-id", "/feedback"])("does not add a hero to %s", (pathname) => {
+    mockPathname.mockReturnValue(pathname);
+    const { container } = renderShell(<header><h1>Hero</h1></header>);
+    expect(screen.queryByRole("heading", { name: "Hero" })).toBeNull();
+    expect(container.querySelector(".currents-home-shell")).toBeNull();
+  });
+
+  it("retains the server H1 when search parameters suspend", () => {
+    mockSearchParams.mockImplementation(() => { throw new Promise(() => {}); });
+    const html = renderToString(
+      <NextIntlClientProvider locale="zh" messages={messages}>
+        <CurrentsShell homeHeader={<header><h1>Hero</h1></header>}><p>Feed fallback</p></CurrentsShell>
+      </NextIntlClientProvider>,
+    );
+    expect(html.match(/<h1>/g)).toHaveLength(1);
+    expect(html.indexOf("<h1>Hero</h1>")).toBeLessThan(html.indexOf("<!--$!"));
+    expect(html).toContain("Feed fallback");
+  });
+
   it("渲染 8 个主导航项与 3 个辅助项", () => {
     renderShell();
     const nav = getSideNav();

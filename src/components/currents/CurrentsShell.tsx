@@ -182,7 +182,7 @@ function NavList({
   );
 }
 
-function CurrentsShellInner({ children }: { children: ReactNode }) {
+function CurrentsShellInner({ children, hasHomeHeader = false }: { children: ReactNode; hasHomeHeader?: boolean }) {
   const t = useTranslations("currentsNav");
   const currentKey = useCurrentKey();
   const [panelOpen, setPanelOpen] = useState(false);
@@ -228,7 +228,7 @@ function CurrentsShellInner({ children }: { children: ReactNode }) {
     <>
       {/* 紧凑产品导航条（<2xl）：「潮汐 · 当前页」文字按钮，chevron 指示展开态。
           不再是与全站菜单重复的第二个纯汉堡入口 */}
-      <div className="relative border-b border-[var(--border)] px-4 py-2.5 2xl:hidden">
+      <div className={`relative border-b border-[var(--border)] px-4 py-2.5 2xl:hidden ${hasHomeHeader ? "mb-6" : ""}`}>
         <button
           ref={navButtonRef}
           type="button"
@@ -289,7 +289,7 @@ function CurrentsShellInner({ children }: { children: ReactNode }) {
       <div className="currents-shell-container mx-auto w-full px-4 sm:px-6 lg:px-10">
         <div className="min-[1280px]:ml-[clamp(0px,calc(100vw-1280px),16rem)] 2xl:ml-0 2xl:grid 2xl:grid-cols-[224px_minmax(0,1fr)] 2xl:gap-8">
           <aside className="hidden 2xl:block">
-            <div className="sticky top-[calc(var(--site-nav-height)+1.5rem)] pb-10 pt-14">
+            <div className={`sticky top-[calc(var(--site-nav-height)+1.5rem)] pb-10 ${hasHomeHeader ? "" : "pt-14"}`}>
               {/* 弱化品牌重复：小号 eyebrow 层级，与页面 H1 拉开视觉重量 */}
               <div className="mb-5 border-b border-[var(--border)] pb-4">
                 <p className="text-[13px] font-semibold tracking-wide text-[var(--text-primary)]">
@@ -315,18 +315,26 @@ function CurrentsShellInner({ children }: { children: ReactNode }) {
  * 外壳导出：useSearchParams 需要 Suspense 边界，否则静态导出（SSG）
  * 的 9 个 Currents 页面构建时会报 CSR-bailout 警告/错误。
  */
-export function CurrentsShell({ children }: { children: ReactNode }) {
+export function CurrentsShell({ children, homeHeader }: { children: ReactNode; homeHeader?: ReactNode }) {
+  const pathname = usePathname();
+  const hasHomeHeader = pathname === "/currents" && homeHeader != null;
   return (
-    <Suspense
-      fallback={
-        <div className="currents-shell-container mx-auto w-full px-4 sm:px-6 lg:px-10">
-          <div className="min-[1280px]:ml-[clamp(0px,calc(100vw-1280px),16rem)]">
-            {children}
-          </div>
-        </div>
-      }
-    >
-      <CurrentsShellInner>{children}</CurrentsShellInner>
-    </Suspense>
+    <>
+      {/* Keep the server-rendered H1 outside the search-parameter Suspense boundary. */}
+      {hasHomeHeader ? homeHeader : null}
+      <div className={hasHomeHeader ? "currents-home-shell pt-10 md:pt-16" : undefined}>
+        <Suspense
+          fallback={
+            <div className="currents-shell-container mx-auto w-full px-4 sm:px-6 lg:px-10">
+              <div className="min-[1280px]:ml-[clamp(0px,calc(100vw-1280px),16rem)]">
+                {children}
+              </div>
+            </div>
+          }
+        >
+          <CurrentsShellInner hasHomeHeader={hasHomeHeader}>{children}</CurrentsShellInner>
+        </Suspense>
+      </div>
+    </>
   );
 }

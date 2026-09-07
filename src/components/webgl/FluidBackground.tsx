@@ -2,6 +2,7 @@
 
 import { useTheme } from "next-themes";
 import dynamic from "next/dynamic";
+import { useState } from "react";
 import { useWebGLQuality } from "@/lib/webgl";
 
 // 架构决策：ogl 不进主 chunk，WebGL 组件必须 next/dynamic 懒加载
@@ -29,40 +30,48 @@ export function FluidBackground({
   className = "",
 }: FluidBackgroundProps) {
   const { resolvedTheme } = useTheme();
-  // quality 在挂载前为 null，兼作水合门，避免主题闪烁
   const quality = useWebGLQuality();
-
-  if (!quality) {
-    return <div className={className} aria-hidden />;
-  }
+  const [shaderReady, setShaderReady] = useState(false);
 
   const isDark = resolvedTheme === "dark";
   const colors: [string, string, string] = isDark
     ? ["#1a2b45", "#3d3566", "#6a9bcc"]
     : ["#f3d9c8", "#e8c4a0", "#d97757"];
 
-  if (!quality.enabled) {
-    return (
+  // CSS selects the theme before hydration and while the shader chunk loads.
+  const fallback = (
+    <>
       <div
-        className={className}
-        aria-hidden
+        data-theme="light"
+        className="absolute inset-0"
         style={{
-          background: isDark
-            ? "linear-gradient(135deg, rgba(26,43,69,0.5), rgba(61,53,102,0.35), rgba(106,155,204,0.25))"
-            : "linear-gradient(135deg, rgba(243,217,200,0.6), rgba(232,196,160,0.45), rgba(217,119,87,0.3))",
+          background: "linear-gradient(135deg, rgba(243,217,200,0.6), rgba(232,196,160,0.45), rgba(217,119,87,0.3))",
         }}
       />
-    );
-  }
+      <div
+        data-theme="dark"
+        className="absolute inset-0"
+        style={{
+          background: "linear-gradient(135deg, rgba(26,43,69,0.5), rgba(61,53,102,0.35), rgba(106,155,204,0.25))",
+        }}
+      />
+    </>
+  );
 
   return (
     <div className={className} aria-hidden>
-      <ShaderGradient
-        colors={colors}
-        intensity={intensity}
-        speed={speed}
-        dpr={quality.dpr}
-      />
+      <div className="relative h-full w-full">
+        <div hidden={Boolean(quality?.enabled && shaderReady)}>{fallback}</div>
+        {quality?.enabled && (
+          <ShaderGradient
+            colors={colors}
+            intensity={intensity}
+            speed={speed}
+            dpr={quality.dpr}
+            onReadyChange={setShaderReady}
+          />
+        )}
+      </div>
     </div>
   );
 }

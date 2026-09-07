@@ -39,8 +39,6 @@ export default async function CurrentsPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("currents");
-  const tNav = await getTranslations("currentsNav");
   const [itemsRes, sourcesRes] = await Promise.all([
     serverFetchItems({ locale, view: "selected", limit: 20 }),
     serverFetchSources(),
@@ -57,17 +55,6 @@ export default async function CurrentsPage({
 
   return (
     <>
-      {/* Header：静态 SEO 壳，h1 必须存在于构建产物 HTML。
-          副标首句写全产品名「潮汐 · AI 动态」；原 pill 子导航已由侧栏承担 */}
-      <header className="pb-8 pt-14">
-        <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
-          {t("title")}
-        </h1>
-        <p className="max-w-2xl text-[var(--text-secondary)]">
-          {tNav("brand")} · {tNav("brandTagline")}——{t("subtitle")}
-        </p>
-      </header>
-
       {initial ? (
         <CurrentsServerFeed locale={locale} items={initial.items} sources={initial.sources} />
       ) : null}

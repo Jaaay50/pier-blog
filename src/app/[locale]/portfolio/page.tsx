@@ -1,10 +1,8 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
+import { PageHero } from "@/components/PageHero";
 import { Navbar } from "@/components/Navbar";
-import DecryptedText from "@/components/reactbits/DecryptedText";
-import { ThemedGradientText } from "@/components/ThemedGradientText";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
-import { FluidBackground } from "@/components/webgl/FluidBackground";
 import { SiteFooter } from "@/components/SiteFooter";
 import { getGitHubStats } from "@/lib/github";
 import { localizedMetadata, pageJsonLd } from "@/lib/site-metadata";
@@ -126,34 +124,12 @@ export default async function PortfolioPage({
     <main className="min-h-screen">
       <Navbar />
 
-      {/* Header：灯塔式的静谧开场 */}
-      <section className="relative overflow-hidden py-24">
-        <FluidBackground
-          className="pointer-events-none absolute inset-0 opacity-30"
-          intensity={0.5}
-          speed={0.5}
-        />
-        <div className="site-content relative">
-          <div className="mb-5">
-            <DecryptedText
-              text={t("label")}
-              className="text-sm font-medium tracking-[0.3em] text-[var(--text-muted)]"
-              speed={30}
-            />
-          </div>
-          <h1 className="mb-5 text-4xl font-bold tracking-tight md:text-5xl">
-            <ThemedGradientText>{t("title")}</ThemedGradientText>
-          </h1>
-          <p className="max-w-2xl text-lg leading-relaxed text-[var(--text-secondary)]">
-            {t("subtitle")}
-          </p>
-        </div>
-      </section>
+      <PageHero label={t("label")} title={t("title")} description={t("subtitle")} />
 
       {/* 磷光互动作品已下线 */}
 
       {/* 精选作品：大卡片，一盏一盏的灯 */}
-      <section className="py-12">
+      <section className="pb-12 pt-10 md:pt-16">
         <div className="site-content">
           <h2 className="mb-10 text-2xl font-bold tracking-wide">
             {t("featured")}

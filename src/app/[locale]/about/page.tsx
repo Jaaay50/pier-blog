@@ -1,7 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
+import { PageHero } from "@/components/PageHero";
 import { Navbar } from "@/components/Navbar";
-import DecryptedText from "@/components/reactbits/DecryptedText";
 import SpotlightCard from "@/components/reactbits/SpotlightCard";
 import { ExperienceJourney } from "@/components/ExperienceJourney";
 import { SkillRadar } from "@/components/viz/SkillRadar";
@@ -97,42 +97,10 @@ export default async function AboutPage({
     <main className="about-page min-h-screen">
       <Navbar />
 
-      {/* Hero */}
-      <section className="relative overflow-hidden py-20">
-        {/* 关于页使用静态渐变，避免普通内容页持续创建 WebGL RAF。 */}
-        <div
-          className="about-hero-gradient pointer-events-none absolute inset-0"
-          aria-hidden
-        />
-        <div className="site-content relative">
-          <div className="reading-column-no-px">
-            <div className="mb-4">
-              <DecryptedText
-                text={t("label")}
-                className="text-sm font-medium text-[var(--text-muted)]"
-              />
-            </div>
-            <h1 className="about-title-gradient mb-6 text-4xl font-bold tracking-tight md:text-5xl">
-              {t("title")}
-            </h1>
-            <p className="text-lg leading-relaxed text-[var(--text-secondary)]">
-              {t("intro")}
-            </p>
-            <a
-              href="https://cloudborne.cn"
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-label={`${t("cloudborneVisit")} (${t("opensInNewWindow")})`}
-              className="mt-7 inline-flex min-h-11 max-w-full items-center rounded-lg border border-[var(--border)] px-5 py-2.5 text-sm font-medium text-[var(--text-primary)] transition-colors hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-            >
-              {t("cloudborneVisit")} ↗
-            </a>
-          </div>
-        </div>
-      </section>
+      <PageHero label={t("label")} title={t("title")} description={t("intro")} />
 
       {/* Skills */}
-      <section className="py-16">
+      <section className="pb-16 pt-10 md:pt-16">
         <div className="site-content">
           <h2 className="mb-8 text-2xl font-bold tracking-tight">
             {t("technicalStack")}

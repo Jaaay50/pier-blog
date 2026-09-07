@@ -51,7 +51,7 @@ export function CurrentsHighlights({ locale, sourceMap }: Props) {
   };
 
   return (
-    <div className="pt-8">
+    <div className="currents-highlights pt-8">
       <div>
         {/* 状态条 */}
         {stats && (

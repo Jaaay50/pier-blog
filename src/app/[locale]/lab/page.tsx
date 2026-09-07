@@ -1,5 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
+import { PageHero } from "@/components/PageHero";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { LabGallery } from "@/components/lab/LabGallery";
@@ -37,15 +38,8 @@ export default async function LabPage({
   return (
     <main className="relative min-h-screen">
       <Navbar />
-      <div className="site-content py-16">
-        <header className="mb-12 text-center">
-          <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
-            {t("title")}
-          </h1>
-          <p className="mx-auto max-w-2xl text-[var(--text-secondary)]">
-            {t("subtitle")}
-          </p>
-        </header>
+      <PageHero label={t("label")} title={t("title")} description={t("subtitle")} />
+      <div className="site-content pb-16 pt-10 md:pt-16">
         <LabGallery />
       </div>
       <SiteFooter />
