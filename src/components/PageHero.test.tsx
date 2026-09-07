@@ -32,6 +32,12 @@ describe("PageHero", () => {
       expect(markup).toContain(title);
       const serverDocument = new DOMParser().parseFromString(markup, "text/html");
       expect(serverDocument.body.textContent).toContain(description);
+      const intro = container.querySelector(".site-content > p:last-child");
+      expect(intro?.className).toContain("min-h-[6lh]");
+      expect(intro?.className).toContain("min-[360px]:min-h-[5lh]");
+      expect(intro?.className).toContain("sm:min-h-[3lh]");
+      expect(intro?.className).toContain("md:min-h-[2lh]");
+      expect(intro?.className).not.toMatch(/line-clamp|truncate|overflow-hidden/);
       expect(container.querySelector("h1")?.className).toContain("md:text-5xl");
       const gradient = screen.getByText(title);
       expect(gradient.className).toContain("bg-clip-text");
