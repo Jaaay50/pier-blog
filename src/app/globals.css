@@ -273,6 +273,56 @@ html.custom-cursor-on body {
   mask-repeat: no-repeat;
 }
 
+/* 首页浅色专用：可辨认的暖色光带，保留粒子文字后方的干净纸底。
+   保护层在背景容器内，不盖住标题、按钮或浮动几何层；不改全站 ambient。 */
+.hero-light-atmosphere {
+  --hero-light-opacity: 0.42;
+  pointer-events: none;
+}
+
+.hero-light-static,
+.hero-light-aurora {
+  transition: opacity 320ms ease-out;
+}
+
+.hero-light-aurora {
+  opacity: 0;
+}
+
+.hero-light-atmosphere[data-ready="true"] .hero-light-aurora {
+  opacity: var(--hero-light-opacity);
+}
+
+.hero-light-atmosphere[data-ready="true"] .hero-light-static {
+  opacity: 0;
+}
+
+.hero-light-content-veil {
+  background: radial-gradient(
+    ellipse 68% 36% at 50% 55%,
+    rgba(250, 249, 245, 0.94) 0%,
+    rgba(250, 249, 245, 0.88) 40%,
+    rgba(250, 249, 245, 0.48) 72%,
+    rgba(250, 249, 245, 0) 100%
+  );
+}
+
+@media (max-width: 767px) {
+  .hero-light-atmosphere {
+    --hero-light-opacity: 0.30;
+  }
+
+  .hero-light-content-veil {
+    background: radial-gradient(
+      ellipse 100% 40% at 50% 55%,
+      rgba(250, 249, 245, 0.96) 0%,
+      rgba(250, 249, 245, 0.90) 42%,
+      rgba(250, 249, 245, 0.50) 72%,
+      rgba(250, 249, 245, 0) 100%
+    );
+  }
+}
+
 .hero-atmosphere-tail {
   position: absolute;
   inset-inline: 0;

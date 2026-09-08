@@ -207,27 +207,15 @@ export default function ParticleTitle({
   const [visible, setVisible] = useState(false);
   const [rebuildTick, setRebuildTick] = useState(0);
   const isDarkRef = useRef(isDark);
-  const glStateRef = useRef<{
-    gl: WebGL2RenderingContext | WebGLRenderingContext;
-    program: Program;
-  } | null>(null);
+  const themeDirtyRef = useRef(true);
   const onFailRef = useRef(onFail);
 
   // 同步最新值到 ref（不触发重建）
-  useEffect(() => { isDarkRef.current = isDark; }, [isDark]);
-  useEffect(() => { onFailRef.current = onFail; }, [onFail]);
-
-  // 主题切换：只更新颜色 uniform 与混合模式，不重建
   useEffect(() => {
-    const state = glStateRef.current;
-    if (!state) return;
-    const [c1, c2, c3] = readThemeColors();
-    state.program.uniforms.uColor1.value = c1;
-    state.program.uniforms.uColor2.value = c2;
-    state.program.uniforms.uColor3.value = c3;
-    const gl = state.gl;
-    gl.blendFunc(gl.SRC_ALPHA, isDark ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
+    isDarkRef.current = isDark;
+    themeDirtyRef.current = true;
   }, [isDark]);
+  useEffect(() => { onFailRef.current = onFail; }, [onFail]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -337,8 +325,6 @@ export default function ParticleTitle({
           uColor3: { value: c3 },
         },
       });
-      glStateRef.current = { gl, program };
-
       const mesh = new Mesh(gl, { mode: gl.POINTS, geometry, program });
       gl.canvas.style.width = "100%";
       gl.canvas.style.height = "100%";
@@ -348,6 +334,19 @@ export default function ParticleTitle({
 
       const update = (t: number) => {
         animateId = requestAnimationFrame(update);
+
+        // next-themes 的父 effect 晚于本组件更新根节点 class。
+        // 在下一次实际绘制前读 CSS，避免锁住旧主题色；暂停时保留标记，
+        // 恢复首帧再同步，不额外开 RAF，也不每帧读取 computed style。
+        if (themeDirtyRef.current) {
+          const [c1, c2, c3] = readThemeColors();
+          program.uniforms.uColor1.value = c1;
+          program.uniforms.uColor2.value = c2;
+          program.uniforms.uColor3.value = c3;
+          gl.blendFunc(gl.SRC_ALPHA, isDarkRef.current ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
+          themeDirtyRef.current = false;
+        }
+
         if (lastTime !== null) elapsed += t - lastTime;
         lastTime = t;
 
@@ -441,7 +440,6 @@ export default function ParticleTitle({
       }
       stopGate?.();
       if (animateId !== null) cancelAnimationFrame(animateId);
-      glStateRef.current = null;
       if (renderer) {
         const gl = renderer.gl;
         if (gl.canvas.parentNode === host) host.removeChild(gl.canvas);

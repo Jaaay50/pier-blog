@@ -23,6 +23,40 @@ const ParticleTitle = dynamic(
   { ssr: false }
 );
 
+// Keep the homepage palette local: changing shared text tokens would recolor the title.
+const LIGHT_HERO_COLORS = ["#d97757", "#e8c4a0", "#c6613f"];
+
+function LightHeroAtmosphere({ enabled }: { enabled: boolean }) {
+  const [ready, setReady] = useState(false);
+
+  return (
+    <div
+      data-theme="light"
+      data-ready={enabled && ready}
+      className="hero-light-atmosphere absolute inset-0"
+    >
+      {/* The CSS-selected fallback also covers SSR, chunk loading and GPU failure. */}
+      <div className="hero-light-static absolute inset-0">
+        <StaticHeroFallback isDark={false} />
+      </div>
+      {enabled && (
+        <div className="hero-light-aurora absolute inset-0">
+          <Aurora
+            lightMode
+            backgroundColor="#faf9f5"
+            colorStops={LIGHT_HERO_COLORS}
+            speed={1}
+            amplitude={1.2}
+            blend={0.5}
+            onReadyChange={setReady}
+          />
+        </div>
+      )}
+      <div className="hero-light-content-veil absolute inset-0" />
+    </div>
+  );
+}
+
 interface ImmersiveHeroProps {
   /** 测试可覆写；页面不传，避免 SSR HTML / messages / RSC 各写一遍连续标题。 */
   title?: string;
@@ -130,7 +164,9 @@ export function ImmersiveHero({
       {/* 光场：100vh 画布 + 向下延伸的 CSS 尾段，统一 mask 融入 ambient */}
       <div className="hero-atmosphere" aria-hidden="true">
         <motion.div className="hero-atmosphere-field" style={{ scale: bgScale }}>
-          {!mounted || !quality ? null : !quality.enabled ? (
+          {!mounted || !quality ? (
+            <LightHeroAtmosphere key="light-static" enabled={false} />
+          ) : isDark && !quality.enabled ? (
             <StaticHeroFallback isDark={isDark} />
           ) : isDark ? (
             <div className="absolute inset-0 opacity-[0.22]">
@@ -149,13 +185,10 @@ export function ImmersiveHero({
               />
             </div>
           ) : (
-            <div className="absolute inset-0 opacity-[0.18]">
-              <Aurora
-                colorStops={["#d97757", "#e8c4a0", "#c6613f"]}
-                amplitude={1.2}
-                blend={0.65}
-              />
-            </div>
+            <LightHeroAtmosphere
+              key={quality.enabled ? "light-animated" : "light-static"}
+              enabled={quality.enabled}
+            />
           )}
         </motion.div>
         <div className="hero-atmosphere-tail" />
