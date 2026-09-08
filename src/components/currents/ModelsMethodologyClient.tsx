@@ -176,8 +176,7 @@ export function ModelsMethodologyClient() {
           <div className="flex justify-between gap-3">
             <dt className="text-[var(--text-muted)]">{t("modelsMethMinCoverage")}</dt>
             <dd className="tabular-nums text-[var(--text-primary)]">
-              {t("modelsCatOverall")} ≥ {data.scoringParams.minCoverage.overall} ·{" "}
-              {t("modelsMethMinCoverageOthers", { count: data.scoringParams.minCoverage.coding })}
+              {t("modelsMethCoveragePolicy")}
             </dd>
           </div>
           <div className="flex justify-between gap-3">

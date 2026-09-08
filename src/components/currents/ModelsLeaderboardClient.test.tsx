@@ -155,7 +155,8 @@ describe("ModelsLeaderboardClient", () => {
     expect(screen.getAllByLabelText("下降 1 位")[0].textContent).toContain("↓");
     expect(screen.getAllByLabelText("首次收录，暂无排名变化").length).toBeGreaterThanOrEqual(1);
     // 观察中分组
-    expect(screen.getByText("观察中")).toBeTruthy();
+    expect(screen.queryByText("观察中")).toBeNull();
+    expect(screen.getAllByRole("table")).toHaveLength(1);
     expect(screen.getAllByText("GLM-5.2").length).toBeGreaterThanOrEqual(1);
     // 数据时间
     expect(screen.getByText(/榜单计算于/)).toBeTruthy();
@@ -339,4 +340,23 @@ describe("ModelsLeaderboardClient", () => {
     await screen.findByRole("button", { name: "重试" });
     expect(screen.queryByText(/部分来源检查失败/)).toBeNull();
   });
+});
+
+afterEach(() => cleanup());
+
+it("renders missing evaluations without fabricated zeros", async () => {
+ mockFetchLeaderboard.mockResolvedValue(response({items:[row({slug:"new-model",name:"New Model",rank:null,abilityScore:null,confidence:null,computedAt:null})],observing:[]}));
+ renderClient();
+ await waitFor(()=>expect(screen.getAllByText("New Model").length).toBe(2));
+ expect(screen.queryByText("0.0")).toBeNull();
+ expect(screen.getAllByText("—").length).toBeGreaterThan(3);
+});
+it("never substitutes ability for missing value score", async () => {
+ mockFetchLeaderboard.mockImplementation((category:string)=>Promise.resolve(response({category:category as ModelsLeaderboardResponse["category"],items:[row({slug:"no-price",name:"No Price",abilityScore:90.5,valueScore:null,price:{kind:"unavailable",inputUsdPerMtok:null,outputUsdPerMtok:null,sourceUrl:null,verifiedAt:null,notes:null}})],observing:[]})));
+ renderClient();
+ fireEvent.click(screen.getByRole("tab",{name:"性价比"}));
+ await waitFor(()=>expect(screen.getByRole("columnheader",{name:"性价比分"})).toBeTruthy());
+ const tr=screen.getByRole("table").querySelector("tbody tr")!;
+ expect(tr.children[2].querySelector("span")?.textContent).toBe("—");
+ expect(tr.children[2].textContent).toContain("能力 90.5");
 });
