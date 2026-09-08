@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   confidenceTier,
+  unifiedLeaderboardRows,
+  type ModelsLeaderboardResponse,
   isModelsDetailResponse,
   isModelsLeaderboardResponse,
   isModelsMetaResponse,
@@ -200,4 +202,21 @@ describe("isValidModelSlug", () => {
     expect(isValidModelSlug("has space")).toBe(false);
     expect(isValidModelSlug("")).toBe(false);
   });
+});
+
+it("accepts nullable leaderboard measurements but rejects malformed non-null values", () => {
+ const missing={...validLeaderboard,items:[{...validLeaderboard.items[0],rank:null,abilityScore:null,confidence:null,computedAt:null}]};
+ expect(isModelsLeaderboardResponse(missing)).toBe(true);
+ for (const bad of [{rank:0},{abilityScore:"90"},{confidence:2},{computedAt:12}]) {
+  expect(isModelsLeaderboardResponse({...missing,items:[{...missing.items[0],...bad}]})).toBe(false);
+ }
+});
+it("merges legacy observations without mixing independent ranks or duplicating models", () => {
+ const primary=validLeaderboard.items[0];
+ const data={...validLeaderboard,observing:[primary,{...primary,model:{...primary.model,slug:"legacy-model"},rank:1,prevRank:2}]} as ModelsLeaderboardResponse;
+ const rows=unifiedLeaderboardRows(data);
+ expect(rows.map(row=>row.model.slug)).toEqual([primary.model.slug,"legacy-model"]);
+ expect(rows[0].rank).toBe(1);
+ expect(rows[1].rank).toBeNull();
+ expect(rows[1].prevRank).toBeNull();
 });

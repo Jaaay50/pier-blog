@@ -47,6 +47,26 @@ describe("hero ambient seam", () => {
   });
 });
 
+describe("light homepage atmosphere", () => {
+  it("uses the approved desktop and mobile intensities without changing the shared ambient layer", () => {
+    expect(css).toMatch(/\.hero-light-atmosphere\s*\{[^}]*--hero-light-opacity:\s*0\.42;/);
+    expect(css).toMatch(/@media\s*\(max-width:\s*767px\)\s*\{\s*\.hero-light-atmosphere\s*\{[^}]*--hero-light-opacity:\s*0\.30;/);
+    expect(css).toMatch(/\.hero-light-aurora\s*\{\s*opacity:\s*0;/);
+    expect(css).toMatch(/\.hero-light-atmosphere\[data-ready="true"\]\s+\.hero-light-aurora\s*\{\s*opacity:\s*var\(--hero-light-opacity\);/);
+    expect(css).toMatch(/\.hero-light-atmosphere\[data-ready="true"\]\s+\.hero-light-static\s*\{\s*opacity:\s*0;/);
+    expect(css).toContain("ambient-drift-1 65s");
+    expect(css).toContain("ambient-drift-2 85s");
+    expect(css).toContain("ambient-drift-3 100s");
+  });
+
+  it("keeps the title protection soft and theme-scoped rather than adding an opaque panel", () => {
+    expect(css).toMatch(/\.hero-light-content-veil\s*\{\s*background:\s*radial-gradient\(/);
+    expect(css).toContain("ellipse 68% 36% at 50% 55%");
+    expect(css).toContain("rgba(250, 249, 245, 0) 100%");
+    expect(css).toMatch(/\.dark\s+\[data-theme='light'\]\s*\{\s*display:\s*none;/);
+  });
+});
+
 describe("hero CJK title punctuation", () => {
   it("halves the fullwidth comma box so the mark sits between neighboring glyphs", () => {
     expect(css).toMatch(

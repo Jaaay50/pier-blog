@@ -39,7 +39,7 @@ export interface ModelsPrice {
 }
 
 export interface ModelsLeaderboardRow {
-  rank: number;
+  rank: number | null;
   prevRank: number | null;
   model: {
     slug: string;
@@ -49,14 +49,14 @@ export interface ModelsLeaderboardRow {
     status: ModelsView;
     releaseDate: string | null;
   };
-  abilityScore: number;
-  confidence: number;
+  abilityScore: number | null;
+  confidence: number | null;
   confidenceParts: Record<string, number>;
   valueScore: number | null;
   coverageCount: number;
   staleSources: string[];
   price: ModelsPrice;
-  computedAt: string;
+  computedAt: string | null;
 }
 
 export interface ModelsSourceMeta {
@@ -300,14 +300,14 @@ function isLeaderboardModel(value: unknown, expectedView?: ModelsView): boolean 
 }
 
 function isLeaderboardRow(value: unknown, expectedView: ModelsView): value is ModelsLeaderboardRow {
-  if (!isRecord(value) || !isPositiveInteger(value.rank)) return false;
+  if (!isRecord(value) || !(value.rank === null || isPositiveInteger(value.rank))) return false;
   if (!(value.prevRank === null || isPositiveInteger(value.prevRank))) return false;
   if (!isLeaderboardModel(value.model, expectedView)) return false;
-  if (!isInRange(value.abilityScore, 0, 100) || !isInRange(value.confidence, 0, 1)) return false;
+  if (!(value.abilityScore === null || isInRange(value.abilityScore, 0, 100)) || !(value.confidence === null || isInRange(value.confidence, 0, 1))) return false;
   if (!hasFiniteNumberKeys(value.confidenceParts, ["coverage", "freshness", "agreement", "identity"]) || !Object.values(value.confidenceParts).every((part) => isInRange(part, 0, 1)) || !isNullableFiniteNumber(value.valueScore)) return false;
   if (value.valueScore !== null && !isInRange(value.valueScore, 0, 100)) return false;
   if (!isNonNegativeInteger(value.coverageCount) || !isStringArray(value.staleSources) || !isModelsPrice(value.price)) return false;
-  return isString(value.computedAt);
+  return isNullableString(value.computedAt);
 }
 
 export function isModelsLeaderboardResponse(
@@ -429,4 +429,19 @@ export function confidenceTier(confidence: number): "high" | "medium" | "low" {
 /** slug 白名单（与后端一致），非法值不触发上游请求。 */
 export function isValidModelSlug(slug: string): boolean {
   return /^[a-z0-9-]{1,64}$/.test(slug) && slug !== "leaderboard" && slug !== "meta" && slug !== "methodology";
+}
+
+/** Keep server order; legacy observation ranks belong to a separate population. */
+export function unifiedLeaderboardRows(data: ModelsLeaderboardResponse): ModelsLeaderboardRow[] {
+  const seen = new Set(data.items.map((row) => row.model.slug));
+  const legacy = data.observing.filter((row) => {
+    if (seen.has(row.model.slug)) return false;
+    seen.add(row.model.slug);
+    return true;
+  }).map((row) => ({ ...row, rank: null, prevRank: null }));
+  return [...data.items, ...legacy];
+}
+
+export function formatModelScore(score: number | null): string {
+  return score === null ? "—" : score.toFixed(1);
 }

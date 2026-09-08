@@ -1,23 +1,37 @@
 // @vitest-environment jsdom
 
-import { cleanup, render } from "@testing-library/react";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, render } from "@testing-library/react";
+import { renderToString } from "react-dom/server";
+import { hydrateRoot } from "react-dom/client";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImmersiveHero } from "./ImmersiveHero";
 
+const mocks = vi.hoisted(() => ({
+  theme: vi.fn(), quality: vi.fn(), locale: vi.fn(), aurora: vi.fn(), galaxy: vi.fn(),
+}));
+
 vi.mock("next-themes", () => ({
-  useTheme: () => ({ resolvedTheme: "dark" }),
+  useTheme: mocks.theme,
 }));
 
 vi.mock("next-intl", () => ({
-  useLocale: () => "zh",
+  useLocale: mocks.locale,
 }));
 
 vi.mock("@/lib/webgl", () => ({
-  useWebGLQuality: () => null,
+  useWebGLQuality: mocks.quality,
 }));
 
 vi.mock("next/dynamic", () => ({
-  default: () => () => null,
+  default: (loader: () => Promise<unknown>) => {
+    if (loader.toString().includes("reactbits/Aurora")) {
+      return function MockAurora(props: unknown) { mocks.aurora(props); return <canvas data-aurora />; };
+    }
+    if (loader.toString().includes("reactbits/Galaxy")) {
+      return function MockGalaxy(props: unknown) { mocks.galaxy(props); return <canvas data-galaxy />; };
+    }
+    return () => null;
+  },
 }));
 
 vi.mock("@/components/reactbits/ShinyText", () => ({
@@ -43,8 +57,157 @@ vi.mock("motion/react", () => ({
   useTransform: () => 0,
 }));
 
+beforeEach(() => {
+  vi.clearAllMocks();
+  mocks.locale.mockReturnValue("zh");
+  mocks.theme.mockReturnValue({ resolvedTheme: "dark" });
+  mocks.quality.mockReturnValue(null);
+});
+
 afterEach(() => {
   cleanup();
+});
+
+describe("ImmersiveHero light atmosphere", () => {
+  const quality = {
+    enabled: true, reducedMotion: false, webglSupported: true,
+    tier: "high", dpr: 1.5, particleMultiplier: 1, mouseInteraction: false,
+  };
+  const light = () => {
+    mocks.theme.mockReturnValue({ resolvedTheme: "light" });
+    mocks.quality.mockReturnValue(quality);
+  };
+
+  it("includes a CSS-selected light fallback before hydration without changing the dark SSR background", () => {
+    mocks.theme.mockReturnValue({ resolvedTheme: undefined });
+    const html = renderToString(<ImmersiveHero subtitle="副标题" />);
+    expect(html).toContain('data-theme="light"');
+    expect(html).toContain('data-ready="false"');
+    expect(html).toContain("hero-light-static");
+    expect(html).not.toContain("<canvas");
+  });
+
+  it("opts only the light homepage into the approved palette and motion parameters", () => {
+    light();
+    const { container } = render(<ImmersiveHero subtitle="副标题" />);
+    expect(mocks.aurora).toHaveBeenCalledWith(expect.objectContaining({
+      lightMode: true, backgroundColor: "#faf9f5",
+      colorStops: ["#d97757", "#e8c4a0", "#c6613f"],
+      speed: 1, amplitude: 1.2, blend: 0.5,
+    }));
+    expect(mocks.galaxy).not.toHaveBeenCalled();
+    expect(container.querySelector(".hero-light-content-veil")?.closest(".hero-atmosphere")).not.toBeNull();
+    expect(container.querySelector(".hero-light-content-veil")?.closest("h1")).toBeNull();
+    expect(container.querySelector("h1")?.getAttribute("aria-label")).toBe("全栈的栈，也是栈桥的栈");
+  });
+
+  it("uses the same light background without changing the English homepage title", () => {
+    light();
+    mocks.locale.mockReturnValue("en");
+    const { container } = render(<ImmersiveHero subtitle="English subtitle" />);
+    expect(container.querySelector("h1")?.getAttribute("aria-label")).toBe("A pier has to hold at both ends");
+    expect(mocks.aurora).toHaveBeenCalledWith(expect.objectContaining({
+      lightMode: true, backgroundColor: "#faf9f5", speed: 1, amplitude: 1.2, blend: 0.5,
+    }));
+    expect(container.querySelector(".hero-light-content-veil")).not.toBeNull();
+  });
+
+  it("hydrates the static background before enabling the client-rendered Aurora", async () => {
+    mocks.theme.mockReturnValue({ resolvedTheme: "light" });
+    const element = <ImmersiveHero subtitle="副标题" />;
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(element);
+    document.body.appendChild(container);
+    const onRecoverableError = vi.fn();
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    try {
+      await act(async () => { root = hydrateRoot(container, element, { onRecoverableError }); });
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      expect(container.querySelector(".hero-light-static")).not.toBeNull();
+      expect(container.querySelector("[data-aurora]")).toBeNull();
+      mocks.quality.mockReturnValue(quality);
+      await act(async () => { root?.render(<ImmersiveHero subtitle="副标题" />); });
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      expect(container.querySelector("[data-aurora]")).not.toBeNull();
+      expect(container.querySelector(".hero-light-atmosphere")?.getAttribute("data-ready")).toBe("false");
+    } finally {
+      await act(async () => { root?.unmount(); });
+      container.remove();
+    }
+  });
+
+  it("resets light readiness across a light-to-dark-to-light theme round trip", () => {
+    light();
+    const { container, rerender } = render(<ImmersiveHero subtitle="副标题" />);
+    act(() => mocks.aurora.mock.lastCall![0].onReadyChange(true));
+    mocks.theme.mockReturnValue({ resolvedTheme: "dark" });
+    rerender(<ImmersiveHero subtitle="副标题" />);
+    expect(container.querySelector(".hero-light-atmosphere")).toBeNull();
+    expect(container.querySelector("[data-galaxy]")).not.toBeNull();
+    mocks.theme.mockReturnValue({ resolvedTheme: "light" });
+    rerender(<ImmersiveHero subtitle="副标题" />);
+    expect(container.querySelector("[data-galaxy]")).toBeNull();
+    expect(container.querySelector(".hero-light-atmosphere")?.getAttribute("data-ready")).toBe("false");
+    act(() => mocks.aurora.mock.lastCall![0].onReadyChange(true));
+    expect(container.querySelector(".hero-light-atmosphere")?.getAttribute("data-ready")).toBe("true");
+  });
+
+  it("keeps the static fallback until a successful frame and restores it on GPU failure", () => {
+    light();
+    const { container } = render(<ImmersiveHero subtitle="副标题" />);
+    const root = container.querySelector(".hero-light-atmosphere")!;
+    const { onReadyChange } = mocks.aurora.mock.lastCall![0];
+    expect(root.getAttribute("data-ready")).toBe("false");
+    act(() => onReadyChange(true));
+    expect(root.getAttribute("data-ready")).toBe("true");
+    act(() => onReadyChange(false));
+    expect(root.getAttribute("data-ready")).toBe("false");
+    expect(root.querySelector(".hero-light-static")).not.toBeNull();
+  });
+
+  it.each([
+    { reducedMotion: true }, { webglSupported: false }, { tier: "low" },
+  ])("does not mount Aurora when the quality gate disables it: %o", (disabled) => {
+    light();
+    mocks.quality.mockReturnValue({ ...quality, ...disabled, enabled: false });
+    const { container } = render(<ImmersiveHero subtitle="副标题" />);
+    expect(mocks.aurora).not.toHaveBeenCalled();
+    expect(container.querySelector(".hero-light-static")).not.toBeNull();
+    expect(container.querySelector(".hero-light-atmosphere")?.getAttribute("data-ready")).toBe("false");
+  });
+
+  it("waits for a new successful frame after the quality gate is re-enabled", () => {
+    light();
+    const { container, rerender } = render(<ImmersiveHero subtitle="副标题" />);
+    act(() => mocks.aurora.mock.lastCall![0].onReadyChange(true));
+    mocks.quality.mockReturnValue({ ...quality, enabled: false, reducedMotion: true });
+    rerender(<ImmersiveHero subtitle="副标题" />);
+    expect(container.querySelector("[data-aurora]")).toBeNull();
+    mocks.quality.mockReturnValue(quality);
+    rerender(<ImmersiveHero subtitle="副标题" />);
+    expect(container.querySelector("[data-aurora]")).not.toBeNull();
+    expect(container.querySelector(".hero-light-atmosphere")?.getAttribute("data-ready")).toBe("false");
+  });
+
+  it("leaves the dark Galaxy branch and its existing parameters untouched", () => {
+    mocks.quality.mockReturnValue(quality);
+    const { container } = render(<ImmersiveHero subtitle="副标题" />);
+    expect(mocks.aurora).not.toHaveBeenCalled();
+    expect(mocks.galaxy).toHaveBeenCalledWith(expect.objectContaining({
+      starSpeed: 0.4, glowIntensity: 0.5, rotationSpeed: 0.05, dpr: 1.5,
+    }));
+    expect(container.querySelector("[data-galaxy]")?.parentElement?.className).toContain("opacity-[0.22]");
+    expect(container.querySelector(".hero-light-atmosphere")).toBeNull();
+  });
+
+  it("retains the original dark static fallback when WebGL is disabled", () => {
+    mocks.quality.mockReturnValue({ ...quality, enabled: false });
+    const { container } = render(<ImmersiveHero subtitle="副标题" />);
+    expect(mocks.aurora).not.toHaveBeenCalled();
+    expect(mocks.galaxy).not.toHaveBeenCalled();
+    expect(container.querySelector(".hero-light-atmosphere")).toBeNull();
+    expect(container.querySelector(".hero-atmosphere-field")?.innerHTML).toContain("radial-gradient");
+  });
 });
 
 describe("ImmersiveHero", () => {

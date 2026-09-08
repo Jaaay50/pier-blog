@@ -7,6 +7,8 @@ import { fetchModelsLeaderboard } from "@/lib/currents/api";
 import {
   MODELS_CATEGORIES,
   confidenceTier,
+  unifiedLeaderboardRows,
+  formatModelScore,
   type ModelsCategory,
   type ModelsLeaderboardResponse,
   type ModelsLeaderboardRow,
@@ -38,8 +40,8 @@ function formatUsd(value: number | null): string | null {
 }
 
 /** 排名变化：首次快照（prevRank=null）显示 —，不制造变化。 */
-function RankDelta({ rank, prevRank, t }: { rank: number; prevRank: number | null; t: ReturnType<typeof useTranslations> }) {
-  if (prevRank === null) {
+function RankDelta({ rank, prevRank, t }: { rank: number | null; prevRank: number | null; t: ReturnType<typeof useTranslations> }) {
+  if (rank === null || prevRank === null) {
     return (
       <span className="text-[var(--text-muted)]" aria-label={t("modelsDeltaNone")}>
         —
@@ -66,7 +68,8 @@ function RankDelta({ rank, prevRank, t }: { rank: number; prevRank: number | nul
   );
 }
 
-function ConfidenceBadge({ confidence, t }: { confidence: number; t: ReturnType<typeof useTranslations> }) {
+function ConfidenceBadge({ confidence, t }: { confidence: number | null; t: ReturnType<typeof useTranslations> }) {
+  if (confidence === null) return <span className="text-[var(--text-muted)]">—</span>;
   const tier = confidenceTier(confidence);
   const label = t(tier === "high" ? "modelsConfHigh" : tier === "medium" ? "modelsConfMedium" : "modelsConfLow");
   return (
@@ -114,22 +117,20 @@ function formatTime(iso: string | null, locale: string): string | null {
 function LeaderboardCards({
   rows,
   category,
-  watching,
   t,
 }: {
   rows: ModelsLeaderboardRow[];
   category: ModelsCategory;
-  watching?: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
   const isValue = category === "value";
   return (
-    <ul className={`space-y-2 sm:hidden ${watching ? "opacity-90" : ""}`}>
+    <ul className="space-y-2 sm:hidden">
       {rows.map((row) => (
         <li key={row.model.slug} className="currents-surface-list rounded-xl border border-[var(--border)] p-3.5">
           <div className="flex items-start justify-between gap-3">
             <div className="flex min-w-0 items-baseline gap-2">
-              <span className="shrink-0 tabular-nums text-[13px] text-[var(--text-muted)]">#{row.rank}</span>
+              <span className="shrink-0 tabular-nums text-[13px] text-[var(--text-muted)]">{row.rank === null ? "—" : `#${row.rank}`}</span>
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
                   <TransitionLink
@@ -158,7 +159,7 @@ function LeaderboardCards({
             </div>
             <div className="shrink-0 text-right">
               <div className="text-lg font-semibold tabular-nums text-[var(--text-primary)]">
-                {isValue && row.valueScore !== null ? row.valueScore.toFixed(1) : row.abilityScore.toFixed(1)}
+                {formatModelScore(isValue ? row.valueScore : row.abilityScore)}
               </div>
               <div className="text-[11px] tabular-nums text-[var(--text-muted)]">
                 <RankDelta rank={row.rank} prevRank={row.prevRank} t={t} />
@@ -170,7 +171,7 @@ function LeaderboardCards({
             <PriceCell row={row} t={t} />
             {isValue && (
               <span className="tabular-nums text-[var(--text-muted)]">
-                {t("modelsAbilityShort")} {row.abilityScore.toFixed(1)}
+                {t("modelsAbilityShort")} {formatModelScore(row.abilityScore)}
               </span>
             )}
           </div>
@@ -183,20 +184,18 @@ function LeaderboardCards({
 function LeaderboardTable({
   rows,
   category,
-  watching,
   t,
 }: {
   rows: ModelsLeaderboardRow[];
   category: ModelsCategory;
-  watching?: boolean;
   t: ReturnType<typeof useTranslations>;
 }) {
   const isValue = category === "value";
   return (
-    <div className={`hidden overflow-x-auto rounded-xl border border-[var(--border)] sm:block ${watching ? "opacity-90" : ""}`}>
+    <div className="hidden overflow-x-auto rounded-xl border border-[var(--border)] sm:block">
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <caption className="sr-only">
-          {t(CATEGORY_KEY[category])} — {watching ? t("modelsObserving") : t("modelsMainBoard")}
+          {t(CATEGORY_KEY[category])} — {t("modelsMainBoard")}
         </caption>
         <thead>
           <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
@@ -226,7 +225,7 @@ function LeaderboardTable({
               key={row.model.slug}
               className="border-b border-[var(--border)] last:border-b-0 hover:bg-[var(--currents-surface-list-hover)]"
             >
-              <td className="px-3 py-3 tabular-nums text-[var(--text-secondary)]">{row.rank}</td>
+              <td className="px-3 py-3 tabular-nums text-[var(--text-secondary)]">{row.rank ?? "—"}</td>
               <td className="px-3 py-3">
                 <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-0.5">
                   <TransitionLink
@@ -253,11 +252,11 @@ function LeaderboardTable({
               </td>
               <td className="px-3 py-3 text-right">
                 <span className="text-base font-semibold tabular-nums text-[var(--text-primary)]">
-                  {isValue && row.valueScore !== null ? row.valueScore.toFixed(1) : row.abilityScore.toFixed(1)}
+                  {formatModelScore(isValue ? row.valueScore : row.abilityScore)}
                 </span>
                 {isValue && (
                   <div className="text-[11px] tabular-nums text-[var(--text-muted)]">
-                    {t("modelsAbilityShort")} {row.abilityScore.toFixed(1)}
+                    {t("modelsAbilityShort")} {formatModelScore(row.abilityScore)}
                   </div>
                 )}
               </td>
@@ -449,22 +448,8 @@ export function ModelsLeaderboardClient() {
               </p>
             ) : (
               <>
-                {currentData.items.length > 0 && (
-                  <>
-                    <LeaderboardTable rows={currentData.items} category={category} t={t} />
-                    <LeaderboardCards rows={currentData.items} category={category} t={t} />
-                  </>
-                )}
-                {currentData.observing.length > 0 && (
-                  <section className="mt-8">
-                    <h2 className="mb-1 text-base font-semibold text-[var(--text-primary)]">
-                      {t("modelsObserving")}
-                    </h2>
-                    <p className="mb-3 text-[12px] text-[var(--text-muted)]">{t("modelsObservingNote")}</p>
-                    <LeaderboardTable rows={currentData.observing} category={category} watching t={t} />
-                    <LeaderboardCards rows={currentData.observing} category={category} watching t={t} />
-                  </section>
-                )}
+                <LeaderboardTable rows={unifiedLeaderboardRows(currentData)} category={category} t={t} />
+                <LeaderboardCards rows={unifiedLeaderboardRows(currentData)} category={category} t={t} />
               </>
             )}
             <p className="mt-6 text-[12px] leading-relaxed text-[var(--text-muted)]">
