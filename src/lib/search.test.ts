@@ -78,14 +78,15 @@ describe("buildFeatureDocs", () => {
     "/currents/topics",
     "/currents/changelog",
     "/currents/agent",
+    "/guestbook",
     "/feedback",
   ];
 
-  it.each(["zh", "en"] as const)("%s：9 个功能页 + 全部主题页", (locale) => {
+  it.each(["zh", "en"] as const)("%s：10 个功能页 + 全部主题页", (locale) => {
     const docs = buildFeatureDocs(locale);
     const pages = docs.filter((d) => d.type === "page");
     const topics = docs.filter((d) => d.type === "topic");
-    expect(pages).toHaveLength(9);
+    expect(pages).toHaveLength(10);
     expect(pages.map((d) => d.href)).toEqual(FEATURE_HREFS);
     expect(topics).toHaveLength(CURRENTS_TOPIC_IDS.length);
     for (const id of CURRENTS_TOPIC_IDS) {
@@ -164,6 +165,11 @@ describe("rankResults", () => {
   it('query="mcp"（小写）同样命中 keywords 置顶', () => {
     const ranked = rankResults(zhDocs, "mcp", zhDocs.map((_, i) => i));
     expect(ranked[0].href).toBe("/currents/agent");
+  });
+
+  it('query="留言"：/guestbook 排第一', () => {
+    const ranked = rankResults(zhDocs, "留言", zhDocs.map((_, i) => i));
+    expect(ranked[0].href).toBe("/guestbook");
   });
 
   it('query="反馈"：/feedback 排第一', () => {

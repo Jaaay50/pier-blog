@@ -115,6 +115,16 @@ const FEEDBACK_PAGE_KEYWORDS = [
   "report",
 ];
 
+const GUESTBOOK_PAGE_KEYWORDS = [
+  "留言",
+  "guestbook",
+  "漂瓶",
+  "瓶子",
+  "bottles",
+  "wall",
+  "访客",
+];
+
 const FEATURE_PAGE_DEFS: Record<
   Locale,
   Array<{
@@ -183,6 +193,13 @@ const FEATURE_PAGE_DEFS: Record<
       href: "/currents/agent",
     },
     {
+      id: "guestbook",
+      title: "漂瓶",
+      description: "公开留言墙：把一句话装进瓶子，推到潮水里",
+      keywords: GUESTBOOK_PAGE_KEYWORDS,
+      href: "/guestbook",
+    },
+    {
       id: "feedback",
       title: "反馈",
       description: "提交问题反馈、bug 报告与产品建议",
@@ -246,6 +263,13 @@ const FEATURE_PAGE_DEFS: Record<
       description: "Connect Currents to your agent toolchain via MCP and Skills",
       keywords: AGENT_PAGE_KEYWORDS,
       href: "/currents/agent",
+    },
+    {
+      id: "guestbook",
+      title: "Bottles",
+      description: "A public guestbook: leave a sentence in a bottle and push it into the tide",
+      keywords: GUESTBOOK_PAGE_KEYWORDS,
+      href: "/guestbook",
     },
     {
       id: "feedback",

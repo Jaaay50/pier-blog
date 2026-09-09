@@ -11,8 +11,8 @@ import { TransitionLink } from "./TransitionLink";
 import { MagneticWrapper } from "./MagneticWrapper";
 import { PierWordmark } from "./brand/PierWordmark";
 
-/** 折叠菜单断点：实测 5 个入口 + 3 个控件在 1024px 溢出约 18px，1100px 以下折叠 */
-const COLLAPSE_BREAKPOINT = 1100;
+/** 折叠菜单断点：6 个入口 + 3 个控件在 1200px 附近开始挤，1280px 以下折叠 */
+const COLLAPSE_BREAKPOINT = 1280;
 
 export function Navbar() {
   const navRef = useRef<HTMLElement>(null);
@@ -26,6 +26,7 @@ export function Navbar() {
     { href: "/currents", label: t("currents"), title: t("currentsHint") },
     { href: "/portfolio", label: t("portfolio"), title: t("portfolioHint") },
     { href: "/lab", label: t("lab"), title: t("labHint") },
+    { href: "/guestbook", label: t("guestbook"), title: t("guestbookHint") },
     { href: "/about", label: t("about"), title: t("aboutHint") },
   ];
 
@@ -97,8 +98,8 @@ export function Navbar() {
             </TransitionLink>
           </MagneticWrapper>
 
-          {/* 桌面链接：≥1100px */}
-          <div className="hidden items-center gap-6 min-[1100px]:flex">
+          {/* 桌面链接：≥1280px */}
+          <div className="hidden items-center gap-6 min-[1280px]:flex">
             {navLinks.map((link) => {
               const isActive = pathname.startsWith(link.href);
               return (
@@ -134,8 +135,8 @@ export function Navbar() {
             <ThemeToggle />
           </div>
 
-          {/* 折叠态控件：<1100px。搜索/语言/主题保持可用，链接收进菜单 */}
-          <div className="flex items-center gap-3 min-[1100px]:hidden">
+          {/* 折叠态控件：<1280px。搜索/语言/主题保持可用，链接收进菜单 */}
+          <div className="flex items-center gap-3 min-[1280px]:hidden">
             <SearchModal />
             <LanguageToggle />
             <ThemeToggle />
@@ -183,7 +184,7 @@ export function Navbar() {
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
               transition={{ duration: 0.2, ease: "easeOut" }}
-              className="overflow-hidden min-[1100px]:hidden"
+              className="overflow-hidden min-[1280px]:hidden"
             >
               <ul className="space-y-1 pb-2 pt-4">
                 {navLinks.map((link) => {

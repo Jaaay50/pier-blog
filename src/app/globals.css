@@ -452,6 +452,12 @@ html.custom-cursor-on body {
   }
 }
 
+/* 留言潮水画布：高度跟视口走，窄屏也不低于一屏阅读区 */
+.guestbook-tide {
+  min-height: 28rem;
+  height: min(70vh, 40rem);
+}
+
 .reading-column-no-px {
   width: 100%;
   max-width: 760px;

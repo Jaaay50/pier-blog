@@ -45,6 +45,8 @@ interface TurnstileWidgetProps {
   onToken: (token: string) => void;
   onExpired: () => void;
   onError: () => void;
+  /** Turnstile action 名；默认反馈提交。留言墙用 guestbook_submit。 */
+  action?: "feedback_submit" | "guestbook_submit";
 }
 
 let scriptReady: Promise<void> | null = null;
@@ -125,7 +127,7 @@ function loadTurnstileScript(): Promise<void> {
 }
 
 export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidgetProps>(
-  function TurnstileWidget({ onToken, onExpired, onError }, ref) {
+  function TurnstileWidget({ onToken, onExpired, onError, action = "feedback_submit" }, ref) {
     const containerRef = useRef<HTMLDivElement>(null);
     const widgetIdRef = useRef<string | null>(null);
     const [attempt, setAttempt] = useState(0);
@@ -149,7 +151,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
           if (disposed || !containerRef.current || !window.turnstile || widgetIdRef.current !== null) return;
           widgetIdRef.current = window.turnstile.render(containerRef.current, {
             sitekey: TURNSTILE_SITE_KEY,
-            action: "feedback_submit",
+            action,
             appearance: "interaction-only",
             theme: "auto",
             language: "auto",
@@ -169,7 +171,7 @@ export const TurnstileWidget = forwardRef<TurnstileWidgetHandle, TurnstileWidget
         }
         widgetIdRef.current = null;
       };
-    }, [attempt]);
+    }, [attempt, action]);
 
     return <div ref={containerRef} />;
   },

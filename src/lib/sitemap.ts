@@ -20,6 +20,7 @@ export const SITE_URL = "https://ethanpier.com";
 // These pages do not change whenever the Currents changelog gains an entry.
 const CURRENTS_AGENT_LAST_UPDATED = "2026-08-11";
 const FEEDBACK_LAST_UPDATED = "2026-08-11";
+const GUESTBOOK_LAST_UPDATED = "2026-09-09";
 /** 模型榜上线日（榜单数据岛客户端自取，静态壳变更才更新此日期） */
 const CURRENTS_MODELS_LAST_UPDATED = "2026-08-13";
 
@@ -162,6 +163,11 @@ export function buildStaticShardEntries(): SitemapUrlEntry[] {
     ...bilingualEntries("/currents/agent", {
       lastmod: new Date(CURRENTS_AGENT_LAST_UPDATED).toISOString(),
       changefreq: "monthly",
+      priority: 0.6,
+    }),
+    ...bilingualEntries("/guestbook", {
+      lastmod: new Date(GUESTBOOK_LAST_UPDATED).toISOString(),
+      changefreq: "weekly",
       priority: 0.6,
     }),
     ...bilingualEntries("/feedback", {

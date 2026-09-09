@@ -42,11 +42,18 @@ function clientApiBase(): string {
 export class CurrentsApiError extends Error {
   readonly status: number | null;
   readonly code: string | null;
-  constructor(message: string, status: number | null, code: string | null = null) {
+  readonly retryAfterSeconds: number | null;
+  constructor(
+    message: string,
+    status: number | null,
+    code: string | null = null,
+    retryAfterSeconds: number | null = null,
+  ) {
     super(message);
     this.name = "CurrentsApiError";
     this.status = status;
     this.code = code;
+    this.retryAfterSeconds = retryAfterSeconds;
   }
 }
 

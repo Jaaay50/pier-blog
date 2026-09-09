@@ -1,0 +1,62 @@
+import { getTranslations, setRequestLocale } from "next-intl/server";
+import type { Metadata } from "next";
+import { Navbar } from "@/components/Navbar";
+import { PageHero } from "@/components/PageHero";
+import { SiteFooter } from "@/components/SiteFooter";
+import { GuestbookBoard } from "@/components/guestbook/GuestbookBoard";
+import { locales } from "@/i18n/config";
+import { fetchGuestbookEntries, type GuestbookEntry } from "@/lib/guestbook";
+import { pageMetadata } from "@/lib/metadata";
+
+export const revalidate = 15;
+
+export function generateStaticParams() {
+  return locales.map((locale) => ({ locale }));
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}): Promise<Metadata> {
+  const { locale } = await params;
+  const t = await getTranslations({ locale, namespace: "guestbook" });
+  return pageMetadata(locale, {
+    title: t("title"),
+    description: t("metaDescription"),
+    path: "/guestbook",
+  });
+}
+
+export default async function GuestbookPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  setRequestLocale(locale);
+  const t = await getTranslations("guestbook");
+
+  let initialEntries: GuestbookEntry[] = [];
+  let initialError = false;
+  try {
+    const result = await fetchGuestbookEntries({ limit: 50 });
+    initialEntries = result.entries;
+  } catch {
+    initialError = true;
+  }
+
+  return (
+    <main className="relative min-h-screen">
+      <Navbar />
+      <PageHero label={t("label")} title={t("title")} description={t("subtitle")} />
+      <div className="site-content pb-16 pt-10 md:pt-16">
+        <p className="mx-auto mb-10 max-w-3xl text-sm leading-relaxed text-[var(--text-secondary)]">
+          {t("subtitle")}
+        </p>
+        <GuestbookBoard locale={locale} initialEntries={initialEntries} initialError={initialError} />
+      </div>
+      <SiteFooter />
+    </main>
+  );
+}

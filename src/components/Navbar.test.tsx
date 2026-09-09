@@ -37,13 +37,13 @@ afterEach(() => {
 });
 
 describe("Navbar shared shell", () => {
-  it.each(["zh", "en"])("includes all five visible %s labels in desktop and mobile accessible names", (locale) => {
+  it.each(["zh", "en"])("includes all six visible %s labels in desktop and mobile accessible names", (locale) => {
     const messages = locale === "zh" ? zh : en;
     const { container } = render(
       <NextIntlClientProvider locale={locale} messages={messages}><Navbar /></NextIntlClientProvider>
     );
     const checkNames = (count: number) => {
-      for (const key of ["blog", "currents", "portfolio", "lab", "about"] as const) {
+      for (const key of ["blog", "currents", "portfolio", "lab", "guestbook", "about"] as const) {
         const name = `${messages.nav[key]} — ${messages.nav[`${key}Hint`]}`;
         const links = screen.getAllByRole("link", { name });
         expect(links).toHaveLength(count);
@@ -53,7 +53,7 @@ describe("Navbar shared shell", () => {
     checkNames(1);
     fireEvent.click(screen.getByRole("button", { name: messages.nav.menuOpen }));
     checkNames(2);
-    expect(container.querySelectorAll("a[title][aria-label]")).toHaveLength(10);
+    expect(container.querySelectorAll("a[title][aria-label]")).toHaveLength(12);
   });
   it.each(["zh", "en"])("keeps the same shell across %s routes", (locale) => {
     const navbar = () => (
@@ -64,7 +64,7 @@ describe("Navbar shared shell", () => {
     const { container, rerender } = render(navbar());
     const shell = container.querySelector("[data-site-navbar]")?.firstElementChild;
 
-    for (const route of ["/blog", "/currents", "/about", "/currents/hot", "/currents/item", "/feedback", "/portfolio", "/lab", "/blog"]) {
+    for (const route of ["/blog", "/currents", "/about", "/currents/hot", "/currents/item", "/feedback", "/portfolio", "/lab", "/guestbook", "/blog"]) {
       pathname = route;
       rerender(navbar());
       const currentShell = container.querySelector("[data-site-navbar]")?.firstElementChild;
