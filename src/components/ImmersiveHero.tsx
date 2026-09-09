@@ -1,14 +1,14 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { ReactNode, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useLocale } from "next-intl";
 import { StaticHeroFallback } from "@/components/StaticHeroFallback";
 import { FloatingShapes } from "@/components/FloatingShapes";
-import { useWebGLQuality } from "@/lib/webgl";
 import ShinyText from "@/components/reactbits/ShinyText";
+import { useWebGLQuality } from "@/lib/webgl";
 
 // WebGL 背景懒加载
 const Galaxy = dynamic(() => import("@/components/reactbits/Galaxy"), {
@@ -61,7 +61,6 @@ interface ImmersiveHeroProps {
   /** 测试可覆写；页面不传，避免 SSR HTML / messages / RSC 各写一遍连续标题。 */
   title?: string;
   subtitle: string;
-  children?: ReactNode;
 }
 
 /** 方案 D：只强调「全栈的栈 / 栈桥的栈」里作为双关落点的那个「栈」。 */
@@ -107,7 +106,6 @@ function TitleGlyphs({ title, isZh }: { title: string; isZh: boolean }) {
 export function ImmersiveHero({
   title,
   subtitle,
-  children,
 }: ImmersiveHeroProps) {
   const { resolvedTheme } = useTheme();
   const quality = useWebGLQuality();
@@ -228,15 +226,6 @@ export function ImmersiveHero({
             className={`text-base leading-relaxed md:text-lg ${isZh ? "" : "tracking-wide"}`}
           />
         </div>
-
-        {/* CTA */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 1.6 }}
-        >
-          {children}
-        </motion.div>
       </motion.div>
 
       {/* 滚动提示 */}

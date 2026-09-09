@@ -76,7 +76,6 @@ export default async function CurrentsChangelogPage({
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("title")}
         </h1>
-        <p className="max-w-2xl text-[var(--text-secondary)]">{t("subtitle")}</p>
         <div className="mt-8">
           <Waterline />
         </div>

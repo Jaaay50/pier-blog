@@ -2,6 +2,11 @@ import createNextIntlPlugin from "next-intl/plugin";
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
+if (process.env.NODE_ENV === "production" && !process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY) {
+  throw new Error("NEXT_PUBLIC_TURNSTILE_SITE_KEY is required in production builds");
+}
+
+const turnstileOrigin = "https://challenges.cloudflare.com";
 const cspReportPath = "/api/csp-report";
 const cspReportEndpoint = `https://ethanpier.com${cspReportPath}`;
 export function currentsApiOrigin(value = process.env.NEXT_PUBLIC_CURRENTS_API_BASE) {
@@ -18,6 +23,7 @@ export function scriptSources(environment = process.env.NODE_ENV) {
     "'self'",
     "'unsafe-inline'",
     ...(environment === "development" ? ["'unsafe-eval'"] : []),
+    turnstileOrigin,
   ].join(" ");
 }
 const scriptSrc = scriptSources();
@@ -28,12 +34,12 @@ const contentSecurityPolicy = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "font-src 'self'",
-  `connect-src 'self' https://currents-api.ethanpier.com${
+  `connect-src 'self' https://currents-api.ethanpier.com ${turnstileOrigin}${
     configuredCurrentsApiOrigin && configuredCurrentsApiOrigin !== "https://currents-api.ethanpier.com"
       ? ` ${configuredCurrentsApiOrigin}`
       : ""
   }`,
-  "frame-src 'none'",
+  `frame-src ${turnstileOrigin}`,
   "base-uri 'self'",
   "form-action 'self'",
   "frame-ancestors 'self'",

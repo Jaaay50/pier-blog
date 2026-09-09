@@ -5,6 +5,8 @@ import { renderToString } from "react-dom/server";
 import { hydrateRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImmersiveHero } from "./ImmersiveHero";
+import zh from "@/messages/zh.json";
+import en from "@/messages/en.json";
 
 const mocks = vi.hoisted(() => ({
   theme: vi.fn(), quality: vi.fn(), locale: vi.fn(), aurora: vi.fn(), galaxy: vi.fn(), particles: vi.fn(),
@@ -22,6 +24,10 @@ vi.mock("@/lib/webgl", () => ({
   useWebGLQuality: mocks.quality,
 }));
 
+vi.mock("@/components/reactbits/ShinyText", () => ({
+  default: ({ text, className }: { text: string; className: string }) => <span className={className}>{text}</span>,
+}));
+
 vi.mock("next/dynamic", () => ({
   default: (loader: () => Promise<unknown>) => {
     if (loader.toString().includes("reactbits/Aurora")) {
@@ -32,10 +38,6 @@ vi.mock("next/dynamic", () => ({
     }
     return function MockParticleTitle(props: unknown) { mocks.particles(props); return <canvas data-particles />; };
   },
-}));
-
-vi.mock("@/components/reactbits/ShinyText", () => ({
-  default: ({ text }: { text: string }) => <span>{text}</span>,
 }));
 
 vi.mock("motion/react", () => ({
@@ -245,13 +247,18 @@ describe("ImmersiveHero", () => {
     expect(document.querySelectorAll(".hero-cjk-punct")).toHaveLength(1);
   });
 
-  it("gives the Chinese subtitle a line long enough to stay on one row", () => {
-    render(
-      <ImmersiveHero subtitle="一头连着采集管线与事件去重，一头连着你眼前这块屏幕。中间那段路，我自己走完。" />,
-    );
-    const wrap = document.querySelector(".hero-subtitle");
-    expect(wrap?.className).toContain("max-w-[52rem]");
-    expect(wrap?.className).not.toContain("max-w-2xl");
+  it.each([
+    ["zh", zh.home.heroSubtitle, "max-w-[52rem]"],
+    ["en", en.home.heroSubtitle, "max-w-2xl"],
+  ])("restores the original %s subtitle without a replacement action", (locale, subtitle, widthClass) => {
+    mocks.locale.mockReturnValue(locale);
+    const { container } = render(<ImmersiveHero subtitle={subtitle} />);
+    const wrap = container.querySelector(".hero-subtitle");
+    expect(wrap?.textContent).toBe(subtitle);
+    expect(wrap?.className).toContain(widthClass);
+    expect(wrap?.querySelector("span")?.className).toContain("text-base");
+    expect(container.querySelector("h1")).not.toBeNull();
+    expect(container.querySelector("a, button")).toBeNull();
   });
 });
 

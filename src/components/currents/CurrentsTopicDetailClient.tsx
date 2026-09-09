@@ -96,9 +96,6 @@ export function CurrentsTopicDetailClient({ topicId }: { topicId: string }) {
           <h1 className="font-display mb-2 text-3xl font-semibold tracking-tight md:text-4xl">
             {topic.name}
           </h1>
-          <p className="text-[var(--text-secondary)]">
-            {t("topicDetailSubtitle", { name: topic.name })}
-          </p>
         </header>
       )}
 

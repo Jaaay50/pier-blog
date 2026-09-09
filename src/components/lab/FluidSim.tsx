@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useLocale } from "next-intl";
 import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
 
 /**
@@ -187,13 +188,14 @@ function compileShader(gl: WebGL2RenderingContext, type: number, src: string) {
 function createProgram(gl: WebGL2RenderingContext, vert: string, frag: string) {
   const vs = compileShader(gl, gl.VERTEX_SHADER, vert);
   const fs = compileShader(gl, gl.FRAGMENT_SHADER, frag);
-  if (!vs || !fs) return null;
+  if (!vs || !fs) { if (vs) gl.deleteShader(vs); if (fs) gl.deleteShader(fs); return null; }
   const prog = gl.createProgram()!;
   gl.attachShader(prog, vs);
   gl.attachShader(prog, fs);
   gl.linkProgram(prog);
   gl.deleteShader(vs);
   gl.deleteShader(fs);
+  if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { gl.deleteProgram(prog); return null; }
   return prog;
 }
 
@@ -204,7 +206,7 @@ interface FBO {
   h: number;
 }
 
-function createFBO(gl: WebGL2RenderingContext, w: number, h: number): FBO {
+function createFBO(gl: WebGL2RenderingContext, w: number, h: number, allocated: FBO[] = []): FBO {
   const tex = gl.createTexture()!;
   gl.bindTexture(gl.TEXTURE_2D, tex);
   gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA16F, w, h, 0, gl.RGBA, gl.FLOAT, null);
@@ -215,8 +217,10 @@ function createFBO(gl: WebGL2RenderingContext, w: number, h: number): FBO {
   const fbo = gl.createFramebuffer()!;
   gl.bindFramebuffer(gl.FRAMEBUFFER, fbo);
   gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
+  if (gl.checkFramebufferStatus(gl.FRAMEBUFFER) !== gl.FRAMEBUFFER_COMPLETE) { gl.deleteTexture(tex); gl.deleteFramebuffer(fbo); throw new Error("Incomplete fluid framebuffer"); }
   gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-  return { fbo, tex, w, h };
+  const target = { fbo, tex, w, h }; allocated.push(target);
+  return target;
 }
 
 interface DoubleFBO {
@@ -225,9 +229,9 @@ interface DoubleFBO {
   swap: () => void;
 }
 
-function createDoubleFBO(gl: WebGL2RenderingContext, w: number, h: number): DoubleFBO {
-  let read = createFBO(gl, w, h);
-  let write = createFBO(gl, w, h);
+function createDoubleFBO(gl: WebGL2RenderingContext, w: number, h: number, allocated: FBO[]): DoubleFBO {
+  let read = createFBO(gl, w, h, allocated);
+  let write = createFBO(gl, w, h, allocated);
   return {
     get read() {
       return read;
@@ -244,10 +248,18 @@ function createDoubleFBO(gl: WebGL2RenderingContext, w: number, h: number): Doub
 interface FluidSimProps {
   quality: WebGLQuality;
   dyeColors: [number, number, number][];
+  onReadyChange?: (ready: boolean) => void;
 }
 
-export default function FluidSim({ quality, dyeColors }: FluidSimProps) {
+export function fluidPointerPosition(x: number, y: number, rect: Pick<DOMRect, "left" | "top" | "width" | "height">) {
+  return { x: Math.max(0, Math.min(1, (x - rect.left) / Math.max(1, rect.width))), y: Math.max(0, Math.min(1, 1 - (y - rect.top) / Math.max(1, rect.height))) };
+}
+
+export default function FluidSim({ quality, dyeColors, onReadyChange }: FluidSimProps) {
   const hostRef = useRef<HTMLDivElement>(null);
+  const live = useRef({ dyeColors, onReadyChange });
+  const zh = useLocale() === "zh";
+  useEffect(() => { live.current = { dyeColors, onReadyChange }; }, [dyeColors, onReadyChange]);
 
   useEffect(() => {
     const host = hostRef.current;
@@ -257,296 +269,317 @@ export default function FluidSim({ quality, dyeColors }: FluidSimProps) {
     canvas.style.width = "100%";
     canvas.style.height = "100%";
     canvas.style.display = "block";
-    const gl = canvas.getContext("webgl2", { antialias: false });
-    if (!gl) {
-      // WebGL2 不可用：显示错误文字
-      host.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;color:var(--text-muted);font-size:0.875rem;">WebGL2 not supported on this device</div>';
-      return;
-    }
+    const gl = canvas.getContext("webgl2", { antialias: false, alpha: false });
+    if (!gl) { live.current.onReadyChange?.(false); return; }
+    const lose = () => gl.getExtension("WEBGL_lose_context")?.loseContext();
+    if (!gl.getExtension("EXT_color_buffer_float")) { lose(); live.current.onReadyChange?.(false); return; }
     host.appendChild(canvas);
-
-    // float texture 支持检测
-    const floatExt = gl.getExtension("EXT_color_buffer_float");
-    if (!floatExt) {
-      host.removeChild(canvas);
-      host.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;color:var(--text-muted);font-size:0.875rem;">Float texture not supported on this device</div>';
-      return;
-    }
-
-    // sim 分辨率按 tier 分级
-    const simRes = quality.tier === "high" ? 256 : 128;
-    const dyeRes = simRes;
-
-    const velocity = createDoubleFBO(gl, simRes, simRes);
-    const dye = createDoubleFBO(gl, dyeRes, dyeRes);
-    const divergence = createFBO(gl, simRes, simRes);
-    const curl = createFBO(gl, simRes, simRes);
-    const pressure = createDoubleFBO(gl, simRes, simRes);
-
-    const progs = {
-      advection: createProgram(gl, VERT, advectionFrag),
-      divergence: createProgram(gl, VERT, divergenceFrag),
-      curl: createProgram(gl, VERT, curlFrag),
-      vorticity: createProgram(gl, VERT, vorticityFrag),
-      pressure: createProgram(gl, VERT, pressureFrag),
-      gradientSubtract: createProgram(gl, VERT, gradientSubtractFrag),
-      splat: createProgram(gl, VERT, splatFrag),
-      display: createProgram(gl, VERT, displayFrag),
-    };
-
-    if (Object.values(progs).some((p) => !p)) {
-      host.removeChild(canvas);
-      return;
-    }
-
-    // 全屏三角形
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-
-    const resize = () => {
-      const dpr = quality.dpr;
-      canvas.width = Math.round(host.clientWidth * dpr);
-      canvas.height = Math.round(host.clientHeight * dpr);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(host);
-
-    // 鼠标/触摸状态
-    const pointers: Map<number, { x: number; y: number; dx: number; dy: number; down: boolean }> =
-      new Map();
-
-    const updatePointer = (id: number, x: number, y: number) => {
-      const rect = canvas.getBoundingClientRect();
-      const nx = x / rect.width;
-      const ny = 1.0 - y / rect.height;
-      const p = pointers.get(id) || { x: nx, y: ny, dx: 0, dy: 0, down: false };
-      p.dx = nx - p.x;
-      p.dy = ny - p.y;
-      p.x = nx;
-      p.y = ny;
-      pointers.set(id, p);
-    };
-
-    const handlePointerDown = (e: PointerEvent) => {
-      e.preventDefault();
-      updatePointer(e.pointerId, e.clientX, e.clientY);
-      const p = pointers.get(e.pointerId)!;
-      p.down = true;
-    };
-
-    const handlePointerMove = (e: PointerEvent) => {
-      updatePointer(e.pointerId, e.clientX, e.clientY);
-    };
-
-    const handlePointerUp = (e: PointerEvent) => {
-      pointers.delete(e.pointerId);
-    };
-
-    canvas.addEventListener("pointerdown", handlePointerDown);
-    canvas.addEventListener("pointermove", handlePointerMove);
-    canvas.addEventListener("pointerup", handlePointerUp);
-    canvas.addEventListener("pointerleave", handlePointerUp);
-
-    // 绘制工具
-    const blit = (target: FBO | null) => {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.fbo : null);
-      gl.viewport(0, 0, target ? target.w : canvas.width, target ? target.h : canvas.height);
-      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-      gl.enableVertexAttribArray(0);
-      gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    };
-
-    const applyAdvection = (src: DoubleFBO, vel: FBO, dt: number, diss: number) => {
-      const prog = progs.advection!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
-      gl.uniform1i(gl.getUniformLocation(prog, "uSource"), 1);
-      gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.w, 1 / vel.h);
-      gl.uniform1f(gl.getUniformLocation(prog, "uDt"), dt);
-      gl.uniform1f(gl.getUniformLocation(prog, "uDissipation"), diss);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, vel.tex);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, src.read.tex);
-      blit(src.write);
-      src.swap();
-    };
-
-    const applyDivergence = (vel: FBO, out: FBO) => {
-      const prog = progs.divergence!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
-      gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.w, 1 / vel.h);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, vel.tex);
-      blit(out);
-    };
-
-    const applyCurl = (vel: FBO, out: FBO) => {
-      const prog = progs.curl!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
-      gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.w, 1 / vel.h);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, vel.tex);
-      blit(out);
-    };
-
-    const applyVorticity = (vel: DoubleFBO, curlTex: FBO, dt: number) => {
-      const prog = progs.vorticity!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
-      gl.uniform1i(gl.getUniformLocation(prog, "uCurl"), 1);
-      gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.read.w, 1 / vel.read.h);
-      gl.uniform1f(gl.getUniformLocation(prog, "uDt"), dt);
-      gl.uniform1f(gl.getUniformLocation(prog, "uCurlStrength"), 20);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, vel.read.tex);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, curlTex.tex);
-      blit(vel.write);
-      vel.swap();
-    };
-
-    const applyPressure = (pres: DoubleFBO, div: FBO) => {
-      const prog = progs.pressure!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uPressure"), 0);
-      gl.uniform1i(gl.getUniformLocation(prog, "uDivergence"), 1);
-      gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / pres.read.w, 1 / pres.read.h);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, div.tex);
-      for (let i = 0; i < 20; i++) {
-        gl.activeTexture(gl.TEXTURE0);
-        gl.bindTexture(gl.TEXTURE_2D, pres.read.tex);
-        blit(pres.write);
-        pres.swap();
-      }
-    };
-
-    const applyGradientSubtract = (vel: DoubleFBO, pres: FBO) => {
-      const prog = progs.gradientSubtract!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
-      gl.uniform1i(gl.getUniformLocation(prog, "uPressure"), 1);
-      gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.read.w, 1 / vel.read.h);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, vel.read.tex);
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, pres.tex);
-      blit(vel.write);
-      vel.swap();
-    };
-
-    const splat = (target: DoubleFBO, x: number, y: number, dx: number, dy: number, color: [number, number, number]) => {
-      const prog = progs.splat!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uTarget"), 0);
-      gl.uniform2f(gl.getUniformLocation(prog, "uPoint"), x, y);
-      gl.uniform3f(gl.getUniformLocation(prog, "uColor"), color[0], color[1], color[2]);
-      gl.uniform1f(gl.getUniformLocation(prog, "uRadius"), canvas.width / canvas.height);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, target.read.tex);
-      blit(target.write);
-      target.swap();
-    };
-
-    let raf: number | null = null;
-    let lastTime: number | null = null;
-    let colorIndex = 0;
-    let elapsed = 0;
-    let lastAutoSplat = -4000;
-
-    // 随机 splat：初始点亮 + 周期保活，避免黑屏等交互
-    const randomSplat = () => {
-      const x = 0.2 + Math.random() * 0.6;
-      const y = 0.2 + Math.random() * 0.6;
-      const dx = (Math.random() - 0.5) * 800;
-      const dy = (Math.random() - 0.5) * 800;
-      const col = dyeColors[colorIndex % dyeColors.length];
-      colorIndex++;
-      splat(velocity, x, y, dx, dy, [dx, dy, 0]);
-      splat(dye, x, y, 0, 0, [col[0] * 0.6, col[1] * 0.6, col[2] * 0.6]);
-    };
-
-    // 开场烟花：多点同时注入
-    for (let i = 0; i < 6; i++) randomSplat();
-
-    const frame = (t: number) => {
-      raf = requestAnimationFrame(frame);
-      const dt = lastTime === null ? 16 : Math.min(t - lastTime, 16);
-      if (lastTime !== null) elapsed += t - lastTime;
-      lastTime = t;
-
-      // 无交互时每 4s 一次保活 splat
-      if (elapsed - lastAutoSplat > 4000) {
-        lastAutoSplat = elapsed;
-        randomSplat();
-      }
-
-      // 处理指针注入：hover 移动即注入（不要求按下，按下时更强）
-      pointers.forEach((p) => {
-        if (Math.abs(p.dx) > 0 || Math.abs(p.dy) > 0) {
-          const force = p.down ? 9000 : 4000;
-          splat(velocity, p.x, p.y, p.dx * force, p.dy * force, [p.dx * force, p.dy * force, 0]);
-          const col = dyeColors[colorIndex % dyeColors.length];
-          const dyeStrength = p.down ? 0.9 : 0.35;
-          splat(dye, p.x, p.y, 0, 0, [col[0] * dyeStrength, col[1] * dyeStrength, col[2] * dyeStrength]);
-          colorIndex++;
-          p.dx = 0;
-          p.dy = 0;
-        }
-      });
-
-      // Navier-Stokes 管线
-      applyCurl(velocity.read, curl);
-      applyVorticity(velocity, curl, dt * 0.001);
-      applyAdvection(velocity, velocity.read, dt * 0.001, 0.98);
-      applyDivergence(velocity.read, divergence);
-      applyPressure(pressure, divergence);
-      applyGradientSubtract(velocity, pressure.read);
-      applyAdvection(dye, velocity.read, dt * 0.001, 0.995);
-
-      // 渲染
-      const prog = progs.display!;
-      gl.useProgram(prog);
-      gl.uniform1i(gl.getUniformLocation(prog, "uDye"), 0);
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, dye.read.tex);
-      blit(null);
-    };
-
-    const start = () => {
-      if (raf === null) {
-        lastTime = null;
-        raf = requestAnimationFrame(frame);
-      }
-    };
-    const stop = () => {
-      if (raf !== null) {
-        cancelAnimationFrame(raf);
-        raf = null;
-      }
-    };
-
-    start();
-    const stopGate = observeRenderGate(host, (active) => (active ? start() : stop()));
-
-    return () => {
-      stopGate();
-      stop();
-      ro.disconnect();
-      canvas.removeEventListener("pointerdown", handlePointerDown);
-      canvas.removeEventListener("pointermove", handlePointerMove);
-      canvas.removeEventListener("pointerup", handlePointerUp);
-      canvas.removeEventListener("pointerleave", handlePointerUp);
+    canvas.style.touchAction = "none";
+    canvas.tabIndex = 0;
+    canvas.setAttribute("aria-label", zh ? "流体模拟，按方向键移动注入点，按空格注入" : "Fluid simulation: arrow keys move the injector, Space injects dye");
+    let removeResources = () => {}, removeInputs = () => {}, disconnectResize = () => {}, removeGate = () => {};
+    let raf: number | null = null, disposed = false;
+    const stop = () => { if (raf !== null) cancelAnimationFrame(raf); raf = null; };
+    const dispose = () => {
+      if (disposed) return; disposed = true; removeGate(); stop(); disconnectResize(); removeInputs(); removeResources();
+      canvas.removeEventListener("webglcontextlost", fail);
       if (canvas.parentNode === host) host.removeChild(canvas);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
+      lose();
     };
-  }, [quality, dyeColors]);
+    const fail = () => { dispose(); live.current.onReadyChange?.(false); };
+    canvas.addEventListener("webglcontextlost", fail);
+    const allocated: FBO[] = [];
+    const programs: WebGLProgram[] = [];
+    let buffer: WebGLBuffer | null = null;
+    removeResources = () => {
+      for (const f of allocated) { gl.deleteTexture(f.tex); gl.deleteFramebuffer(f.fbo); }
+      for (const program of programs) gl.deleteProgram(program);
+      if (buffer) gl.deleteBuffer(buffer);
+    };
+    try {
+      // sim 分辨率按 tier 分级
+      const simRes = quality.tier === "high" ? 256 : 128;
+      const dyeRes = simRes;
 
-  return <div ref={hostRef} className="h-full w-full" />;
+      const velocity = createDoubleFBO(gl, simRes, simRes, allocated);
+      const dye = createDoubleFBO(gl, dyeRes, dyeRes, allocated);
+      const divergence = createFBO(gl, simRes, simRes, allocated);
+      const curl = createFBO(gl, simRes, simRes, allocated);
+      const pressure = createDoubleFBO(gl, simRes, simRes, allocated);
+
+      const compileProgram = (fragment: string) => { const program = createProgram(gl, VERT, fragment); if (program) programs.push(program); return program; };
+      const progs = {
+        advection: compileProgram(advectionFrag),
+        divergence: compileProgram(divergenceFrag),
+        curl: compileProgram(curlFrag),
+        vorticity: compileProgram(vorticityFrag),
+        pressure: compileProgram(pressureFrag),
+        gradientSubtract: compileProgram(gradientSubtractFrag),
+        splat: compileProgram(splatFrag),
+        display: compileProgram(displayFrag),
+      };
+
+      if (Object.values(progs).some((p) => !p)) {
+        throw new Error("Unable to compile fluid shaders");
+      }
+
+      // 全屏三角形
+      const buf = gl.createBuffer(); buffer = buf;
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
+
+      const resize = () => {
+        const dpr = quality.dpr;
+        canvas.width = Math.max(1, Math.round(host.clientWidth * dpr));
+        canvas.height = Math.max(1, Math.round(host.clientHeight * dpr));
+      };
+      resize();
+      const ro = new ResizeObserver(resize);
+      ro.observe(host);
+      disconnectResize = () => ro.disconnect();
+
+      // 鼠标/触摸状态
+      const pointers: Map<number, { x: number; y: number; dx: number; dy: number; down: boolean }> =
+        new Map();
+
+      const updatePointer = (id: number, x: number, y: number) => {
+        const rect = canvas.getBoundingClientRect();
+        const { x: nx, y: ny } = fluidPointerPosition(x, y, rect);
+        const p = pointers.get(id) || { x: nx, y: ny, dx: 0, dy: 0, down: false };
+        p.dx += nx - p.x;
+        p.dy += ny - p.y;
+        p.x = nx;
+        p.y = ny;
+        pointers.set(id, p);
+      };
+
+      const handlePointerDown = (e: PointerEvent) => {
+        e.preventDefault();
+        canvas.setPointerCapture(e.pointerId);
+        updatePointer(e.pointerId, e.clientX, e.clientY);
+        const p = pointers.get(e.pointerId)!;
+        p.down = true;
+      };
+
+      const handlePointerMove = (e: PointerEvent) => {
+        updatePointer(e.pointerId, e.clientX, e.clientY);
+      };
+
+      const handlePointerUp = (e: PointerEvent) => {
+        pointers.delete(e.pointerId);
+        if (canvas.hasPointerCapture(e.pointerId)) canvas.releasePointerCapture(e.pointerId);
+      };
+
+      canvas.addEventListener("pointerdown", handlePointerDown);
+      canvas.addEventListener("pointermove", handlePointerMove);
+      canvas.addEventListener("pointerup", handlePointerUp);
+      const handlePointerLeave = (e: PointerEvent) => { if (!canvas.hasPointerCapture(e.pointerId)) pointers.delete(e.pointerId); };
+      canvas.addEventListener("pointerleave", handlePointerLeave);
+      canvas.addEventListener("pointercancel", handlePointerUp);
+      canvas.addEventListener("lostpointercapture", handlePointerUp);
+      const keyboardPoint = { x: 0.5, y: 0.5 };
+      const handleKey = (event: KeyboardEvent) => {
+        const delta: Record<string, [number, number]> = { ArrowLeft: [-0.05, 0], ArrowRight: [0.05, 0], ArrowUp: [0, 0.05], ArrowDown: [0, -0.05] };
+        const movement = delta[event.key];
+        if (!movement && event.key !== " " && event.key !== "Enter") return;
+        event.preventDefault();
+        keyboardPoint.x = Math.max(0.05, Math.min(0.95, keyboardPoint.x + (movement?.[0] ?? 0)));
+        keyboardPoint.y = Math.max(0.05, Math.min(0.95, keyboardPoint.y + (movement?.[1] ?? 0)));
+        pointers.set(-1, { ...keyboardPoint, dx: movement?.[0] ?? 0.02, dy: movement?.[1] ?? 0.02, down: true });
+      };
+      canvas.addEventListener("keydown", handleKey);
+      removeInputs = () => {
+        canvas.removeEventListener("pointerdown", handlePointerDown); canvas.removeEventListener("pointermove", handlePointerMove);
+        canvas.removeEventListener("pointerup", handlePointerUp); canvas.removeEventListener("pointerleave", handlePointerLeave);
+        canvas.removeEventListener("pointercancel", handlePointerUp); canvas.removeEventListener("lostpointercapture", handlePointerUp);
+        canvas.removeEventListener("keydown", handleKey);
+        pointers.clear();
+      };
+
+      // 绘制工具
+      const blit = (target: FBO | null) => {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, target ? target.fbo : null);
+        gl.viewport(0, 0, target ? target.w : canvas.width, target ? target.h : canvas.height);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+        gl.enableVertexAttribArray(0);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.drawArrays(gl.TRIANGLES, 0, 3);
+      };
+
+      const applyAdvection = (src: DoubleFBO, vel: FBO, dt: number, diss: number) => {
+        const prog = progs.advection!;
+        gl.useProgram(prog);
+        gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
+        gl.uniform1i(gl.getUniformLocation(prog, "uSource"), 1);
+        gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.w, 1 / vel.h);
+        gl.uniform1f(gl.getUniformLocation(prog, "uDt"), dt);
+        gl.uniform1f(gl.getUniformLocation(prog, "uDissipation"), diss);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, vel.tex);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, src.read.tex);
+        blit(src.write);
+        src.swap();
+      };
+
+      const applyDivergence = (vel: FBO, out: FBO) => {
+        const prog = progs.divergence!;
+        gl.useProgram(prog);
+        gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
+        gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.w, 1 / vel.h);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, vel.tex);
+        blit(out);
+      };
+
+      const applyCurl = (vel: FBO, out: FBO) => {
+        const prog = progs.curl!;
+        gl.useProgram(prog);
+        gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
+        gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.w, 1 / vel.h);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, vel.tex);
+        blit(out);
+      };
+
+      const applyVorticity = (vel: DoubleFBO, curlTex: FBO, dt: number) => {
+        const prog = progs.vorticity!;
+        gl.useProgram(prog);
+        gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
+        gl.uniform1i(gl.getUniformLocation(prog, "uCurl"), 1);
+        gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.read.w, 1 / vel.read.h);
+        gl.uniform1f(gl.getUniformLocation(prog, "uDt"), dt);
+        gl.uniform1f(gl.getUniformLocation(prog, "uCurlStrength"), 20);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, vel.read.tex);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, curlTex.tex);
+        blit(vel.write);
+        vel.swap();
+      };
+
+      const applyPressure = (pres: DoubleFBO, div: FBO) => {
+        const prog = progs.pressure!;
+        gl.useProgram(prog);
+        gl.uniform1i(gl.getUniformLocation(prog, "uPressure"), 0);
+        gl.uniform1i(gl.getUniformLocation(prog, "uDivergence"), 1);
+        gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / pres.read.w, 1 / pres.read.h);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, div.tex);
+        for (let i = 0; i < 20; i++) {
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, pres.read.tex);
+          blit(pres.write);
+          pres.swap();
+        }
+      };
+
+      const applyGradientSubtract = (vel: DoubleFBO, pres: FBO) => {
+        const prog = progs.gradientSubtract!;
+        gl.useProgram(prog);
+        gl.uniform1i(gl.getUniformLocation(prog, "uVelocity"), 0);
+        gl.uniform1i(gl.getUniformLocation(prog, "uPressure"), 1);
+        gl.uniform2f(gl.getUniformLocation(prog, "uTexelSize"), 1 / vel.read.w, 1 / vel.read.h);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, vel.read.tex);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, pres.tex);
+        blit(vel.write);
+        vel.swap();
+      };
+
+      const splat = (target: DoubleFBO, x: number, y: number, color: [number, number, number]) => {
+        const prog = progs.splat!;
+        gl.useProgram(prog);
+        gl.uniform1i(gl.getUniformLocation(prog, "uTarget"), 0);
+        gl.uniform2f(gl.getUniformLocation(prog, "uPoint"), x, y);
+        gl.uniform3f(gl.getUniformLocation(prog, "uColor"), color[0], color[1], color[2]);
+        gl.uniform1f(gl.getUniformLocation(prog, "uRadius"), canvas.width / canvas.height);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, target.read.tex);
+        blit(target.write);
+        target.swap();
+      };
+
+      let lastTime: number | null = null;
+      let colorIndex = 0;
+      let elapsed = 0;
+      let lastAutoSplat = -4000;
+
+      // 随机 splat：初始点亮 + 周期保活，避免黑屏等交互
+      const randomSplat = () => {
+        const x = 0.2 + Math.random() * 0.6;
+        const y = 0.2 + Math.random() * 0.6;
+        const dx = (Math.random() - 0.5) * 800;
+        const dy = (Math.random() - 0.5) * 800;
+        const colors = live.current.dyeColors;
+        const col = colors[colorIndex % colors.length] ?? [0.42, 0.61, 0.8];
+        colorIndex++;
+        splat(velocity, x, y, [dx, dy, 0]);
+        splat(dye, x, y, [col[0] * 0.6, col[1] * 0.6, col[2] * 0.6]);
+      };
+
+      // 开场烟花：多点同时注入
+      for (let i = 0; i < 6; i++) randomSplat();
+
+      let ready = false;
+      const frame = (t: number) => {
+        raf = null;
+        if (disposed) return;
+        try {
+          const dt = lastTime === null ? 16 : Math.min(t - lastTime, 32);
+          if (lastTime !== null) elapsed += t - lastTime;
+          lastTime = t;
+
+          // 无交互时每 4s 一次保活 splat
+          if (elapsed - lastAutoSplat > 4000) {
+            lastAutoSplat = elapsed;
+            randomSplat();
+          }
+
+          // 处理指针注入：hover 移动即注入（不要求按下，按下时更强）
+          pointers.forEach((p) => {
+            if (Math.abs(p.dx) > 0 || Math.abs(p.dy) > 0) {
+              const force = p.down ? 9000 : 4000;
+              splat(velocity, p.x, p.y, [p.dx * force, p.dy * force, 0]);
+              const colors = live.current.dyeColors;
+              const col = colors[colorIndex % colors.length] ?? [0.42, 0.61, 0.8];
+              const dyeStrength = p.down ? 0.9 : 0.35;
+              splat(dye, p.x, p.y, [col[0] * dyeStrength, col[1] * dyeStrength, col[2] * dyeStrength]);
+              colorIndex++;
+              p.dx = 0;
+              p.dy = 0;
+            }
+          });
+
+          // Navier-Stokes 管线
+          applyCurl(velocity.read, curl);
+          applyVorticity(velocity, curl, dt * 0.001);
+          applyAdvection(velocity, velocity.read, dt * 0.001, Math.pow(0.98, dt / 16.667));
+          applyDivergence(velocity.read, divergence);
+          applyPressure(pressure, divergence);
+          applyGradientSubtract(velocity, pressure.read);
+          applyAdvection(dye, velocity.read, dt * 0.001, Math.pow(0.995, dt / 16.667));
+
+          // 渲染
+          const prog = progs.display!;
+          gl.useProgram(prog);
+          gl.uniform1i(gl.getUniformLocation(prog, "uDye"), 0);
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, dye.read.tex);
+          blit(null);
+          if (!ready) { if (gl.getError() !== gl.NO_ERROR) throw new Error("Fluid first frame failed"); ready = true; live.current.onReadyChange?.(true); }
+          raf = requestAnimationFrame(frame);
+        } catch { fail(); }
+      };
+
+      removeGate = observeRenderGate(host, (active) => {
+        if (active && !disposed && raf === null) { lastTime = null; raf = requestAnimationFrame(frame); }
+        else if (!active) { stop(); lastTime = null; pointers.clear(); }
+      });
+    } catch { fail(); }
+    return dispose;
+  }, [quality.dpr, quality.tier, zh]);
+
+  return <div ref={hostRef} role="img" aria-label={zh ? "流体模拟，拖动指针注入染料" : "Fluid simulation: drag the pointer to inject dye"} className="h-full w-full" />;
 }

@@ -46,9 +46,12 @@ describe("ModelsUpdateStatus", () => {
     expect(screen.getByText(/Next scheduled check/)).toBeTruthy();
   });
 
-  it.each(["never", "partial", "failed", "stale", "running"] as const)("announces %s with a distinct message", (status) => {
-    view({ ...update, status });
+  it.each(["never", "partial", "failed", "stale", "running"] as const)("keeps %s diagnostics in the detailed view only", (status) => {
+    const normal = view({ ...update, status });
     const key = `modelsUpdateStatus_${status}` as const;
+    expect(screen.getByRole("status").textContent).not.toContain(en.currents[key]);
+    normal.unmount();
+    view({ ...update, status }, true);
     expect(screen.getByRole("status").textContent).toContain(en.currents[key]);
   });
 

@@ -150,6 +150,8 @@
     "feedbackAlreadyReported": "此类型已反馈过",
     "feedbackErrorRateLimit": "提交过于频繁，请稍后再试。",
     "feedbackErrorNetwork": "网络异常，请重试。",
+    "feedbackErrorVerification": "人机验证未通过，请重新验证后再试。",
+    "feedbackErrorVerificationUnavailable": "人机验证暂时不可用，请稍后再试。",
     "feedbackErrorGeneric": "提交失败，请稍后再试。",
     "feedbackClose": "收起",
     "filtersOpen": "筛选",
@@ -171,7 +173,7 @@
     "modelsColAbility": "能力分",
     "modelsColValueScore": "性价比分",
     "modelsColConfidence": "可信度",
-    "modelsColPrice": "价格（入/出）",
+    "modelsColPrice": "价格（入/出 · 每百万 token）",
     "modelsColDelta": "变化",
     "modelsAbilityShort": "能力",
     "modelsConfHigh": "高",
@@ -248,9 +250,9 @@
     "modelsMethRuleConfidenceH": "可信度",
     "modelsMethRuleConfidence": "可信度独立于能力分，由来源覆盖（45%）、数据新鲜度（25%）、来源间一致性（25%）与身份映射质量（5%）合成。覆盖不足影响可信度，但不会移出统一榜单；无可用评测时能力分、可信度与排名显示「—」。",
     "modelsMethRuleValueH": "性价比",
-    "modelsMethRuleValue": "所有已收录模型仍在性价比页展示；具备可比厂商官方 PAYG token 价格和可用评测时才计算性价比分。标准成本按 1M 输入 + 0.25M 输出计，性价比分为综合能力百分位与反向成本百分位的几何平均。缺少价格或评测时显示「—」，不以能力分冒充性价比分。订阅、本地部署与不可比套餐不参与计算。",
+    "modelsMethRuleValue": "所有已收录模型仍在性价比页展示。比较价采用官方 USD、全球或国际地区、标准在线、非缓存输入、普通上下文档；分时价格采用峰时价。累计用量篮子为 1M 输入 + 0.25M 输出，性价比分为综合能力百分位与反向成本百分位的几何平均。非 USD 报价保留原币种，不换算汇率；缺价、订阅、本地部署和不可比套餐不参与评分，显示「—」。",
     "modelsMethRuleFailureH": "更新与失败处理",
-    "modelsMethRuleFailure": "单一来源抓取失败时保留最后有效快照，并显示检查异常；全部来源失败时不发布新版榜单。相同成绩记为检查成功、成绩未变，不刷新成绩变化时间。每天保留一次有效排名历史。首次收录的模型排名变化显示为「—」。",
+    "modelsMethRuleFailure": "评测来源失败保留最后有效快照；所有评测源失败时不发布新的能力成绩。相同成绩不刷新成绩变化时间，每天保留一次有效排名历史。价格独立检查；失败保留上次有效价格和真实核验日期，不延长促销有效期。价格变化只更新性价比，不改能力分与能力排名历史。首次收录的排名变化显示「—」。",
     "modelsMethSources": "数据来源与运行状态",
     "modelsMethColSource": "来源",
     "modelsMethColOperator": "运营方",
@@ -461,42 +463,66 @@
         "desc": "实时粒子模拟：数千粒子的鼠标斥力场与三维漂移，全部在 GPU 上完成。",
         "layer": "手写了 GLSL 粒子更新与鼠标斥力，没有用 Three.js。",
         "tech": "WebGL · GLSL · 零依赖",
-        "stillAlt": "深色背景上，疏朗的白点聚成一团，正中被推开一块圆形空区。"
+        "stillAlt": "深色画布上分布着蓝紫色与白色粒子。"
       },
       "shader": {
         "title": "Shader 调色台",
         "desc": "实时 GLSL 噪声艺术：拖动滑杆调节色相、流速与湍流层数，每一帧都是实时计算。",
         "layer": "手写 FBM 噪声 fragment shader 与参数绑定。",
         "tech": "WebGL · FBM 噪声 · 零依赖",
-        "stillAlt": "大块柔和的蓝与橙红色斑交错晕开，像失焦后的光斑。"
+        "stillAlt": "紫色与粉红色的噪声纹理交织成卷曲的流线。"
       },
       "fluid": {
         "title": "流体模拟",
         "desc": "自写 Navier-Stokes 求解器：ping-pong FBO、涡量约束、Jacobi 压力迭代——拖拽注入速度与染料。",
         "layer": "手写整条流体管线，没有现成的流体库。",
         "tech": "WebGL2 · GLSL · 零依赖",
-        "stillAlt": "深色背景上，青色网格线绕成一个扁平的螺旋环面，中心透出一点粉红。"
+        "stillAlt": "深色画布上的蓝紫色染料，随速度场卷曲扩散。"
       },
       "physics": {
         "title": "物理沙盒",
         "desc": "Verlet 积分 + 空间哈希碰撞：点击生成小球、拖拽投掷、重力开关、弹性碰撞。",
         "layer": "手写积分器与宽相碰撞，没有物理引擎。",
         "tech": "Canvas 2D · Verlet · 零依赖",
-        "stillAlt": "深色背景上散落着大小不一的半透明蓝、青、紫色圆球，彼此略有重叠。"
+        "stillAlt": "五个彩色小球在沙盒底部稳定停靠。"
       },
       "flow": {
         "title": "流场粒子",
         "desc": "Curl noise 无散度流场：2500 粒子长拖尾、鼠标吸引/排斥切换。",
         "layer": "手写 curl noise 场与粒子拖尾，没有粒子库。",
         "tech": "Canvas 2D · Curl Noise · 零依赖",
-        "stillAlt": "深色背景上，青色虚线沿弯曲流线铺开，像被风梳过的丝。"
+        "stillAlt": "蓝色粒子沿弯曲流线运动，留下连续拖尾。"
       },
       "morph": {
         "title": "3D 形变",
         "desc": "参数曲面 per-point morph：球→环面结→立方→波面，拖拽旋转、自动轮播。",
         "layer": "手写参数曲面与 per-vertex morph，没有建模文件。",
         "tech": "WebGL · ogl · 零依赖",
-        "stillAlt": "深色背景上，青色点线绕成几圈交叠的椭圆，像尚未收紧的环面结。"
+        "stillAlt": "蓝紫色粒子组成起伏的参数曲面。"
+      },
+      "sdf": {
+        "title": "SDF 光线步进",
+        "stillAlt": "球与盒的组合距离场，投射阴影并反射环境。"
+      },
+      "cloth": {
+        "title": "可撕裂布料",
+        "stillAlt": "固定节点之间的网状布料，悬在球形障碍上方。"
+      },
+      "pathfinding": {
+        "title": "寻路实验",
+        "stillAlt": "同一障碍地图中的 A* 和 Dijkstra 搜索结果。"
+      },
+      "raft": {
+        "title": "Raft 共识模拟",
+        "stillAlt": "五节点网络，展示选主、日志复制与多数派提交。"
+      },
+      "audio": {
+        "title": "声音与频谱",
+        "stillAlt": "静音状态的时域基线与空频谱。"
+      },
+      "geometry": {
+        "title": "Voronoi / Delaunay",
+        "stillAlt": "采样点划分的 Voronoi 区域与 Delaunay 三角网。"
       }
     }
   },
@@ -534,6 +560,8 @@
     "alreadyReported": "该类型的反馈刚才已提交过。",
     "errorRateLimit": "提交过于频繁，请稍后再试。",
     "errorNetwork": "网络异常，请检查连接后重试。",
+    "errorVerification": "人机验证未通过，请重新验证后再试。",
+    "errorVerificationUnavailable": "人机验证暂时不可用，请稍后再试。",
     "errorGeneric": "提交失败，请稍后再试。",
     "contentCorrectionNote": "想纠正某条资讯或事件的内容？请在该内容详情页底部使用「报告内容问题」。"
   },

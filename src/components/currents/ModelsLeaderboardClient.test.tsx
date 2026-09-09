@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelsLeaderboardClient } from "./ModelsLeaderboardClient";
@@ -13,8 +13,8 @@ vi.mock("@/lib/currents/api", () => ({
   fetchModelsLeaderboard: (...args: unknown[]) => mockFetchLeaderboard(...args),
 }));
 
-vi.mock("@/components/TransitionLink", () => ({
-  TransitionLink: ({ href, children, ...props }: { href: string; children: React.ReactNode } & Record<string, unknown>) => (
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children, ...props }: { href: string; children: React.ReactNode } & Record<string, unknown>) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -120,18 +120,17 @@ function response(overrides: Partial<ModelsLeaderboardResponse> = {}): ModelsLea
   };
 }
 
-function renderClient() {
+function renderClient(initial?: ModelsLeaderboardResponse) {
   return render(
     <NextIntlClientProvider locale="zh" messages={messages}>
-      <ModelsLeaderboardClient />
+      <ModelsLeaderboardClient initial={initial} />
     </NextIntlClientProvider>,
   );
 }
 
+beforeEach(() => { mockFetchLeaderboard.mockReset(); });
+
 describe("ModelsLeaderboardClient", () => {
-  beforeEach(() => {
-    mockFetchLeaderboard.mockReset();
-  });
   afterEach(() => cleanup());
 
   it("渲染主榜表格：排名/模型/能力分/可信度/价格/变化分离呈现", async () => {
@@ -145,8 +144,9 @@ describe("ModelsLeaderboardClient", () => {
     // 能力分与价格分离（价格不混入能力）
     expect(screen.getAllByText("90.5").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("$5 / $25").length).toBeGreaterThanOrEqual(1);
-    // 价格缺失显示未挂牌
-    expect(screen.getAllByText("未挂牌").length).toBeGreaterThanOrEqual(1);
+    // 价格缺失显示空值，不推断厂商未定价
+    expect(screen.queryByText("未挂牌")).toBeNull();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
     // 可信度分档
     expect(screen.getAllByText(/高 0\.90/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/低 0\.40/).length).toBeGreaterThanOrEqual(1);
@@ -261,7 +261,7 @@ describe("ModelsLeaderboardClient", () => {
     await waitFor(() => expect(screen.getByText("榜单数据准备中，稍后再来。")).toBeTruthy());
   });
 
-  it("来源陈旧提示与 Preview 徽章", async () => {
+  it("来源状态留在详情与方法页，保留 Preview 身份", async () => {
     mockFetchLeaderboard.mockResolvedValue(
       response({
         items: [
@@ -295,9 +295,9 @@ describe("ModelsLeaderboardClient", () => {
     // 行内 Preview 徽章（span）与视图 tab（button）共存，按元素类型区分
     const previewBadges = screen.getAllByText("Preview").filter((el) => el.tagName === "SPAN");
     expect(previewBadges.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("1 个来源数据陈旧")).toBeTruthy();
-    expect(screen.getAllByText("数据陈旧").length).toBeGreaterThanOrEqual(1);
-    expect(document.querySelector('[data-mobile-stale="hy3"]')).not.toBeNull();
+    expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
+    expect(screen.queryByText("数据陈旧")).toBeNull();
+    expect(document.querySelector('[data-mobile-stale="hy3"]')).toBeNull();
   });
 
   it("切换后的 loading/error 不展示上一榜的更新时间与 stale 元数据", async () => {
@@ -311,7 +311,7 @@ describe("ModelsLeaderboardClient", () => {
     }));
     mockFetchLeaderboard.mockRejectedValueOnce(new Error("network"));
     renderClient();
-    await screen.findByText("1 个来源数据陈旧");
+    await screen.findAllByText("Claude Opus 5");
     fireEvent.click(screen.getByRole("tab", { name: "编程" }));
     expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
     expect(screen.queryByText(/榜单计算于/)).toBeNull();
@@ -330,7 +330,8 @@ describe("ModelsLeaderboardClient", () => {
     } }));
     mockFetchLeaderboard.mockRejectedValueOnce(new Error("network"));
     renderClient();
-    await screen.findByText(/部分来源检查失败/);
+    await screen.findByText(/最近检查/);
+    expect(screen.queryByText(/部分来源检查失败/)).toBeNull();
     expect(screen.getByText(/最近检查/)).toBeTruthy();
     expect(screen.getByText(/成绩变化/)).toBeTruthy();
     expect(screen.queryByText(/榜单计算于/)).toBeNull();
@@ -340,6 +341,13 @@ describe("ModelsLeaderboardClient", () => {
     await screen.findByRole("button", { name: "重试" });
     expect(screen.queryByText(/部分来源检查失败/)).toBeNull();
   });
+});
+
+it("renders ISR initial data without waiting for a duplicate client request", () => {
+  renderClient(response());
+  expect(screen.getAllByText("Claude Opus 5")).toHaveLength(2);
+  expect(mockFetchLeaderboard).not.toHaveBeenCalled();
+  expect(screen.queryByText("底部说明")).toBeNull();
 });
 
 afterEach(() => cleanup());
@@ -359,4 +367,35 @@ it("never substitutes ability for missing value score", async () => {
  const tr=screen.getByRole("table").querySelector("tbody tr")!;
  expect(tr.children[2].querySelector("span")?.textContent).toBe("—");
  expect(tr.children[2].textContent).toContain("能力 90.5");
+});
+
+it("expires a mounted quote at its boundary while leaving the ability score intact", async () => {
+  vi.useFakeTimers();
+  const now=Date.parse("2026-09-09T00:00:00Z");vi.setSystemTime(now);
+  try {
+    const data=response();data.meta.generatedAt=new Date(now).toISOString();
+    data.items[0].price={kind:"payg",inputUsdPerMtok:.1,outputUsdPerMtok:.5,sourceUrl:"https://example.com/prices",verifiedAt:new Date(now).toISOString(),notes:null,
+      rates:[{id:"promo",currency:"USD",inputPerMtok:.1,outputPerMtok:.5,region:"global",contextMin:0,contextMax:null,serviceTier:"standard",timeBand:"all",schedule:null,effectiveFrom:null,effectiveUntil:new Date(now+1000).toISOString(),sourceUrl:"https://example.com/prices",verifiedAt:new Date(now).toISOString()}]};
+    renderClient(data);
+    const priceCell=()=>screen.getByRole("table").querySelector("tbody tr")!.children[4];
+    expect(priceCell().textContent).toBe("$0.1 / $0.5");
+    await act(async()=>vi.advanceTimersByTimeAsync(1000));
+    expect(priceCell().textContent).toBe("—");
+    expect(screen.getByRole("table").querySelector("tbody tr")!.children[2].textContent).toContain("90.5");
+  } finally {cleanup();vi.useRealTimers();}
+});
+
+it("expires the entire value board at the global boundary for an unlisted competing tariff", async()=>{
+  vi.useFakeTimers();const now=Date.parse('2026-09-09T00:00:00Z');vi.setSystemTime(now);
+  try{
+    const value=response({category:'value',items:[row({slug:'unchanged',name:'Unchanged',valueScore:81.4})],observing:[]});
+    value.meta.generatedAt=new Date(now).toISOString();value.meta.valueValidUntil=new Date(now+1000).toISOString();
+    mockFetchLeaderboard.mockResolvedValue(value);
+    renderClient(response());
+    await act(async()=>{fireEvent.click(screen.getByRole('tab',{name:'性价比'}));});
+    expect(screen.getAllByText('81.4').length).toBeGreaterThan(0);
+    await act(async()=>vi.advanceTimersByTimeAsync(1000));
+    expect(screen.queryByText('81.4')).toBeNull();
+    expect(screen.getByRole('table').querySelector('tbody tr')!.children[4].textContent).toBe('$5 / $25');
+  } finally {cleanup();vi.useRealTimers();}
 });

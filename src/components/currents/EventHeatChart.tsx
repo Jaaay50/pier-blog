@@ -97,7 +97,6 @@ export function EventHeatChart({
         <h2 id="event-heat-chart-title" className="font-display text-lg font-semibold tracking-tight">
           {labels.title}
         </h2>
-        <p className="mt-1 text-[12px] leading-relaxed text-[var(--text-muted)]">{labels.subtitle}</p>
       </div>
 
       <p className="sr-only">{summary}</p>

@@ -167,6 +167,8 @@ export default async function CurrentsEventPage({ params }: PageProps) {
             alreadyReported: t("feedbackAlreadyReported"),
             errorRateLimit: t("feedbackErrorRateLimit"),
             errorNetwork: t("feedbackErrorNetwork"),
+            errorVerification: t("feedbackErrorVerification"),
+            errorVerificationUnavailable: t("feedbackErrorVerificationUnavailable"),
             errorGeneric: t("feedbackErrorGeneric"),
             close: t("feedbackClose"),
           },

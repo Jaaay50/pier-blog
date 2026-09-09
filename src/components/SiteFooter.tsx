@@ -31,9 +31,6 @@ export function SiteFooter() {
             <div className="mb-2 text-sm text-[var(--text-primary)]">
               <PierWordmark withWaterline />
             </div>
-            <p className="text-sm leading-relaxed text-[var(--text-muted)]">
-              {t('tagline')}
-            </p>
           </div>
 
           {/* Col 2: Navigation */}
@@ -95,9 +92,6 @@ export function SiteFooter() {
         <div className="mt-10 flex flex-col items-center justify-between gap-2 border-t border-[var(--border)] pt-6 sm:flex-row">
           <p className="text-xs text-[var(--text-muted)]">
             © {new Date().getFullYear()} Pier.
-          </p>
-          <p className="text-xs text-[var(--text-muted)]">
-            {t('builtWith')}
           </p>
         </div>
       </div>

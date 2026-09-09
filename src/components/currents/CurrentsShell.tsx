@@ -2,10 +2,10 @@
 
 import { Suspense, useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { usePathname } from "@/i18n/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { TransitionLink } from "@/components/TransitionLink";
+import { useLinkStatus } from "next/link";
 
 /**
  * 潮汐 · Currents 统一产品外壳。
@@ -16,7 +16,7 @@ import { TransitionLink } from "@/components/TransitionLink";
  * - 紧凑布局（<2xl）：文字产品导航按钮「潮汐 · 当前页」+ AnimatePresence 展开面板
  * - 当前页高亮由 pathname + URL 视图参数（view/favorites）决定，
  *   指示器用 motion layoutId 在项间滑动，不做静态切换
- * - 站内导航全部走 TransitionLink（View Transitions 页面转场）
+ * - 产品导航直接使用 Next Link，不让全屏截图转场阻塞连续切换
  */
 
 interface NavItem {
@@ -37,6 +37,13 @@ const MAIN_NAV: NavItem[] = [
 
 const FOCUS_CLASS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
+
+function PendingIndicator() {
+  const { pending } = useLinkStatus();
+  return pending ? (
+    <span aria-hidden className="absolute inset-y-2 right-2 w-0.5 animate-pulse rounded-full bg-[var(--accent)] motion-reduce:animate-none" />
+  ) : null;
+}
 
 function SearchGlyph() {
   return (
@@ -98,6 +105,18 @@ function NavList({
 }) {
   const t = useTranslations("currentsNav");
   const reducedMotion = useReducedMotion();
+  const pathname = usePathname();
+
+  const navigateQuery = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    const target = new URL(event.currentTarget.href);
+    const current = new URL(window.location.href);
+    if (pathname === "/currents" && target.origin === current.origin && target.pathname === current.pathname) {
+      event.preventDefault();
+      if (target.href !== current.href) window.history.pushState(null, "", `${target.pathname}${target.search}${target.hash}`);
+      onNavigate?.();
+    }
+  };
 
   const renderLink = (item: NavItem) => {
     const active = currentKey === item.key;
@@ -115,11 +134,12 @@ function NavList({
             }
           />
         )}
-        <TransitionLink
+        <Link
           id={`${idPrefix}-${item.key}`}
           href={item.href}
           aria-current={active ? "page" : undefined}
           onNavigate={onNavigate}
+          onClick={navigateQuery}
           className={`relative -ml-px block rounded-r-lg py-2 pl-3 pr-2 text-sm transition-colors ${FOCUS_CLASS} ${
             active
               ? "font-medium text-[var(--accent)]"
@@ -127,7 +147,8 @@ function NavList({
           }`}
         >
           {t(item.key)}
-        </TransitionLink>
+          <PendingIndicator />
+        </Link>
       </li>
     );
   };
@@ -136,18 +157,19 @@ function NavList({
     const active = currentKey === item.key;
     return (
       <li key={item.key}>
-        <TransitionLink
+        <Link
           href={item.href}
           aria-current={active ? "page" : undefined}
           onNavigate={onNavigate}
-          className={`block rounded-lg px-3 py-1.5 text-[13px] transition-colors ${FOCUS_CLASS} ${
+          className={`relative block rounded-lg px-3 py-1.5 text-[13px] transition-colors ${FOCUS_CLASS} ${
             active
               ? "font-medium text-[var(--accent)]"
               : "text-[var(--text-muted)] hover:text-[var(--text-primary)]"
           }`}
         >
           {t(item.key)}
-        </TransitionLink>
+          <PendingIndicator />
+        </Link>
       </li>
     );
   };

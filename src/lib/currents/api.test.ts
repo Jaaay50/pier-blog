@@ -6,6 +6,11 @@ import {
   serverFetchDailyByDate,
   serverFetchSources,
   serverFetchItems,
+  serverFetchModelsLeaderboard,
+  serverFetchHot,
+  serverFetchTopics,
+  clearCurrentsReadCache,
+  fetchItems,
   CurrentsApiError,
   CurrentsServerFetchError,
   fetchModelsLeaderboard,
@@ -13,7 +18,49 @@ import {
   isValidCurrentsDailyDate,
   isValidCurrentsResourceId,
   submitFeedback,
+  submitSiteFeedback,
 } from "./api";
+
+describe("public GET cache and ISR first paint", () => {
+  beforeEach(() => { clearCurrentsReadCache(); });
+  afterEach(() => { clearCurrentsReadCache(); vi.unstubAllGlobals(); vi.useRealTimers(); });
+
+  it("only reuses completed public responses by full query key for sixty seconds", async () => {
+    vi.stubGlobal("window", {});
+    const fetchMock = vi.fn(async () => jsonResponse(200, { items: [], hasMore: false, nextCursor: null }));
+    vi.stubGlobal("fetch", fetchMock);
+    vi.useFakeTimers();
+    await fetchItems({ locale: "zh", view: "all" });
+    await fetchItems({ locale: "zh", view: "all" });
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    await fetchItems({ locale: "zh", view: "papers" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(60_001);
+    await fetchItems({ locale: "zh", view: "all" });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it("never caches a failed request", async () => {
+    vi.stubGlobal("window", {});
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(503, {})).mockResolvedValue(jsonResponse(200, { items: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    await expect(fetchItems({ locale: "zh" })).rejects.toMatchObject({ status: 503 });
+    await fetchItems({ locale: "zh" });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("initial hot/topics requests use bounded 300-second ISR and reject malformed top-level data", async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(jsonResponse(200, { schemaVersion: 2, items: [], watching: [] })).mockResolvedValueOnce(jsonResponse(200, { groups: [], topics: [] }));
+    vi.stubGlobal("fetch", fetchMock);
+    expect(await serverFetchHot("zh")).toMatchObject({ schemaVersion: 2 });
+    expect(await serverFetchTopics("en")).toMatchObject({ topics: [] });
+    for (const call of fetchMock.mock.calls) expect(call[1]).toMatchObject({ next: { revalidate: 300 } });
+    fetchMock.mockResolvedValue(jsonResponse(200, { invalid: true }));
+    await expect(serverFetchHot("zh")).resolves.toBeNull();
+    await expect(serverFetchTopics("en")).resolves.toBeNull();
+    await expect(serverFetchModelsLeaderboard()).resolves.toBeNull();
+  });
+});
 
 /** 模拟全局 fetch 的各种后端响应。 */
 function mockFetch(impl: () => Promise<Response> | Response | never) {
@@ -107,6 +154,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
         category: "translation_issue",
         message: "  details  ",
         locale: "en",
+        turnstileToken: "turnstile-token",
         website: "bot-value",
       }),
     ).resolves.toEqual({ ok: true });
@@ -122,6 +170,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
       category: "translation_issue",
       message: "details",
       locale: "en",
+      turnstileToken: "turnstile-token",
       website: "bot-value",
     });
   });
@@ -130,7 +179,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
     const fetchMock = vi.fn(() => jsonResponse(200, { ok: true, duplicate: true }));
     vi.stubGlobal("fetch", fetchMock);
     await expect(
-      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", message: "  ", locale: "zh" }),
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", message: "  ", locale: "zh", turnstileToken: "token" }),
     ).resolves.toEqual({ ok: true, duplicate: true });
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(JSON.parse(String(init.body))).not.toHaveProperty("message");
@@ -138,28 +187,103 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
 
   it.each([400, 404, 429, 500])("HTTP %i → CurrentsApiError 保留 status", async (status) => {
     mockFetch(() => jsonResponse(status, { error: "failed" }));
-    const err = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" })
+    const err = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" })
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(CurrentsApiError);
     expect((err as CurrentsApiError).status).toBe(status);
+    expect((err as CurrentsApiError).code).toBe("failed");
   });
 
   it("网络失败 → status=null；200 非 JSON/错误契约 → invalid-json", async () => {
     mockFetch(() => Promise.reject(new TypeError("fetch failed")));
-    const network = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" })
+    const network = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" })
       .catch((e: unknown) => e);
     expect(network).toBeInstanceOf(CurrentsApiError);
     expect((network as CurrentsApiError).status).toBeNull();
 
     mockFetch(() => new Response("not json", { status: 200 }));
     await expect(
-      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" }),
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" }),
     ).rejects.toMatchObject({ name: "CurrentsApiError", message: "invalid-json", status: 200 });
 
     mockFetch(() => jsonResponse(200, { ok: false }));
     await expect(
-      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh" }),
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" }),
     ).rejects.toMatchObject({ message: "invalid-json", status: 200 });
+  });
+
+  it("site 反馈同样强制携带 Turnstile token，并保留后端错误码", async () => {
+    const fetchMock = vi.fn(() => jsonResponse(200, { ok: true }));
+    vi.stubGlobal("fetch", fetchMock);
+    await submitSiteFeedback({
+      category: "product_bug",
+      message: "  details  ",
+      locale: "zh",
+      pagePath: "/zh/feedback",
+      turnstileToken: "site-token",
+    });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      targetType: "site",
+      message: "details",
+      turnstileToken: "site-token",
+    });
+
+    mockFetch(() => jsonResponse(503, { error: "verification_unavailable" }));
+    await expect(submitSiteFeedback({
+      category: "other",
+      message: "details",
+      locale: "en",
+      turnstileToken: "expired-token",
+    })).rejects.toMatchObject({ status: 503, code: "verification_unavailable" });
+  });
+});
+
+describe("feedback deadlines and response trust boundary", () => {
+  afterEach(() => vi.restoreAllMocks());
+  const submit = (target: "site" | "item" | "event", signal?: AbortSignal) => target === "site"
+    ? submitSiteFeedback({ category: "other", message: "details", locale: "zh", turnstileToken: "token" }, signal)
+    : submitFeedback({ targetType: target, targetId: "fixture-1", category: "other", locale: "en", turnstileToken: "token" }, signal);
+
+  it.each(["site", "item", "event"] as const)("%s aborts a hanging connection and never automatically retries", async (target) => {
+    const deadline = new AbortController();
+    const timeout = vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+    const fetchMock = vi.fn((_url, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener("abort", () => reject(new DOMException("timeout", "AbortError")), { once: true });
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+    const result = submit(target).catch((error: unknown) => error);
+    deadline.abort();
+    expect(await result).toMatchObject({ message: "network-error", status: null });
+    expect(timeout).toHaveBeenCalledWith(15_000);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("preserves caller cancellation as well as the deadline", async () => {
+    const controller = new AbortController();
+    vi.stubGlobal("fetch", vi.fn((_url, init: RequestInit) => new Promise<Response>((_resolve, reject) => {
+      init.signal!.addEventListener("abort", () => reject(new DOMException("aborted", "AbortError")), { once: true });
+    })));
+    const result = submit("site", controller.signal).catch((error: unknown) => error);
+    controller.abort();
+    expect(await result).toMatchObject({ message: "network-error", status: null });
+  });
+
+  it.each([null, {ok:true, duplicate:"false"}, {ok:true, duplicate:1}])("rejects malformed success %j", async (body) => {
+    mockFetch(() => jsonResponse(200, body));
+    await expect(submit("event")).rejects.toMatchObject({ message: "invalid-json" });
+  });
+
+  it("keeps the deadline active while reading the response body", async () => {
+    const deadline = new AbortController();
+    vi.spyOn(AbortSignal, "timeout").mockReturnValue(deadline.signal);
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true, status: 200, json: () => new Promise((_resolve, reject) => {
+      deadline.signal.addEventListener("abort", () => reject(new DOMException("timeout", "AbortError")), { once: true });
+    }) })));
+    const result = submit("item").catch((error: unknown) => error);
+    await Promise.resolve();
+    deadline.abort();
+    expect(await result).toMatchObject({ message: "network-error", status: null });
   });
 });
 

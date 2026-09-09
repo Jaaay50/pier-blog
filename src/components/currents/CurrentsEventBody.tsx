@@ -234,7 +234,6 @@ export function CurrentsEventBody({
         <h2 className="font-display mb-1 border-b border-[var(--border)] pb-2 text-lg font-semibold tracking-tight">
           {labels.timeline}
         </h2>
-        <p className="mb-5 text-[13px] text-[var(--text-muted)]">{labels.timelineSubtitle}</p>
         <ol className="currents-tl-items relative border-l border-[var(--border)] pl-4 sm:pl-5">
           {event.timeline.map((entry) => (
             <TimelineEntry

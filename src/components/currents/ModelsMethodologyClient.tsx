@@ -26,6 +26,18 @@ const SOURCE_METHOD_KEY: Record<string, string> = {
 
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
 
+const PRICE_RESULT_LABELS: Record<string, readonly [string, string]> = {
+  updated: ["价格已更新", "Price updated"],
+  unchanged: ["价格未变化", "Price unchanged"],
+  manual: ["人工修改待复核", "Manual change requires review"],
+  model_not_found: ["未找到精确型号报价", "Exact model price not found"],
+  invalid_price: ["价格数据校验失败", "Price validation failed"],
+  fetch_failed: ["官方来源读取失败", "Official source request failed"],
+  timeout: ["官方来源读取超时", "Official source request timed out"],
+  no_verified_source: ["暂无已核验价格来源", "No verified price source"],
+  adapter_unverified: ["来源解析规则待核验", "Source parser requires verification"],
+};
+
 /**
  * 方法页动态部分：来源运行状态（最近成功更新时间、陈旧标记）、评分参数、
  * 模型计数与 pending 数。静态收录规则与公式说明由页面服务端渲染。
@@ -84,10 +96,83 @@ export function ModelsMethodologyClient() {
   if (!data) return null;
 
   const weights = data.scoringParams.confidenceWeights;
+  const zh = locale === "zh";
+  const priceUpdate = data.priceUpdate;
+  const modelNames = new Map(data.models.map((model) => [model.slug, model]));
+  const priceResults = Object.entries(priceUpdate?.models ?? {}).sort(([a], [b]) => a.localeCompare(b));
+  const priceStatusLabels = zh
+    ? { never: "尚未检查", ok: "本轮检查完成", partial: "部分检查失败", failed: "本轮检查失败" }
+    : { never: "Not checked", ok: "Check completed", partial: "Some checks failed", failed: "Check failed" };
+  const priceTime = (iso: string | null) => iso ? (
+    <time dateTime={iso} title={`${iso} (UTC)`}>
+      {new Intl.DateTimeFormat(zh ? "zh-CN" : "en-US", {
+        timeZone: "Asia/Hong_Kong", year: "numeric", month: "short", day: "numeric",
+        hour: "2-digit", minute: "2-digit", timeZoneName: "short",
+      }).format(new Date(iso))}
+    </time>
+  ) : "—";
 
   return (
     <div className="space-y-8">
-      <ModelsUpdateStatus update={data.update} detailed sourceNames={Object.fromEntries(data.sources.map((source) => [source.id, source.name]))} />
+      {data.update && (
+        <section aria-labelledby="meth-ability-update">
+          <h2 id="meth-ability-update" className="mb-3 text-base font-semibold text-[var(--text-primary)]">
+            {zh ? "能力评测更新" : "Ability assessment updates"}
+          </h2>
+          <ModelsUpdateStatus update={data.update} detailed sourceNames={Object.fromEntries(data.sources.map((source) => [source.id, source.name]))} />
+        </section>
+      )}
+      {priceUpdate && (
+        <section aria-labelledby="meth-price-update">
+          <h2 id="meth-price-update" className="mb-3 text-base font-semibold text-[var(--text-primary)]">
+            {zh ? "官方价格检查" : "Official price checks"}
+          </h2>
+          <dl className="mb-3 grid gap-3 rounded-xl border border-[var(--border)] p-4 text-[13px] sm:grid-cols-3">
+            <div>
+              <dt className="text-[var(--text-muted)]">{zh ? "检查状态" : "Check status"}</dt>
+              <dd className="text-[var(--text-primary)]">{priceStatusLabels[priceUpdate.status]}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--text-muted)]">{zh ? "最近价格检查" : "Last price check"}</dt>
+              <dd className="tabular-nums text-[var(--text-primary)]">{priceTime(priceUpdate.checkedAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--text-muted)]">{zh ? "价格内容变化" : "Price content changed"}</dt>
+              <dd className="tabular-nums text-[var(--text-primary)]">{priceTime(priceUpdate.changedAt)}</dd>
+            </div>
+          </dl>
+          <div className="overflow-x-auto rounded-xl border border-[var(--border)]">
+            <table className="w-full min-w-[560px] border-collapse text-[13px]">
+              <caption className="sr-only">{zh ? "逐模型价格检查结果" : "Price check results by model"}</caption>
+              <thead>
+                <tr className="border-b border-[var(--border)] text-left text-[11px] uppercase tracking-wider text-[var(--text-muted)]">
+                  {[zh ? "模型" : "Model", zh ? "厂商" : "Vendor", zh ? "检查结果" : "Check result", zh ? "状态码" : "Status code"].map((label) => (
+                    <th key={label} scope="col" className="px-3 py-2 font-medium">{label}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {priceResults.map(([slug, result]) => {
+                  const model = modelNames.get(slug);
+                  return (
+                    <tr key={slug} className="border-b border-[var(--border)] last:border-b-0">
+                      <th scope="row" className="px-3 py-2.5 text-left font-medium text-[var(--text-primary)]">{model?.name ?? slug}</th>
+                      <td className="px-3 py-2.5 text-[var(--text-secondary)]">{model?.vendor ?? "—"}</td>
+                      <td className="px-3 py-2.5 text-[var(--text-secondary)]">
+                        {PRICE_RESULT_LABELS[result]?.[zh ? 0 : 1] ?? (zh ? "未知检查结果" : "Unknown check result")}
+                      </td>
+                      <td className="max-w-[240px] break-words px-3 py-2.5 font-mono text-[12px] text-[var(--text-muted)]">{result}</td>
+                    </tr>
+                  );
+                })}
+                {priceResults.length === 0 && (
+                  <tr><td colSpan={4} className="px-3 py-6 text-center text-[var(--text-muted)]">{zh ? "暂无价格检查记录" : "No price check records"}</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      )}
       {/* 来源状态 */}
       <section aria-labelledby="meth-sources">
         <h2 id="meth-sources" className="mb-3 text-base font-semibold text-[var(--text-primary)]">

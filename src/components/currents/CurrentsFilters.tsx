@@ -433,7 +433,18 @@ export function CurrentsFilters({
     (minScore ? 1 : 0) +
     (favoritesOnly ? 1 : 0);
 
-  const viewLabel = t(VIEW_LABEL_KEY[view]);
+  const viewButtons = (className: string) => VIEW_KEYS.map((key) => (
+    <button
+      key={key}
+      type="button"
+      role="tab"
+      aria-selected={view === key}
+      onClick={() => onViewChange(key)}
+      className={`${className} ${view === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
+    >
+      {t(VIEW_LABEL_KEY[key])}
+    </button>
+  ));
 
   const searchInput = (fullWidth: boolean) => (
     <div className={`relative ${fullWidth ? "w-full" : "w-full sm:w-48"}`}>
@@ -531,15 +542,17 @@ export function CurrentsFilters({
     <>
       {/* ===== 桌面紧凑工具栏（≥xl）：零高度 sticky wrapper，不占文档流空间，
           出现/消失只动 opacity/translate，永不推动时间线内容 ===== */}
-      <div className="sticky top-[var(--site-nav-height)] z-30 hidden h-0 xl:block">
-        <div className="relative">
+      <div className="pointer-events-none sticky top-[var(--site-nav-height)] z-30 hidden h-0 xl:block">
+        {/* The zero-height wrapper still has a full-height child. Keep every
+            transparent ancestor out of hit testing, not only the hidden toolbar. */}
+        <div className="pointer-events-none relative">
           <div
             data-currents-desktop-toolbar
             inert={!collapsed}
             aria-hidden={!collapsed}
             className={`currents-surface-sticky flex items-center gap-2.5 rounded-xl border border-[var(--border)] px-4 py-2.5 shadow-[var(--currents-shadow-sticky)] transition-[opacity,transform] duration-150 ease-out motion-reduce:transition-none ${
               collapsed
-                ? "translate-y-0 opacity-100"
+                ? "pointer-events-auto translate-y-0 opacity-100"
                 : "pointer-events-none -translate-y-2 opacity-0"
             }`}
           >
@@ -548,20 +561,7 @@ export function CurrentsFilters({
               aria-label="view"
               className="flex shrink-0 gap-1"
             >
-              {VIEW_KEYS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  role="tab"
-                  aria-selected={view === key}
-                  onClick={() => onViewChange(key)}
-                  className={`rounded-full border px-3 py-1 text-[13px] font-medium transition-colors ${
-                    view === key ? PILL_ACTIVE : PILL_IDLE
-                  } ${FOCUS_CLASS}`}
-                >
-                  {t(VIEW_LABEL_KEY[key])}
-                </button>
-              ))}
+              {viewButtons("rounded-full border px-3 py-1 text-[13px] font-medium transition-colors")}
             </div>
             <div className="min-w-0 flex-1">{searchInput(false)}</div>
             <button
@@ -595,7 +595,7 @@ export function CurrentsFilters({
             inert={!moreOpen || !collapsed}
             aria-hidden={!moreOpen || !collapsed}
             className={`absolute inset-x-0 top-full mt-2 ${
-              moreOpen && collapsed ? "" : "pointer-events-none"
+              moreOpen && collapsed ? "pointer-events-auto" : "pointer-events-none"
             }`}
           >
             <AnimatePresence initial={false}>
@@ -658,26 +658,26 @@ export function CurrentsFilters({
         </div>
       </div>
 
-      {/* ===== 移动端吸顶极简栏（<xl）：当前视图 + 筛选状态 + 筛选按钮 ===== */}
-      <div className="currents-surface-sticky sticky top-[var(--site-nav-height)] z-30 flex h-14 items-center justify-between gap-3 border-b border-[var(--border)] xl:hidden">
-        <span className="flex min-w-0 items-baseline gap-2 text-sm">
-          <span className="shrink-0 font-medium">{viewLabel}</span>
-          {activeFilterCount > 0 && (
-            <span className="shrink-0 rounded-full bg-[var(--accent-soft)] px-1.5 py-0.5 text-[11px] font-medium text-[var(--accent)]">
-              {t("activeFilters", { count: activeFilterCount })}
-            </span>
-          )}
-        </span>
+      {/* ===== 移动端吸顶栏（<xl）：主视图直接切换，二级筛选保留在面板 ===== */}
+      <div className="currents-surface-sticky sticky top-[var(--site-nav-height)] z-30 flex h-14 min-w-0 items-center justify-between gap-2 border-b border-[var(--border)] xl:hidden">
+        <div role="tablist" aria-label="view" className="grid min-w-0 max-w-sm flex-1 grid-cols-3 gap-1">
+          {viewButtons("h-10 min-w-0 whitespace-nowrap rounded-full border px-1.5 text-[13px] font-medium transition-colors")}
+        </div>
         <button
           ref={sheetButtonRef}
           type="button"
+          aria-label={t("filtersOpen")}
           aria-expanded={sheetOpen}
           aria-controls="currents-filter-sheet"
           onClick={() => setSheetOpen(true)}
-          className={`flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--border)] px-3 py-1.5 text-sm text-[var(--text-secondary)] transition-colors hover:border-[var(--border-hover)] hover:text-[var(--text-primary)] ${FOCUS_CLASS}`}
+          className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-full border text-sm transition-colors ${activeFilterCount > 0 ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
         >
           <FilterGlyph />
-          {t("filtersOpen")}
+          {activeFilterCount > 0 && (
+            <span className="absolute -right-1 -top-1 rounded-full bg-[var(--accent-soft)] px-1.5 text-[11px] font-medium text-[var(--accent)]">
+              {activeFilterCount}
+            </span>
+          )}
         </button>
       </div>
 
@@ -727,31 +727,6 @@ export function CurrentsFilters({
               </div>
 
               <div className="flex flex-col gap-5">
-                {/* 视图 */}
-                <div>
-                  <p className="mb-2 text-xs font-medium text-[var(--text-muted)]">
-                    {t("categoriesLabel")}
-                  </p>
-                  <div
-                    role="tablist"
-                    aria-label="view"
-                    className="flex flex-wrap gap-1.5"
-                  >
-                    {VIEW_KEYS.map((key) => (
-                      <button
-                        key={key}
-                        type="button"
-                        role="tab"
-                        aria-selected={view === key}
-                        onClick={() => onViewChange(key)}
-                        className={`${PILL_BASE} ${view === key ? PILL_ACTIVE : PILL_IDLE} ${FOCUS_CLASS}`}
-                      >
-                        {t(VIEW_LABEL_KEY[key])}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
                 {/* 分类：换行显示，不再隐藏滚动条只露半项 */}
                 {view !== "papers" && (
                   <div>
@@ -814,20 +789,7 @@ export function CurrentsFilters({
         className="hidden border-b border-transparent py-3 xl:block"
       >
         <div role="tablist" aria-label="view" className="mb-3 flex gap-1">
-          {VIEW_KEYS.map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={view === key}
-              onClick={() => onViewChange(key)}
-              className={`rounded-full border px-4 py-1.5 text-sm font-medium transition-colors ${
-                view === key ? PILL_ACTIVE : PILL_IDLE
-              } ${FOCUS_CLASS}`}
-            >
-              {t(VIEW_LABEL_KEY[key])}
-            </button>
-          ))}
+          {viewButtons("rounded-full border px-4 py-1.5 text-sm font-medium transition-colors")}
         </div>
 
         <div className="flex flex-row flex-wrap items-center gap-2.5">

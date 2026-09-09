@@ -150,6 +150,8 @@
     "feedbackAlreadyReported": "Already reported in this type",
     "feedbackErrorRateLimit": "Too many submissions. Please try again later.",
     "feedbackErrorNetwork": "Network error. Please retry.",
+    "feedbackErrorVerification": "Human verification failed. Please verify again and retry.",
+    "feedbackErrorVerificationUnavailable": "Human verification is temporarily unavailable. Please try again later.",
     "feedbackErrorGeneric": "Submission failed. Please try again later.",
     "feedbackClose": "Dismiss",
     "filtersOpen": "Filters",
@@ -171,7 +173,7 @@
     "modelsColAbility": "Ability",
     "modelsColValueScore": "Value score",
     "modelsColConfidence": "Confidence",
-    "modelsColPrice": "Price (in/out)",
+    "modelsColPrice": "Price (in/out · per MTok)",
     "modelsColDelta": "Change",
     "modelsAbilityShort": "Ability",
     "modelsConfHigh": "High",
@@ -248,9 +250,9 @@
     "modelsMethRuleConfidenceH": "Confidence",
     "modelsMethRuleConfidence": "Confidence combines coverage (45%), freshness (25%), agreement (25%), and identity mapping (5%), independently of ability. Limited coverage does not exclude a model. Without usable evaluations, ability, confidence, and rank display —.",
     "modelsMethRuleValueH": "Value",
-    "modelsMethRuleValue": "All included models remain visible in the Value view. Value scores require comparable official PAYG token prices and usable evaluations. Standard cost assumes 1M input + 0.25M output tokens; value is the geometric mean of ability percentile and inverted-cost percentile. Missing data displays —; ability never substitutes for value. Subscriptions, self-hosting, and non-comparable plans are not scored.",
+    "modelsMethRuleValue": "Every included model remains visible. Comparable prices use official USD global or international standard online, uncached, ordinary-context rates; time-of-day pricing uses the peak rate. The aggregate usage basket is 1M input + 0.25M output tokens. Value is the geometric mean of ability percentile and inverted-cost percentile. Non-USD rates retain their original currency without FX conversion. Unknown prices, subscriptions, self-hosting, and non-comparable plans are not scored and display —.",
     "modelsMethRuleFailureH": "Refresh & failure handling",
-    "modelsMethRuleFailure": "A failed source keeps its last valid snapshot and shows a check warning. If every source fails, no new leaderboard is published. Identical scores count as a successful check without advancing the score-change timestamp. History retains one effective point per day. Newly listed models show no rank movement.",
+    "modelsMethRuleFailure": "Failed assessment sources retain their last valid snapshot. If all assessments fail, no new ability scores are published. Unchanged scores do not advance the score-change clock; history retains one effective point per day. Prices are checked independently. Failures preserve the last valid quote and its actual verification date, never extending a promotion. Price changes update value only, not ability scores or ability history. Newly listed models show no rank movement.",
     "modelsMethSources": "Data sources & status",
     "modelsMethColSource": "Source",
     "modelsMethColOperator": "Operator",
@@ -461,42 +463,66 @@
         "desc": "Real-time particle simulation: thousands of particles with mouse repulsion and 3D drift, all on the GPU.",
         "layer": "The GPU update step and mouse repulsion are hand-written. No Three.js.",
         "tech": "WebGL · GLSL · 0 deps",
-        "stillAlt": "Sparse white points gathered into a loose cloud on a dark field, with a circular gap pushed open at the centre."
+        "stillAlt": "Blue, violet and white particles distributed on a dark canvas."
       },
       "shader": {
         "title": "Shader Mixer",
         "desc": "Live GLSL noise art: drag sliders to tune hue, flow speed and turbulence octaves — every frame computed in real time.",
         "layer": "The FBM noise fragment shader and uniform binding are hand-written.",
         "tech": "WebGL · FBM Noise · 0 deps",
-        "stillAlt": "Soft patches of blue and rust-red bleeding into each other, like out-of-focus light."
+        "stillAlt": "Violet and pink noise patterns forming curling streams."
       },
       "fluid": {
         "title": "Fluid Simulation",
         "desc": "Hand-written Navier-Stokes solver: ping-pong FBO, vorticity confinement, Jacobi pressure iterations — drag to inject velocity & dye.",
         "layer": "The full fluid pipeline is hand-written. No off-the-shelf fluid library.",
         "tech": "WebGL2 · GLSL · 0 deps",
-        "stillAlt": "A flattened spiral torus of cyan grid lines on a dark field, with a pink glow at its centre."
+        "stillAlt": "Blue and violet dye curling and diffusing through a velocity field on a dark canvas."
       },
       "physics": {
         "title": "Physics Sandbox",
         "desc": "Verlet integration + spatial hash collision: click to spawn balls, drag to throw, gravity toggle, elastic collisions.",
         "layer": "The integrator and broad-phase collision are hand-written. No physics engine.",
         "tech": "Canvas 2D · Verlet · 0 deps",
-        "stillAlt": "Translucent blue, cyan and violet balls of different sizes scattered across a dark field, some overlapping."
+        "stillAlt": "Five colored balls resting against the sandbox floor."
       },
       "flow": {
         "title": "Flow Field Particles",
         "desc": "Curl noise divergence-free flow: 2500 particles with long trails, mouse attract/repel toggle.",
         "layer": "The curl-noise field and trail integration are hand-written. No particle library.",
         "tech": "Canvas 2D · Curl Noise · 0 deps",
-        "stillAlt": "Cyan dashed trails streaming along curved flow lines on a dark field, like silk combed by wind."
+        "stillAlt": "Blue particles tracing curved flow lines with continuous trails."
       },
       "morph": {
         "title": "3D Morph",
         "desc": "Parametric surface per-point morph: sphere→torus→cube→wave, drag to rotate, auto-cycle.",
         "layer": "The parametric surface and per-vertex morph are hand-written. No model files.",
         "tech": "WebGL · ogl · 0 deps",
-        "stillAlt": "Cyan dotted lines looping into overlapping ellipses on a dark field, like a torus knot not yet pulled tight."
+        "stillAlt": "Blue-violet particles forming an undulating parametric surface."
+      },
+      "sdf": {
+        "title": "SDF Raymarching",
+        "stillAlt": "A union of sphere and box distance fields with shadows and reflections."
+      },
+      "cloth": {
+        "title": "Tearable Cloth",
+        "stillAlt": "A pinned cloth mesh above a spherical obstacle."
+      },
+      "pathfinding": {
+        "title": "Pathfinding",
+        "stillAlt": "A* and Dijkstra results on the same obstacle map."
+      },
+      "raft": {
+        "title": "Raft Consensus",
+        "stillAlt": "Five nodes showing election, log replication and majority commits."
+      },
+      "audio": {
+        "title": "Sound & Spectrum",
+        "stillAlt": "A silent time-domain baseline and empty frequency spectrum."
+      },
+      "geometry": {
+        "title": "Voronoi / Delaunay",
+        "stillAlt": "Voronoi regions and a Delaunay triangulation of sample points."
       }
     }
   },
@@ -534,6 +560,8 @@
     "alreadyReported": "You just submitted this type of feedback.",
     "errorRateLimit": "Too many submissions — please try again later.",
     "errorNetwork": "Network error — check your connection and retry.",
+    "errorVerification": "Human verification failed — verify again and retry.",
+    "errorVerificationUnavailable": "Human verification is temporarily unavailable — please try again later.",
     "errorGeneric": "Submission failed — please try again later.",
     "contentCorrectionNote": "Want to correct a specific report or event? Use \"Report a content issue\" at the bottom of its detail page."
   },

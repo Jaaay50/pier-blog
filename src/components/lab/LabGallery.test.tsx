@@ -3,6 +3,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { LabGallery } from "./LabGallery";
+import { LAB_DEMOS } from "./lab-demos";
 
 vi.mock("next-intl/server", () => ({
   getTranslations: vi.fn(async () => {
@@ -16,30 +17,26 @@ vi.mock("next-intl/server", () => ({
 }));
 
 vi.mock("./LabDemoEnhance", () => ({
-  LabDemoEnhance: () => <div data-testid="enhance" />,
+  // eslint-disable-next-line @next/next/no-img-element -- Mirrors the SSR poster contract.
+  LabDemoEnhance: ({ still, alt }: { still: string; alt: string }) => <img src={still} alt={alt} />,
 }));
 
 describe("LabGallery", () => {
-  it("SSRs six figures with titles, layer copy, and still images", async () => {
+  it("SSRs ordered figures with titles and posters, without explanatory copy", async () => {
     render(await LabGallery());
     const figures = document.querySelectorAll("figure");
-    expect(figures).toHaveLength(6);
+    expect(figures).toHaveLength(LAB_DEMOS.length);
     const images = screen.getAllByRole("img");
-    expect(images).toHaveLength(6);
+    expect(images).toHaveLength(LAB_DEMOS.length);
     for (const img of images) {
       expect(img.getAttribute("src")?.endsWith(".webp")).toBe(true);
     }
-    expect(screen.getAllByText("layer")).toHaveLength(6);
-    expect(screen.getAllByText("title")).toHaveLength(6);
+    expect(screen.queryByText("layer")).toBeNull();
+    expect(screen.queryByText("desc")).toBeNull();
+    expect(screen.queryByText("tech")).toBeNull();
+    expect(screen.getAllByText("title")).toHaveLength(LAB_DEMOS.length);
     const alts = images.map((img) => img.getAttribute("alt"));
-    expect(alts).toEqual([
-      "fluid-alt",
-      "physics-alt",
-      "flow-alt",
-      "particles-alt",
-      "morph-alt",
-      "shader-alt",
-    ]);
-    expect(new Set(alts).size).toBe(6);
+    expect(alts).toEqual(LAB_DEMOS.map((demo) => `${demo.id}-alt`));
+    expect(new Set(alts).size).toBe(LAB_DEMOS.length);
   });
 });

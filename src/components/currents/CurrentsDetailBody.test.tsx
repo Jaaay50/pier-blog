@@ -81,6 +81,8 @@ const mockLabels = {
     alreadyReported: "此類型已反饋過",
     errorRateLimit: "提交過於頻繁，請稍後再試。",
     errorNetwork: "網絡異常，請重試。",
+    errorVerification: "人機驗證未通過，請重試。",
+    errorVerificationUnavailable: "人機驗證暫時不可用。",
     errorGeneric: "提交失敗，請稍後再試。",
     close: "收起",
   },

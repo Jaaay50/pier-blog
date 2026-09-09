@@ -10,11 +10,14 @@ vi.mock("next-intl/server", () => ({
   setRequestLocale: vi.fn(),
 }));
 vi.mock("@/components/Navbar", () => ({ Navbar: () => <nav /> }));
-vi.mock("@/components/ImmersiveHero", () => ({ ImmersiveHero: () => <section data-section="hero" /> }));
+vi.mock("@/components/ImmersiveHero", () => ({
+  ImmersiveHero: ({ subtitle, children }: { subtitle: string; children?: React.ReactNode }) => (
+    <section data-section="hero"><p>{subtitle}</p>{children}</section>
+  ),
+}));
 vi.mock("@/components/ProjectsBento", () => ({ ProjectsBento: () => <section data-section="projects" /> }));
 vi.mock("@/components/LabTeaser", () => ({ LabTeaser: () => <section data-section="lab" /> }));
 vi.mock("@/components/SiteFooter", () => ({ SiteFooter: () => <footer /> }));
-vi.mock("@/components/MagneticWrapper", () => ({ MagneticWrapper: ({ children }: { children: React.ReactNode }) => children }));
 vi.mock("@/components/TransitionLink", () => ({
   TransitionLink: ({ children, ...props }: React.ComponentProps<"a">) => <a {...props}>{children}</a>,
 }));
@@ -29,6 +32,13 @@ vi.mock("@/lib/posts", () => ({
 afterEach(cleanup);
 
 describe("HomePage editorial layout", () => {
+  it.each(["zh", "en"])("keeps the %s hero subtitle without a Read Articles CTA", async (locale) => {
+    const { container } = render(await HomePage({ params: Promise.resolve({ locale }) }));
+    const hero = container.querySelector('[data-section="hero"]');
+    expect(hero?.querySelector("p")?.textContent).toBe("heroSubtitle");
+    expect(hero?.querySelector("a, button")).toBeNull();
+  });
+
   it.each(["zh", "en"])("places the %s focus and three static articles before projects", async (locale) => {
     const { container } = render(await HomePage({ params: Promise.resolve({ locale }) }));
     const sections = [...container.querySelectorAll("main > section")].map((section) => section.getAttribute("data-section") ?? section.getAttribute("aria-labelledby"));

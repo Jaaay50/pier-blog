@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "model": {
+    "slug": "qwen3-8-max",
+    "name": "Qwen3.8 Max",
+    "vendor": "Alibaba",
+    "vendorId": "alibaba",
+    "status": "released",
+    "releaseDate": "2026-08-02",
+    "contextWindow": null,
+    "officialModelId": "qwen3.8-max",
+    "officialUrl": "https://www.alibabacloud.com/help/en/model-studio/models",
+    "verifiedAt": null,
+    "notes": null
+  },
+  "price": {
+    "kind": "payg",
+    "inputUsdPerMtok": 2,
+    "outputUsdPerMtok": 6,
+    "sourceUrl": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+    "verifiedAt": "2026-09-08T15:09:20.803Z",
+    "notes": null,
+    "rates": [
+      {
+        "id": "qwen3-8-max-international-0",
+        "currency": "USD",
+        "inputPerMtok": 2,
+        "outputPerMtok": 6,
+        "region": "international",
+        "contextMin": 0,
+        "contextMax": 1000000,
+        "serviceTier": "standard",
+        "timeBand": "all",
+        "schedule": null,
+        "effectiveFrom": null,
+        "effectiveUntil": null,
+        "sourceUrl": "https://www.alibabacloud.com/help/en/model-studio/model-pricing",
+        "verifiedAt": "2026-09-08T15:09:20.803Z"
+      }
+    ],
+    "verification": {
+      "status": "stale",
+      "checkedAt": "2026-09-08T17:23:02.465Z",
+      "lastErrorCode": "fetch_failed"
+    },
+    "benchmark": {
+      "inputUsdPerMtok": 2,
+      "outputUsdPerMtok": 6,
+      "rateId": "qwen3-8-max-international-0",
+      "policy": "standard-uncached-ordinary-context-peak"
+    }
+  },
+  "rankings": [
+    {
+      "category": "overall",
+      "rank": 4,
+      "prevRank": null,
+      "abilityScore": 85.5,
+      "confidence": 0.825,
+      "confidenceParts": {
+        "coverage": 0.667,
+        "freshness": 1,
+        "agreement": 0.901,
+        "identity": 1
+      },
+      "valueScore": null,
+      "coverageCount": 2,
+      "status": "main",
+      "sources": [
+        {
+          "sourceId": "livebench",
+          "percentile": 88.46153846153845,
+          "boards": [
+            {
+              "board": "livebench",
+              "percentile": 88.46153846153845,
+              "rawScore": 79.49626086956522,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.501Z",
+          "stale": false
+        },
+        {
+          "sourceId": "lmarena",
+          "percentile": 82.5,
+          "boards": [
+            {
+              "board": "text-overall",
+              "percentile": 82.5,
+              "rawScore": 1491.7108582824624,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.496Z",
+          "stale": false
+        }
+      ],
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "coding",
+      "rank": 5,
+      "prevRank": null,
+      "abilityScore": 80.2,
+      "confidence": 0.806,
+      "confidenceParts": {
+        "coverage": 0.75,
+        "freshness": 1,
+        "agreement": 0.675,
+        "identity": 1
+      },
+      "valueScore": null,
+      "coverageCount": 3,
+      "status": "main",
+      "sources": [
+        {
+          "sourceId": "deepswe",
+          "percentile": 67.3913043478261,
+          "boards": [
+            {
+              "board": "deepswe",
+              "percentile": 67.3913043478261,
+              "rawScore": 57.46102449888642,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.529Z",
+          "stale": false
+        },
+        {
+          "sourceId": "livebench",
+          "percentile": 91.02564102564102,
+          "boards": [
+            {
+              "board": "livebench",
+              "percentile": 91.02564102564102,
+              "rawScore": 67.93679999999999,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.501Z",
+          "stale": false
+        },
+        {
+          "sourceId": "lmarena",
+          "percentile": 82.21774193548387,
+          "boards": [
+            {
+              "board": "text-coding",
+              "percentile": 72.5,
+              "rawScore": 1508.3251769084732,
+              "fold": "single",
+              "configCount": 1
+            },
+            {
+              "board": "webdev",
+              "percentile": 91.93548387096774,
+              "rawScore": 1669.4220257701875,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.496Z",
+          "stale": false
+        }
+      ],
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "agent",
+      "rank": 6,
+      "prevRank": null,
+      "abilityScore": 80.1,
+      "confidence": 0.744,
+      "confidenceParts": {
+        "coverage": 0.667,
+        "freshness": 1,
+        "agreement": 0.576,
+        "identity": 1
+      },
+      "valueScore": null,
+      "coverageCount": 2,
+      "status": "main",
+      "sources": [
+        {
+          "sourceId": "ale",
+          "percentile": 92.85714285714286,
+          "boards": [
+            {
+              "board": "ale-overall",
+              "percentile": 92.85714285714286,
+              "rawScore": 52.5,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.533Z",
+          "stale": false
+        },
+        {
+          "sourceId": "deepswe",
+          "percentile": 67.3913043478261,
+          "boards": [
+            {
+              "board": "deepswe",
+              "percentile": 67.3913043478261,
+              "rawScore": 57.46102449888642,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.529Z",
+          "stale": false
+        }
+      ],
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "reasoning",
+      "rank": 4,
+      "prevRank": null,
+      "abilityScore": 82.7,
+      "confidence": 0.924,
+      "confidenceParts": {
+        "coverage": 1,
+        "freshness": 1,
+        "agreement": 0.696,
+        "identity": 1
+      },
+      "valueScore": null,
+      "coverageCount": 3,
+      "status": "main",
+      "sources": [
+        {
+          "sourceId": "epoch",
+          "percentile": 92.42424242424242,
+          "boards": [
+            {
+              "board": "gpqa",
+              "percentile": 92.42424242424242,
+              "rawScore": 0.9267676767676768,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.522Z",
+          "stale": false
+        },
+        {
+          "sourceId": "livebench",
+          "percentile": 70.51282051282051,
+          "boards": [
+            {
+              "board": "livebench",
+              "percentile": 70.51282051282051,
+              "rawScore": 89.76187499999999,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.501Z",
+          "stale": false
+        },
+        {
+          "sourceId": "lmarena",
+          "percentile": 85.29761904761904,
+          "boards": [
+            {
+              "board": "text-math",
+              "percentile": 88.09523809523809,
+              "rawScore": 1517.2783810282929,
+              "fold": "single",
+              "configCount": 1
+            },
+            {
+              "board": "text-hard",
+              "percentile": 82.5,
+              "rawScore": 1510.1777650344104,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.496Z",
+          "stale": false
+        }
+      ],
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "value",
+      "rank": 3,
+      "prevRank": null,
+      "abilityScore": 85.5,
+      "confidence": 0.825,
+      "confidenceParts": {
+        "coverage": 0.667,
+        "freshness": 1,
+        "agreement": 0.901,
+        "identity": 1
+      },
+      "valueScore": 64.6,
+      "coverageCount": 2,
+      "status": "main",
+      "sources": [
+        {
+          "sourceId": "livebench",
+          "percentile": 88.46153846153845,
+          "boards": [
+            {
+              "board": "livebench",
+              "percentile": 88.46153846153845,
+              "rawScore": 79.49626086956522,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.501Z",
+          "stale": false
+        },
+        {
+          "sourceId": "lmarena",
+          "percentile": 82.5,
+          "boards": [
+            {
+              "board": "text-overall",
+              "percentile": 82.5,
+              "rawScore": 1491.7108582824624,
+              "fold": "single",
+              "configCount": 1
+            }
+          ],
+          "fetchedAt": "2026-09-08T17:23:02.496Z",
+          "stale": false
+        }
+      ],
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    }
+  ],
+  "history": [
+    {
+      "category": "agent",
+      "rank": 6,
+      "abilityScore": 80.1,
+      "confidence": 0.744,
+      "valueScore": null,
+      "status": "main",
+      "modelStatus": "released",
+      "scoringVersion": "mlv2",
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "coding",
+      "rank": 5,
+      "abilityScore": 80.2,
+      "confidence": 0.806,
+      "valueScore": null,
+      "status": "main",
+      "modelStatus": "released",
+      "scoringVersion": "mlv2",
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "overall",
+      "rank": 4,
+      "abilityScore": 85.5,
+      "confidence": 0.825,
+      "valueScore": null,
+      "status": "main",
+      "modelStatus": "released",
+      "scoringVersion": "mlv2",
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "reasoning",
+      "rank": 4,
+      "abilityScore": 82.7,
+      "confidence": 0.924,
+      "valueScore": null,
+      "status": "main",
+      "modelStatus": "released",
+      "scoringVersion": "mlv2",
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    },
+    {
+      "category": "value",
+      "rank": 3,
+      "abilityScore": 85.5,
+      "confidence": 0.825,
+      "valueScore": 64.6,
+      "status": "main",
+      "modelStatus": "released",
+      "scoringVersion": "mlv2",
+      "computedAt": "2026-09-08T17:23:02.534Z"
+    }
+  ],
+  "aliases": [
+    {
+      "alias": "qwen3-8",
+      "sourceId": "ale",
+      "configLabel": null,
+      "isDefaultConfig": false
+    },
+    {
+      "alias": "qwen3-8-max",
+      "sourceId": null,
+      "configLabel": null,
+      "isDefaultConfig": false
+    }
+  ],
+  "meta": {
+    "scoringVersion": "mlv2",
+    "valueValidUntil": "2027-01-01T00:00:00.000Z",
+    "generatedAt": "2026-09-08T17:23:02.571Z"
+  }
+}

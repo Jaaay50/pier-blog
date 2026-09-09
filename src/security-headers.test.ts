@@ -53,13 +53,13 @@ describe("Next.js 安全响应头", () => {
     expect(policy).not.toContain("giscus.app");
     expect(directives.get("script-src")).toBe(
       process.env.NODE_ENV === "development"
-        ? "'self' 'unsafe-inline' 'unsafe-eval'"
-        : "'self' 'unsafe-inline'",
+        ? "'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com"
+        : "'self' 'unsafe-inline' https://challenges.cloudflare.com",
     );
     expect(directives.get("script-src-attr")).toBe("'none'");
     expect(directives.get("img-src")).toBe("'self' data: blob:");
-    expect(directives.get("connect-src")).toBe("'self' https://currents-api.ethanpier.com");
-    expect(directives.get("frame-src")).toBe("'none'");
+    expect(directives.get("connect-src")).toBe("'self' https://currents-api.ethanpier.com https://challenges.cloudflare.com");
+    expect(directives.get("frame-src")).toBe("https://challenges.cloudflare.com");
     expect(directives.get("form-action")).toBe("'self'");
     expect(directives.get("object-src")).toBe("'none'");
   });

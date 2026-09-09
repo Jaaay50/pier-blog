@@ -171,6 +171,7 @@ const DEFAULTS: Params = { hue: 0.6, flowSpeed: 0.5, octaves: 4, zoom: 1.6 };
 
 interface ShaderMixerProps {
   quality: WebGLQuality;
+  onReadyChange?: (ready: boolean) => void;
   labels: {
     hue: string;
     flow: string;
@@ -198,11 +199,14 @@ export default function ShaderMixer({
   labels,
   canvasOnly = false,
   lens,
+  onReadyChange,
 }: ShaderMixerProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [params, setParams] = useState<Params>(DEFAULTS);
   const paramsRef = useRef(params);
   const lensRef = useRef(lens);
+  const readyRef = useRef(onReadyChange);
+  useEffect(() => { readyRef.current = onReadyChange; }, [onReadyChange]);
 
   useEffect(() => {
     paramsRef.current = params;
@@ -223,120 +227,120 @@ export default function ShaderMixer({
     const gl =
       canvas.getContext("webgl", { antialias: false }) ||
       canvas.getContext("experimental-webgl");
-    if (!gl || !(gl instanceof WebGLRenderingContext)) return;
+    if (!gl || !(gl instanceof WebGLRenderingContext)) { readyRef.current?.(false); return; }
     host.appendChild(canvas);
-
-    const compile = (type: number, src: string) => {
-      const s = gl.createShader(type)!;
-      gl.shaderSource(s, src);
-      gl.compileShader(s);
-      if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
-        // shader 编译失败：清理并放弃（外层已有静态降级）
-        gl.deleteShader(s);
-        return null;
-      }
-      return s;
-    };
-
-    const vs = compile(gl.VERTEX_SHADER, VERT);
-    const fs = compile(gl.FRAGMENT_SHADER, FRAG);
-    if (!vs || !fs) {
-      host.removeChild(canvas);
-      return;
-    }
-
-    const prog = gl.createProgram()!;
-    gl.attachShader(prog, vs);
-    gl.attachShader(prog, fs);
-    gl.linkProgram(prog);
-    gl.useProgram(prog);
-
-    // 全屏三角形
-    const buf = gl.createBuffer();
-    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      new Float32Array([-1, -1, 3, -1, -1, 3]),
-      gl.STATIC_DRAW
-    );
-    const loc = gl.getAttribLocation(prog, "aPos");
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
-
-    const uRes = gl.getUniformLocation(prog, "uResolution");
-    const uTime = gl.getUniformLocation(prog, "uTime");
-    const uHue = gl.getUniformLocation(prog, "uHue");
-    const uFlow = gl.getUniformLocation(prog, "uFlowSpeed");
-    const uOct = gl.getUniformLocation(prog, "uOctaves");
-    const uZoom = gl.getUniformLocation(prog, "uZoom");
-    const uLensRect = gl.getUniformLocation(prog, "uLensRect");
-    const uLensRadius = gl.getUniformLocation(prog, "uLensRadius");
-    const uLensStrength = gl.getUniformLocation(prog, "uLensStrength");
-
-    // FBM 每像素 6 层循环开销大，渲染分辨率限 0.75x（视觉几乎无差）
-    const renderScale = quality.tier === "high" ? 0.75 : 0.5;
-    const resize = () => {
-      const w = Math.max(1, Math.round(host.clientWidth * renderScale));
-      const h = Math.max(1, Math.round(host.clientHeight * renderScale));
-      canvas.width = w;
-      canvas.height = h;
-      gl.viewport(0, 0, w, h);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(host);
-
-    let raf: number | null = null;
-    let lastTime: number | null = null;
-    let elapsed = 0;
-
-    const frame = (t: number) => {
-      raf = requestAnimationFrame(frame);
-      if (lastTime !== null) elapsed += t - lastTime;
-      lastTime = t;
-      const p = paramsRef.current;
-      gl.uniform2f(uRes, canvas.width, canvas.height);
-      gl.uniform1f(uTime, elapsed * 0.001);
-      gl.uniform1f(uHue, p.hue);
-      gl.uniform1f(uFlow, p.flowSpeed);
-      gl.uniform1f(uOct, p.octaves);
-      gl.uniform1f(uZoom, p.zoom);
-      const lensV = lensRef.current;
-      if (lensV && lensV.strength > 0) {
-        gl.uniform4f(uLensRect, lensV.rect[0], lensV.rect[1], lensV.rect[2], lensV.rect[3]);
-        gl.uniform1f(uLensRadius, lensV.radius);
-        gl.uniform1f(uLensStrength, lensV.strength);
-      } else {
-        gl.uniform1f(uLensStrength, 0);
-      }
-      gl.drawArrays(gl.TRIANGLES, 0, 3);
-    };
-
-    const start = () => {
-      if (raf === null) {
-        lastTime = null;
-        raf = requestAnimationFrame(frame);
-      }
-    };
-    const stop = () => {
-      if (raf !== null) {
-        cancelAnimationFrame(raf);
-        raf = null;
-      }
-    };
-
-    start();
-    const stopGate = observeRenderGate(host, (active) =>
-      active ? start() : stop()
-    );
-
-    return () => {
-      stopGate();
-      stop();
-      ro.disconnect();
+    let disposed = false, ready = false, raf: number | null = null;
+    let clearResize = () => {}, clearGate = () => {};
+    const resources: { shaders: WebGLShader[]; program?: WebGLProgram; buffer?: WebGLBuffer | null } = { shaders: [] };
+    const stop = () => { if (raf !== null) cancelAnimationFrame(raf); raf = null; };
+    const dispose = () => {
+      if (disposed) return; disposed = true; stop(); clearResize(); clearGate();
+      canvas.removeEventListener("webglcontextlost", fail);
+      for (const shader of resources.shaders) gl.deleteShader(shader);
+      if (resources.program) gl.deleteProgram(resources.program);
+      if (resources.buffer) gl.deleteBuffer(resources.buffer);
       if (canvas.parentNode === host) host.removeChild(canvas);
       gl.getExtension("WEBGL_lose_context")?.loseContext();
     };
+    const fail = () => { dispose(); readyRef.current?.(false); };
+    canvas.addEventListener("webglcontextlost", fail);
+    try {
+      const compile = (type: number, src: string) => {
+        const s = gl.createShader(type)!;
+        resources.shaders.push(s);
+        gl.shaderSource(s, src);
+        gl.compileShader(s);
+        if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+          // shader 编译失败：清理并放弃（外层已有静态降级）
+          return null;
+        }
+        return s;
+      };
+
+      const vs = compile(gl.VERTEX_SHADER, VERT);
+      const fs = compile(gl.FRAGMENT_SHADER, FRAG);
+      if (!vs || !fs) {
+        throw new Error("Unable to compile shader mixer");
+      }
+
+      const prog = gl.createProgram()!; resources.program = prog;
+      gl.attachShader(prog, vs);
+      gl.attachShader(prog, fs);
+      gl.linkProgram(prog);
+      if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error("Unable to link shader mixer");
+      gl.useProgram(prog);
+
+      // 全屏三角形
+      const buf = gl.createBuffer(); resources.buffer = buf;
+      gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+      gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array([-1, -1, 3, -1, -1, 3]),
+        gl.STATIC_DRAW
+      );
+      const loc = gl.getAttribLocation(prog, "aPos");
+      gl.enableVertexAttribArray(loc);
+      gl.vertexAttribPointer(loc, 2, gl.FLOAT, false, 0, 0);
+
+      const uRes = gl.getUniformLocation(prog, "uResolution");
+      const uTime = gl.getUniformLocation(prog, "uTime");
+      const uHue = gl.getUniformLocation(prog, "uHue");
+      const uFlow = gl.getUniformLocation(prog, "uFlowSpeed");
+      const uOct = gl.getUniformLocation(prog, "uOctaves");
+      const uZoom = gl.getUniformLocation(prog, "uZoom");
+      const uLensRect = gl.getUniformLocation(prog, "uLensRect");
+      const uLensRadius = gl.getUniformLocation(prog, "uLensRadius");
+      const uLensStrength = gl.getUniformLocation(prog, "uLensStrength");
+
+      // FBM 每像素 6 层循环开销大，渲染分辨率限 0.75x（视觉几乎无差）
+      const renderScale = quality.tier === "high" ? 0.75 : 0.5;
+      const resize = () => {
+        const w = Math.max(1, Math.round(host.clientWidth * renderScale));
+        const h = Math.max(1, Math.round(host.clientHeight * renderScale));
+        canvas.width = w;
+        canvas.height = h;
+        gl.viewport(0, 0, w, h);
+      };
+      resize();
+      const ro = new ResizeObserver(resize);
+      ro.observe(host); clearResize = () => ro.disconnect();
+
+      let lastTime: number | null = null;
+      let elapsed = 0;
+
+      const frame = (t: number) => {
+        raf = null;
+        if (disposed) return;
+        try {
+          if (lastTime !== null) elapsed += t - lastTime;
+          lastTime = t;
+          const p = paramsRef.current;
+          gl.uniform2f(uRes, canvas.width, canvas.height);
+          gl.uniform1f(uTime, elapsed * 0.001);
+          gl.uniform1f(uHue, p.hue);
+          gl.uniform1f(uFlow, p.flowSpeed);
+          gl.uniform1f(uOct, p.octaves);
+          gl.uniform1f(uZoom, p.zoom);
+          const lensV = lensRef.current;
+          if (lensV && lensV.strength > 0) {
+            gl.uniform4f(uLensRect, lensV.rect[0], lensV.rect[1], lensV.rect[2], lensV.rect[3]);
+            gl.uniform1f(uLensRadius, lensV.radius);
+            gl.uniform1f(uLensStrength, lensV.strength);
+          } else {
+            gl.uniform1f(uLensStrength, 0);
+          }
+          gl.drawArrays(gl.TRIANGLES, 0, 3);
+          if (!ready) { if (gl.getError() !== gl.NO_ERROR) throw new Error("Shader first frame failed"); ready = true; readyRef.current?.(true); }
+          raf = requestAnimationFrame(frame);
+        } catch { fail(); }
+      };
+
+      clearGate = observeRenderGate(host, (active) => {
+        if (active && !disposed && raf === null) { lastTime = null; raf = requestAnimationFrame(frame); }
+        else if (!active) { stop(); lastTime = null; }
+      });
+    } catch { fail(); }
+    return dispose;
   }, [quality.tier]);
 
   const randomize = () => {

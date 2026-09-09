@@ -1,8 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useId, useState, type KeyboardEvent } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { TransitionLink } from "@/components/TransitionLink";
+import { Link as TransitionLink } from "@/i18n/navigation";
+import { priceSummary } from "@/lib/currents/model-prices";
 import { fetchModelsLeaderboard } from "@/lib/currents/api";
 import {
   MODELS_CATEGORIES,
@@ -16,6 +17,8 @@ import {
 } from "@/lib/currents/models-types";
 import { CurrentsError } from "./CurrentsError";
 import { ModelsUpdateStatus } from "./ModelsUpdateStatus";
+import { usePriceClock } from "./usePriceClock";
+import { rateIsCurrent } from "@/lib/currents/model-prices";
 
 const FOCUS_CLASS =
   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]";
@@ -33,11 +36,6 @@ const TIER_CLASS: Record<"high" | "medium" | "low", string> = {
   medium: "border-[var(--border-hover)] text-[var(--text-secondary)]",
   low: "border-[var(--border)] text-[var(--text-muted)]",
 };
-
-function formatUsd(value: number | null): string | null {
-  if (value === null) return null;
-  return `$${value < 1 ? value.toFixed(value < 0.1 ? 3 : 2).replace(/0+$/, "").replace(/\.$/, "") : value % 1 === 0 ? value.toFixed(0) : value.toFixed(2)}`;
-}
 
 /** 排名变化：首次快照（prevRank=null）显示 —，不制造变化。 */
 function RankDelta({ rank, prevRank, t }: { rank: number | null; prevRank: number | null; t: ReturnType<typeof useTranslations> }) {
@@ -75,29 +73,14 @@ function ConfidenceBadge({ confidence, t }: { confidence: number | null; t: Retu
   return (
     <span
       className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] tabular-nums ${TIER_CLASS[tier]}`}
-      title={t("modelsConfTooltip")}
     >
       {label} {confidence.toFixed(2)}
     </span>
   );
 }
 
-function PriceCell({ row, t }: { row: ModelsLeaderboardRow; t: ReturnType<typeof useTranslations> }) {
-  const { price } = row;
-  if (price.kind === "payg" && price.inputUsdPerMtok !== null && price.outputUsdPerMtok !== null) {
-    return (
-      <span className="tabular-nums" title={t("modelsPriceUnit")}>
-        {formatUsd(price.inputUsdPerMtok)} / {formatUsd(price.outputUsdPerMtok)}
-      </span>
-    );
-  }
-  const label =
-    price.kind === "subscription"
-      ? t("modelsPriceSubscription")
-      : price.kind === "local"
-        ? t("modelsPriceLocal")
-        : t("modelsPriceUnavailable");
-  return <span className="text-[var(--text-muted)]">{label}</span>;
+function PriceCell({ row, now }: { row: ModelsLeaderboardRow; now: number }) {
+  return <span className="inline-flex flex-col tabular-nums">{priceSummary(row.price, now).map((line,i)=><span key={i}>{line}</span>)}</span>;
 }
 
 function formatTime(iso: string | null, locale: string): string | null {
@@ -118,9 +101,11 @@ function LeaderboardCards({
   rows,
   category,
   t,
+  now,
 }: {
   rows: ModelsLeaderboardRow[];
   category: ModelsCategory;
+  now: number;
   t: ReturnType<typeof useTranslations>;
 }) {
   const isValue = category === "value";
@@ -144,15 +129,6 @@ function LeaderboardCards({
                       Preview
                     </span>
                   )}
-                  {row.staleSources.length > 0 && (
-                    <span
-                      data-mobile-stale={row.model.slug}
-                      className="rounded-full border border-[var(--border)] px-1.5 py-px text-[10px] text-[var(--text-muted)]"
-                      title={t("modelsStaleTooltip", { sources: row.staleSources.join(", ") })}
-                    >
-                      {t("modelsStale")}
-                    </span>
-                  )}
                 </div>
                 <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{row.model.vendor}</div>
               </div>
@@ -168,7 +144,7 @@ function LeaderboardCards({
           </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-[var(--text-secondary)]">
             <ConfidenceBadge confidence={row.confidence} t={t} />
-            <PriceCell row={row} t={t} />
+            <PriceCell row={row} now={now} />
             {isValue && (
               <span className="tabular-nums text-[var(--text-muted)]">
                 {t("modelsAbilityShort")} {formatModelScore(row.abilityScore)}
@@ -185,9 +161,11 @@ function LeaderboardTable({
   rows,
   category,
   t,
+  now,
 }: {
   rows: ModelsLeaderboardRow[];
   category: ModelsCategory;
+  now: number;
   t: ReturnType<typeof useTranslations>;
 }) {
   const isValue = category === "value";
@@ -212,7 +190,7 @@ function LeaderboardTable({
               {t("modelsColConfidence")}
             </th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">
-              <span title={t("modelsPriceUnit")}>{t("modelsColPrice")}</span>
+              <span>{t("modelsColPrice")}</span>
             </th>
             <th scope="col" className="px-3 py-2.5 text-right font-medium">
               {t("modelsColDelta")}
@@ -239,14 +217,6 @@ function LeaderboardTable({
                       Preview
                     </span>
                   )}
-                  {row.staleSources.length > 0 && (
-                    <span
-                      className="rounded-full border border-[var(--border)] px-1.5 py-px text-[10px] text-[var(--text-muted)]"
-                      title={t("modelsStaleTooltip", { sources: row.staleSources.join(", ") })}
-                    >
-                      {t("modelsStale")}
-                    </span>
-                  )}
                 </div>
                 <div className="mt-0.5 text-[11px] text-[var(--text-muted)]">{row.model.vendor}</div>
               </td>
@@ -264,7 +234,7 @@ function LeaderboardTable({
                 <ConfidenceBadge confidence={row.confidence} t={t} />
               </td>
               <td className="px-3 py-3 text-right text-[13px]">
-                <PriceCell row={row} t={t} />
+                <PriceCell row={row} now={now} />
               </td>
               <td className="px-3 py-3 text-right tabular-nums">
                 <RankDelta rank={row.rank} prevRank={row.prevRank} t={t} />
@@ -277,19 +247,24 @@ function LeaderboardTable({
   );
 }
 
-export function ModelsLeaderboardClient() {
+export function ModelsLeaderboardClient({ initial = null }: { initial?: ModelsLeaderboardResponse | null } = {}) {
   const t = useTranslations("currents");
   const locale = useLocale();
   const [category, setCategory] = useState<ModelsCategory>("overall");
   const [view, setView] = useState<ModelsView>("released");
-  const [data, setData] = useState<ModelsLeaderboardResponse | null>(null);
-  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [data, setData] = useState<ModelsLeaderboardResponse | null>(initial);
+  const [status, setStatus] = useState<"loading" | "ok" | "error">(initial ? "ok" : "loading");
+  const initialSatisfiedRef = useRef(Boolean(initial));
   const [retryCount, setRetryCount] = useState(0);
   const panelId = useId();
   const categoryTabId = (cat: ModelsCategory) => `${panelId}-category-${cat}`;
   const viewTabId = (value: ModelsView) => `${panelId}-view-${value}`;
 
   useEffect(() => {
+    if (initialSatisfiedRef.current) {
+      initialSatisfiedRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     fetchModelsLeaderboard(category, view, controller.signal)
       .then((res) => {
@@ -323,8 +298,22 @@ export function ModelsLeaderboardClient() {
   }, []);
 
   const currentData = status === "ok" && data?.category === category && data.view === view ? data : null;
-  const staleSources = (currentData?.meta.sources ?? []).filter((s) => s.stale);
   const computedAt = formatTime(currentData?.meta.computedAt ?? null, locale);
+  const priceRates = useMemo(() => [...(data?.items ?? []), ...(data?.observing ?? [])].flatMap(row => row.price.rates ?? []), [data]);
+  const priceNow = usePriceClock(data ? Date.parse(data.meta.generatedAt) : 0, priceRates, undefined, data?.meta.valueValidUntil);
+  const currentRows = currentData ? unifiedLeaderboardRows(currentData).map(row => {
+    // Value rankings depend on a specific price snapshot. Hide the entire stale
+    // comparison when a tariff boundary passes; never retain an expired bargain.
+    const benchmarkId = row.price.benchmark?.rateId;
+    const expired = !!benchmarkId && !row.price.rates?.some(rate => rate.id === benchmarkId && rateIsCurrent(rate, priceNow));
+    return category === "value" && expired ? { ...row, rank: null, prevRank: null, valueScore: null } : row;
+  }) : [];
+  const valueExpired = category === "value" && !!data && (
+    (!!data.meta.valueValidUntil && priceNow >= Date.parse(data.meta.valueValidUntil)) ||
+    priceRates.some(rate => [rate.effectiveFrom, rate.effectiveUntil].some(boundary =>
+      boundary && Date.parse(boundary) > Date.parse(data.meta.generatedAt) && Date.parse(boundary) <= priceNow))
+  );
+  const displayRows = valueExpired ? currentRows.map(row => ({ ...row, rank: null, prevRank: null, valueScore: null })) : currentRows;
 
   const focusTab = <T extends string>(values: readonly T[], nextIndex: number, idFor: (value: T) => string) => {
     const value = values[(nextIndex + values.length) % values.length];
@@ -408,14 +397,6 @@ export function ModelsLeaderboardClient() {
           ))}
         </div>
         <div className="flex items-center gap-2 text-[11px] text-[var(--text-muted)]">
-          {staleSources.length > 0 && (
-            <span
-              className="rounded-full border border-[var(--border)] px-2 py-0.5"
-              title={t("modelsStaleTooltip", { sources: staleSources.map((s) => s.name).join(", ") })}
-            >
-              {t("modelsStaleSourcesNote", { count: staleSources.length })}
-            </span>
-          )}
           {!currentData?.meta.update && computedAt && <span className="tabular-nums">{t("modelsComputedAt", { time: computedAt })}</span>}
         </div>
       </div>
@@ -448,19 +429,18 @@ export function ModelsLeaderboardClient() {
               </p>
             ) : (
               <>
-                <LeaderboardTable rows={unifiedLeaderboardRows(currentData)} category={category} t={t} />
-                <LeaderboardCards rows={unifiedLeaderboardRows(currentData)} category={category} t={t} />
+                <LeaderboardTable rows={displayRows} category={category} t={t} now={priceNow} />
+                <LeaderboardCards rows={displayRows} category={category} t={t} now={priceNow} />
               </>
             )}
-            <p className="mt-6 text-[12px] leading-relaxed text-[var(--text-muted)]">
-              {t("modelsFooterNote")}{" "}
+            <div className="mt-6">
               <TransitionLink
                 href="/currents/models/methodology"
                 className={`text-[var(--accent)] hover:underline ${FOCUS_CLASS}`}
               >
                 {t("modelsMethodologyLink")}
               </TransitionLink>
-            </p>
+            </div>
           </>
         )}
       </div>

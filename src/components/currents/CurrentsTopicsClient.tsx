@@ -1,20 +1,25 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { TransitionLink } from "@/components/TransitionLink";
 import { fetchTopics } from "@/lib/currents/api";
 import type { CurrentsTopicsResponse } from "@/lib/currents/types";
 import { CurrentsError } from "./CurrentsError";
 
-export function CurrentsTopicsClient() {
+export function CurrentsTopicsClient({ initial = null }: { initial?: CurrentsTopicsResponse | null } = {}) {
   const t = useTranslations("currents");
   const locale = useLocale();
-  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
-  const [data, setData] = useState<CurrentsTopicsResponse | null>(null);
+  const [status, setStatus] = useState<"loading" | "ok" | "error">(initial ? "ok" : "loading");
+  const [data, setData] = useState<CurrentsTopicsResponse | null>(initial);
+  const initialSatisfiedRef = useRef(Boolean(initial));
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    if (initialSatisfiedRef.current) {
+      initialSatisfiedRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     fetchTopics(locale, controller.signal)
       .then((res) => {

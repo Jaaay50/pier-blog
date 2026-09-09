@@ -52,7 +52,7 @@ beforeAll(() => {
 
 describe("LabTeaser layout", () => {
   it("keeps the canvas edge-to-edge while the glass card stays in safe gutters", () => {
-    const { container } = render(<LabTeaser label="Explore experiments" enterLab="Enter" />);
+    const { container } = render(<LabTeaser enterLab="Enter" />);
     const section = container.querySelector("section");
     const canvasHost = section?.querySelector(":scope > div.absolute.inset-0");
     const glass = section?.querySelector(".glass-card");
@@ -73,6 +73,8 @@ describe("LabTeaser layout", () => {
     );
     expect(glass?.className).toContain("w-auto");
     expect(glass?.className).toContain("max-w-sm");
+    expect(glass?.querySelectorAll("p")).toHaveLength(1);
+    expect(glass?.querySelector("p")?.textContent).toBe("Lab");
     expect(glass?.className).toContain("md:left-auto");
     expect(glass?.className).toContain(
       "md:right-[max(3rem,env(safe-area-inset-right))]",
