@@ -79,8 +79,35 @@ function ConfidenceBadge({ confidence, t }: { confidence: number | null; t: Retu
   );
 }
 
-function PriceCell({ row, now }: { row: ModelsLeaderboardRow; now: number }) {
-  return <span className="inline-flex flex-col tabular-nums">{priceSummary(row.price, now).map((line,i)=><span key={i}>{line}</span>)}</span>;
+function PriceCell({ row, now, t }: { row: ModelsLeaderboardRow; now: number; t: ReturnType<typeof useTranslations> }) {
+  const price = row.price;
+  const lines = priceSummary(price, now);
+  const hasPrice = lines.some((line) => line !== "—");
+  const status = price.verification?.status ?? "unknown";
+  const error = price.verification?.lastErrorCode;
+  const verifiedAt = price.verifiedAt ? Date.parse(price.verifiedAt) : NaN;
+  // Match detail-page freshness checks without changing priceSummary's tariff selection.
+  const stale = status === "stale" || !!error
+    || (!!price.rates?.length && !price.rates.some((rate) => rateIsCurrent(rate, now)))
+    || (hasPrice && status === "verified" && (!Number.isFinite(verifiedAt) || now - verifiedAt > 7 * 86_400_000));
+  // An unavailable price is not evidence that the vendor has never published pricing.
+  const signal = hasPrice
+    ? stale ? "modelsPriceRetained" : status === "verified" ? null : "modelsPriceUnverified"
+    : error === "fetch_failed" ? "modelsPriceFetchFailed" : stale ? "modelsPriceReverify" : "modelsPriceNoVerified";
+  return (
+    <span className="inline-flex flex-col tabular-nums">
+      {lines.map((line, i) => <span key={i}>{line}</span>)}
+      {signal && (
+        <TransitionLink
+          href={`/currents/models/${row.model.slug}#model-pricing`}
+          aria-label={t("modelsPriceDetailsLabel", { status: t(signal), model: row.model.name })}
+          className={`mt-1 inline-flex min-h-6 items-center gap-1 text-xs text-[var(--text-secondary)] underline decoration-[var(--border-hover)] underline-offset-4 hover:text-[var(--text-primary)] ${FOCUS_CLASS}`}
+        >
+          {t(signal)}<span aria-hidden="true">›</span>
+        </TransitionLink>
+      )}
+    </span>
+  );
 }
 
 function formatTime(iso: string | null, locale: string): string | null {
@@ -144,7 +171,7 @@ function LeaderboardCards({
           </div>
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[12px] text-[var(--text-secondary)]">
             <ConfidenceBadge confidence={row.confidence} t={t} />
-            <PriceCell row={row} now={now} />
+            <PriceCell row={row} now={now} t={t} />
             {isValue && (
               <span className="tabular-nums text-[var(--text-muted)]">
                 {t("modelsAbilityShort")} {formatModelScore(row.abilityScore)}
@@ -234,7 +261,7 @@ function LeaderboardTable({
                 <ConfidenceBadge confidence={row.confidence} t={t} />
               </td>
               <td className="px-3 py-3 text-right text-[13px]">
-                <PriceCell row={row} now={now} />
+                <PriceCell row={row} now={now} t={t} />
               </td>
               <td className="px-3 py-3 text-right tabular-nums">
                 <RankDelta rank={row.rank} prevRank={row.prevRank} t={t} />

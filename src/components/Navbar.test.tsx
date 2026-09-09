@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import zh from "@/messages/zh.json";
@@ -37,6 +37,24 @@ afterEach(() => {
 });
 
 describe("Navbar shared shell", () => {
+  it.each(["zh", "en"])("includes all five visible %s labels in desktop and mobile accessible names", (locale) => {
+    const messages = locale === "zh" ? zh : en;
+    const { container } = render(
+      <NextIntlClientProvider locale={locale} messages={messages}><Navbar /></NextIntlClientProvider>
+    );
+    const checkNames = (count: number) => {
+      for (const key of ["blog", "currents", "portfolio", "lab", "about"] as const) {
+        const name = `${messages.nav[key]} — ${messages.nav[`${key}Hint`]}`;
+        const links = screen.getAllByRole("link", { name });
+        expect(links).toHaveLength(count);
+        for (const link of links) expect(link.textContent).toBe(messages.nav[key]);
+      }
+    };
+    checkNames(1);
+    fireEvent.click(screen.getByRole("button", { name: messages.nav.menuOpen }));
+    checkNames(2);
+    expect(container.querySelectorAll("a[title][aria-label]")).toHaveLength(10);
+  });
   it.each(["zh", "en"])("keeps the same shell across %s routes", (locale) => {
     const navbar = () => (
       <NextIntlClientProvider locale={locale} messages={locale === "zh" ? zh : en}>

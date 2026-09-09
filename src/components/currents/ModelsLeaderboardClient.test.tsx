@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
-import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelsLeaderboardClient } from "./ModelsLeaderboardClient";
-import type { ModelsLeaderboardResponse, ModelsLeaderboardRow } from "@/lib/currents/models-types";
+import type { ModelRate, ModelsPrice, ModelsLeaderboardResponse, ModelsLeaderboardRow } from "@/lib/currents/models-types";
 import zh from "@/messages/zh.json";
+import en from "@/messages/en.json";
 
 const mockFetchLeaderboard = vi.fn();
 
@@ -378,9 +379,11 @@ it("expires a mounted quote at its boundary while leaving the ability score inta
       rates:[{id:"promo",currency:"USD",inputPerMtok:.1,outputPerMtok:.5,region:"global",contextMin:0,contextMax:null,serviceTier:"standard",timeBand:"all",schedule:null,effectiveFrom:null,effectiveUntil:new Date(now+1000).toISOString(),sourceUrl:"https://example.com/prices",verifiedAt:new Date(now).toISOString()}]};
     renderClient(data);
     const priceCell=()=>screen.getByRole("table").querySelector("tbody tr")!.children[4];
-    expect(priceCell().textContent).toBe("$0.1 / $0.5");
+    expect(within(priceCell() as HTMLElement).getByText("$0.1 / $0.5")).toBeTruthy();
+    expect(within(priceCell() as HTMLElement).getByRole("link", { name: /待核验/ })).toBeTruthy();
     await act(async()=>vi.advanceTimersByTimeAsync(1000));
-    expect(priceCell().textContent).toBe("—");
+    expect(within(priceCell() as HTMLElement).getByText("—")).toBeTruthy();
+    expect(within(priceCell() as HTMLElement).getByRole("link", { name: /待重新核验/ })).toBeTruthy();
     expect(screen.getByRole("table").querySelector("tbody tr")!.children[2].textContent).toContain("90.5");
   } finally {cleanup();vi.useRealTimers();}
 });
@@ -396,6 +399,104 @@ it("expires the entire value board at the global boundary for an unlisted compet
     expect(screen.getAllByText('81.4').length).toBeGreaterThan(0);
     await act(async()=>vi.advanceTimersByTimeAsync(1000));
     expect(screen.queryByText('81.4')).toBeNull();
-    expect(screen.getByRole('table').querySelector('tbody tr')!.children[4].textContent).toBe('$5 / $25');
+    const priceCell=screen.getByRole('table').querySelector('tbody tr')!.children[4] as HTMLElement;
+    expect(within(priceCell).getByText('$5 / $25')).toBeTruthy();
+    expect(within(priceCell).getByRole('link',{name:/待核验/})).toBeTruthy();
   } finally {cleanup();vi.useRealTimers();}
+});
+
+
+describe("leaderboard price provenance signals", () => {
+  const now = Date.parse("2026-09-09T00:00:00Z");
+  const verifiedAt = "2026-09-08T12:34:56Z";
+  const sourceUrl = "https://example.com/official-model-pricing";
+  const rate: ModelRate = {
+    id: "standard", currency: "USD", inputPerMtok: 1.25, outputPerMtok: 4.5,
+    region: "global", contextMin: 0, contextMax: null, serviceTier: "standard",
+    timeBand: "all", schedule: null, effectiveFrom: null, effectiveUntil: null,
+    sourceUrl, verifiedAt,
+  };
+  const verification = { status: "verified" as const, checkedAt: verifiedAt, lastErrorCode: null };
+  const base: ModelsPrice = {
+    kind: "payg", inputUsdPerMtok: 1.25, outputUsdPerMtok: 4.5,
+    sourceUrl, verifiedAt, notes: null, rates: [rate], verification,
+  };
+  const unavailable: ModelsPrice = {
+    ...base, kind: "unavailable", inputUsdPerMtok: null, outputUsdPerMtok: null,
+    rates: [], verifiedAt: null, verification: { ...verification, status: "unknown" },
+  };
+  const labels = {
+    zh: { retained: "沿用旧价", unknown: "待核验", failed: "抓取失败", missing: "暂无已核验价格", reverify: "待重新核验" },
+    en: { retained: "Retained price", unknown: "Unverified", failed: "Fetch failed", missing: "No verified price", reverify: "Reverification required" },
+  };
+  type State = keyof typeof labels.zh;
+  const cases: Array<{ name: string; price: ModelsPrice; amount: string; state: State | null }> = [
+    { name: "fresh verified", price: base, amount: "$1.25 / $4.5", state: null },
+    { name: "stale retains numbers", price: { ...base, verification: { ...verification, status: "stale", lastErrorCode: "fetch_failed" } }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "stale without error", price: { ...base, verification: { ...verification, status: "stale" } }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "unknown price", price: { ...base, verification: { ...verification, status: "unknown" } }, amount: "$1.25 / $4.5", state: "unknown" },
+    { name: "legacy missing verification", price: { ...base, rates: [], verification: undefined }, amount: "$1.25 / $4.5", state: "unknown" },
+    { name: "verified with parser error", price: { ...base, verification: { ...verification, lastErrorCode: "parse_failed" } }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified missing date", price: { ...base, verifiedAt: null }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified invalid date", price: { ...base, verifiedAt: "invalid" }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified older than seven days", price: { ...base, verifiedAt: new Date(now - 7 * 86_400_000 - 1).toISOString() }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified at seven day boundary", price: { ...base, verifiedAt: new Date(now - 7 * 86_400_000).toISOString() }, amount: "$1.25 / $4.5", state: null },
+    { name: "unavailable fetch failure", price: { ...unavailable, verification: { ...verification, status: "unknown", lastErrorCode: "fetch_failed" } }, amount: "—", state: "failed" },
+    { name: "fetch failure takes priority over stale", price: { ...unavailable, verification: { ...verification, status: "stale", lastErrorCode: "fetch_failed" } }, amount: "—", state: "failed" },
+    { name: "unavailable unknown is not unpublished", price: unavailable, amount: "—", state: "missing" },
+    { name: "unavailable without verification", price: { ...unavailable, verification: undefined }, amount: "—", state: "missing" },
+    { name: "unavailable stale", price: { ...unavailable, verification: { ...verification, status: "stale" } }, amount: "—", state: "reverify" },
+    { name: "unavailable parser error", price: { ...unavailable, verification: { ...verification, lastErrorCode: "parse_failed" } }, amount: "—", state: "reverify" },
+    { name: "expired rates never revive flat prices", price: { ...base, rates: [{ ...rate, effectiveUntil: new Date(now).toISOString() }] }, amount: "—", state: "reverify" },
+    { name: "upcoming rates never revive flat prices", price: { ...base, rates: [{ ...rate, effectiveFrom: new Date(now + 86_400_000).toISOString() }] }, amount: "—", state: "reverify" },
+    { name: "unavailable CNY still has a price", price: { ...unavailable, verifiedAt, verification, rates: [{ ...rate, currency: "CNY" }] }, amount: "CN¥1.25 / CN¥4.5", state: null },
+    { name: "unavailable Beta retains formatter suffix", price: { ...unavailable, verifiedAt, verification: { ...verification, status: "stale" }, rates: [{ ...rate, serviceTier: "beta" }] }, amount: "$1.25 / $4.5 · Beta", state: "retained" },
+    { name: "explicit zero is still a price", price: { ...base, rates: [{ ...rate, inputPerMtok: 0, outputPerMtok: 0 }] }, amount: "$0 / $0", state: null },
+  ];
+
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(now); });
+  afterEach(() => { cleanup(); vi.useRealTimers(); });
+
+  describe.each(["zh", "en"] as const)("%s", (locale) => {
+    it.each(cases)("$name in desktop and mobile markup", ({ price, amount, state }) => {
+      const name = "Provenance Model";
+      const slug = "provenance-model";
+      const data = response({ items: [row({ slug, name, price })], observing: [] });
+      data.meta.generatedAt = new Date(now).toISOString();
+      const { container } = render(
+        <NextIntlClientProvider locale={locale} messages={locale === "zh" ? zh : en}>
+          <ModelsLeaderboardClient initial={data} />
+        </NextIntlClientProvider>,
+      );
+      const modelLinks = screen.getAllByRole("link", { name });
+      expect(modelLinks).toHaveLength(2);
+      const href = `/currents/models/${slug}#model-pricing`;
+      for (const modelLink of modelLinks) {
+        expect(modelLink.getAttribute("href")).toBe(`/currents/models/${slug}`);
+        const scope = modelLink.closest("tr, li") as HTMLElement;
+        const priceScope = scope.tagName === "TR" ? scope.children[4] as HTMLElement : scope;
+        expect(within(priceScope).getAllByText(amount).length).toBeGreaterThanOrEqual(1);
+        if (amount === "—") expect(scope.textContent).not.toContain("$1.25 / $4.5");
+        if (state) {
+          const status = labels[locale][state];
+          const template = (locale === "zh" ? zh : en).currents.modelsPriceDetailsLabel;
+          const accessibleName = template.replace("{status}", status).replace("{model}", name);
+          const link = within(scope).getByRole("link", { name: accessibleName });
+          expect(link.textContent?.startsWith(status)).toBe(true);
+          expect(link.getAttribute("href")).toBe(href);
+          expect(link.className).toContain("focus-visible:");
+        } else {
+          expect(scope.querySelector(`a[href="${href}"]`)).toBeNull();
+          for (const status of Object.values(labels[locale])) expect(within(scope).queryByText(status)).toBeNull();
+        }
+        expect(scope.querySelector("time")).toBeNull();
+        expect(scope.textContent).not.toContain(verifiedAt);
+        expect(scope.textContent).not.toContain("12:34");
+        expect(scope.textContent).not.toMatch(/原厂未公开|未挂牌|Not listed|Unpublished/);
+      }
+      expect(container.querySelector(`a[href="${sourceUrl}"]`)).toBeNull();
+      expect(container.textContent).not.toContain(sourceUrl);
+      expect(mockFetchLeaderboard).not.toHaveBeenCalled();
+    });
+  });
 });

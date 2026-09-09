@@ -180,6 +180,12 @@
     "modelsConfMedium": "Medium",
     "modelsConfLow": "Low",
     "modelsConfTooltip": "Confidence combines source coverage, data freshness, cross-source agreement, and identity-mapping quality; it is independent of the ability score.",
+    "modelsPriceRetained": "Retained price",
+    "modelsPriceUnverified": "Unverified",
+    "modelsPriceFetchFailed": "Fetch failed",
+    "modelsPriceReverify": "Reverification required",
+    "modelsPriceNoVerified": "No verified price",
+    "modelsPriceDetailsLabel": "{status} — View {model} pricing details",
     "modelsPriceUnit": "USD per million tokens (vendor's official API list price)",
     "modelsPriceSubscription": "Subscription",
     "modelsPriceLocal": "Self-hosted",
@@ -453,7 +459,7 @@
     "label": "Experiments",
     "title": "Lab",
     "subtitle": "Interactive experiments built from first principles — WebGL shaders, physics engines, algorithm visualizations. All hand-written, zero dependencies.",
-    "metaDescription": "Six interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithm visualization, zero dependencies. Every demo keeps a readable still and description with 3D off.",
+    "metaDescription": "Twelve interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithm visualization, zero dependencies. Every demo keeps a readable still and description with 3D off.",
     "viewSource": "View Source",
     "reducedMotion": "Motion disabled per system preference",
     "webglUnavailable": "WebGL unavailable on this device, showing static preview",
@@ -502,26 +508,44 @@
       },
       "sdf": {
         "title": "SDF Raymarching",
+        "desc": "Combine and subtract sphere, box and torus distance fields, then adjust shape, lighting and material to explore soft shadows and reflections.",
+        "layer": "Distance functions, ray marching, normal estimation, soft shadows and a single reflection bounce are implemented directly in GLSL, without a 3D engine.",
+        "tech": "WebGL2 · GLSL · SDF",
         "stillAlt": "A union of sphere and box distance fields with shadows and reflections."
       },
       "cloth": {
         "title": "Tearable Cloth",
+        "desc": "Drag, cut or pin cloth nodes, adjust wind and toggle a circular obstacle to see how mesh constraints hold the fabric together.",
+        "layer": "Verlet integration, XPBD distance constraints, cutting and obstacle collision are implemented in local algorithms, with simulation running in a Web Worker.",
+        "tech": "Canvas 2D · XPBD · Web Worker",
         "stillAlt": "A pinned cloth mesh above a spherical obstacle."
       },
       "pathfinding": {
         "title": "Pathfinding",
+        "desc": "Compare A* and Dijkstra visitation order and shortest paths on the same editable obstacle map, with playback and single-step controls.",
+        "layer": "Frontier selection, the Manhattan heuristic, distance updates and path reconstruction are implemented directly on a shared four-neighbor, unit-cost grid.",
+        "tech": "SVG · A* · Dijkstra",
         "stillAlt": "A* and Dijkstra results on the same obstacle map."
       },
       "raft": {
         "title": "Raft Consensus",
+        "desc": "Explore elections, log replication and majority commits in a five-node simulation; stop nodes or partition the network to inspect state changes.",
+        "layer": "Voting, term comparison, log-conflict backtracking and majority-commit rules are implemented directly in deterministic rounds, not a live distributed network.",
+        "tech": "TypeScript · SVG · Raft simulation",
         "stillAlt": "Five nodes showing election, log replication and majority commits."
       },
       "audio": {
         "title": "Sound & Spectrum",
+        "desc": "Switch oscillator waveforms and adjust frequency, gain and low-pass cutoff while viewing the waveform and spectrum. Sound starts only when you press Play.",
+        "layer": "Audio-node wiring, parameter controls and visualization are implemented in the component; oscillation, filtering and spectral analysis use the browser's native Web Audio API.",
+        "tech": "Web Audio API · AnalyserNode · Canvas 2D",
         "stillAlt": "A silent time-domain baseline and empty frequency spectrum."
       },
       "geometry": {
         "title": "Voronoi / Delaunay",
+        "desc": "Add, move or remove sample points to see Voronoi regions and the Delaunay triangulation update with the point set.",
+        "layer": "Bowyer–Watson triangulation and equidistant half-plane clipping are implemented directly to generate the triangle mesh and bounded Voronoi regions.",
+        "tech": "SVG · Bowyer–Watson · Half-plane clipping",
         "stillAlt": "Voronoi regions and a Delaunay triangulation of sample points."
       }
     }

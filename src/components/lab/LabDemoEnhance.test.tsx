@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import { LabDemoEnhance } from "./LabDemoEnhance";
 import type { LabDemoId } from "./lab-demos";
+import { LAB_DEMO_IDS } from "./lab-demos";
 
 const state = vi.hoisted(() => ({ quality: { webglSupported: true, reducedMotion: false, tier: "high", dpr: 1.5, particleMultiplier: 1, mouseInteraction: true, enabled: true }, callbacks: [] as Array<(ready: boolean) => void>, constructors: 0 }));
 vi.mock("@/lib/webgl", () => ({ useWebGLQuality: () => state.quality }));
@@ -25,6 +26,21 @@ async function near() { await act(async () => visibility([{ isIntersecting: true
 async function ready(value: boolean, callback = state.callbacks.at(-1)!) { await act(async () => callback(value)); }
 
 describe("Lab progressive enhancement", () => {
+  it.each(LAB_DEMO_IDS)("keeps the %s poster readable with reduced motion and never starts its runtime", async (id) => {
+    state.quality.reducedMotion = true;
+    render(<LabDemoEnhance id={id} still={`/lab/${id}.webp`} alt={`${id} preview`} />);
+    await near();
+    expect(screen.getByRole("img", { name: `${id} preview` }).className).not.toContain("invisible");
+    expect(screen.queryByTestId("runtime")).toBeNull();
+    expect(state.constructors).toBe(0);
+  });
+  it.each(["fluid", "particles", "shader", "morph", "sdf"] as const)("keeps the %s poster readable without WebGL", async (id) => {
+    state.quality.enabled = false;
+    render(<LabDemoEnhance id={id} still={`/lab/${id}.webp`} alt={`${id} preview`} />);
+    await near();
+    expect(screen.getByRole("img", { name: `${id} preview` }).className).not.toContain("invisible");
+    expect(screen.queryByTestId("runtime")).toBeNull();
+  });
   it("keeps the poster in SSR, without initializing distant demos", () => {
     expect(renderToString(demo())).toContain("/lab/fluid.webp");
     render(demo()); expect(screen.getByAltText("流体海报")).toBeTruthy(); expect(screen.queryByTestId("runtime")).toBeNull(); expect(state.constructors).toBe(0);

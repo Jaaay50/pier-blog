@@ -180,6 +180,12 @@
     "modelsConfMedium": "中",
     "modelsConfLow": "低",
     "modelsConfTooltip": "可信度由来源覆盖、数据新鲜度、来源一致性与身份映射质量合成，独立于能力分。",
+    "modelsPriceRetained": "沿用旧价",
+    "modelsPriceUnverified": "待核验",
+    "modelsPriceFetchFailed": "抓取失败",
+    "modelsPriceReverify": "待重新核验",
+    "modelsPriceNoVerified": "暂无已核验价格",
+    "modelsPriceDetailsLabel": "{status} — 查看 {model} 价格详情",
     "modelsPriceUnit": "美元 / 每百万 token（厂商官方 API 挂牌价）",
     "modelsPriceSubscription": "订阅制",
     "modelsPriceLocal": "本地部署",
@@ -453,7 +459,7 @@
     "label": "实验室",
     "title": "船塢",
     "subtitle": "从第一性原理出发的交互实验——WebGL shader、物理引擎、算法可视化，全部零依赖手写。",
-    "metaDescription": "六个从零手写的交互实验：WebGL shader、物理模拟、流场与算法可视化，零依赖。每个演示关掉三维之后，仍留有能读的静帧与说明。",
+    "metaDescription": "十二个从零手写的交互实验：WebGL shader、物理模拟、流场与算法可视化，零依赖。每个演示关掉三维之后，仍留有能读的静帧与说明。",
     "viewSource": "查看源码",
     "reducedMotion": "已按系统偏好停用动效",
     "webglUnavailable": "当前设备不支持 WebGL，展示静态预览",
@@ -502,26 +508,44 @@
       },
       "sdf": {
         "title": "SDF 光线步进",
+        "desc": "通过距离场组合与切除球、盒和环面，实时调整形体、光源与材质，观察软阴影和反射。",
+        "layer": "距离函数、光线步进、法线估计、软阴影与单次反射均在 GLSL 中直接实现，不依赖三维引擎。",
+        "tech": "WebGL2 · GLSL · SDF",
         "stillAlt": "球与盒的组合距离场，投射阴影并反射环境。"
       },
       "cloth": {
         "title": "可撕裂布料",
+        "desc": "拖拽、剪断或固定布料节点，调整风力并开关圆形障碍，观察网格约束如何维持形状。",
+        "layer": "Verlet 积分、XPBD 距离约束、剪断判定与障碍碰撞在本地算法中直接实现，模拟通过 Web Worker 运行。",
+        "tech": "Canvas 2D · XPBD · Web Worker",
         "stillAlt": "固定节点之间的网状布料，悬在球形障碍上方。"
       },
       "pathfinding": {
         "title": "寻路实验",
+        "desc": "在同一张可编辑障碍地图上，对比 A* 与 Dijkstra 的访问顺序和最短路径，支持播放与单步查看。",
+        "layer": "搜索前沿、Manhattan 启发式、距离更新与路径回溯均直接实现；两种算法共享四邻接、单位代价网格。",
+        "tech": "SVG · A* · Dijkstra",
         "stillAlt": "同一障碍地图中的 A* 和 Dijkstra 搜索结果。"
       },
       "raft": {
         "title": "Raft 共识模拟",
+        "desc": "在五节点模拟中观察选举、日志复制与多数派提交，停止节点或切分网络，查看状态如何变化。",
+        "layer": "投票、任期比较、日志冲突回退与多数派提交规则均直接实现，以确定性离散轮次演示 Raft，而非运行真实分布式网络。",
+        "tech": "TypeScript · SVG · Raft 模拟",
         "stillAlt": "五节点网络，展示选主、日志复制与多数派提交。"
       },
       "audio": {
         "title": "声音与频谱",
+        "desc": "切换振荡器波形，调整频率、增益和低通截止频率，同时观察时域波形与频谱；声音由播放按钮启动。",
+        "layer": "音频节点连接、参数控制与波形绘制在组件中直接实现；振荡、滤波和频谱分析交给浏览器原生 Web Audio API。",
+        "tech": "Web Audio API · AnalyserNode · Canvas 2D",
         "stillAlt": "静音状态的时域基线与空频谱。"
       },
       "geometry": {
         "title": "Voronoi / Delaunay",
+        "desc": "添加、移动或删除采样点，实时查看 Voronoi 区域与 Delaunay 三角剖分如何随点集变化。",
+        "layer": "Bowyer–Watson 三角剖分与等距半平面裁剪均直接实现，分别生成三角网和有界 Voronoi 区域。",
+        "tech": "SVG · Bowyer–Watson · 半平面裁剪",
         "stillAlt": "采样点划分的 Voronoi 区域与 Delaunay 三角网。"
       }
     }

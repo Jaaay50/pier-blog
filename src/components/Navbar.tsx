@@ -106,6 +106,7 @@ export function Navbar() {
                   <TransitionLink
                     href={link.href}
                     title={link.title}
+                    aria-label={`${link.label} — ${link.title}`}
                     className={`inline-flex min-h-11 items-center px-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)] ${
                       isActive
                         ? "text-[var(--text-primary)]"
@@ -192,6 +193,7 @@ export function Navbar() {
                       <TransitionLink
                         href={link.href}
                         title={link.title}
+                        aria-label={`${link.label} — ${link.title}`}
                         className={`flex min-h-11 items-center rounded-lg px-3 py-2.5 text-base transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] ${
                           isActive
                             ? "text-[var(--text-primary)]"
