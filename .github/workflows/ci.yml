@@ -53,4 +53,8 @@ jobs:
         run: ./node_modules/.bin/tsc --noEmit
 
       - name: Build application
+        env:
+          # Public Cloudflare test key; CI artifacts are not deployed.
+          # Production is rebuilt by Vercel with its own configured site key.
+          NEXT_PUBLIC_TURNSTILE_SITE_KEY: "1x00000000000000000000AA"
         run: npm run build
