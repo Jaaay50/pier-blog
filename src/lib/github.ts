@@ -22,22 +22,22 @@ const REPOS: RepoData[] = [
   {
     name: "codex-keysmith",
     owner: "Jia-Ethan",
-    fallback: { stars: 2100, forks: 350 },
+    fallback: { stars: 4380, forks: 684 },
   },
   {
     name: "claude-keysmith",
     owner: "Jia-Ethan",
-    fallback: { stars: 490, forks: 90 },
+    fallback: { stars: 746, forks: 135 },
   },
   {
     name: "pavedpath-code",
     owner: "Jia-Ethan",
-    fallback: { stars: 380, forks: 34 },
+    fallback: { stars: 416, forks: 39 },
   },
   {
     name: "grok-keysmith",
     owner: "Jia-Ethan",
-    fallback: { stars: 145, forks: 22 },
+    fallback: { stars: 406, forks: 50 },
   },
 ];
 

@@ -71,67 +71,38 @@ const STACK_PUN_INDICES = new Set([3, 10]);
 /** 全角标点墨水偏左，单独成盒后右侧会空出大半个字宽。 */
 const CJK_PUNCT = /[，。、；：！？]/;
 
-function TitleGlyphs({
-  title,
-  particleMode,
-  isZh,
-}: {
-  title: string;
-  particleMode: boolean;
-  isZh: boolean;
-}) {
+function TitleGlyphs({ title, isZh }: { title: string; isZh: boolean }) {
   const highlight = title === STACK_PUN_TITLE ? STACK_PUN_INDICES : null;
-  const words = title.split(" ");
+  const words = isZh ? [title] : title.split(" ");
   let i = -1;
-  return (
-    <>
-      {words.map((word, wi) => (
-        <span key={wi} className="inline-flex whitespace-nowrap">
-          {Array.from(word).map((char) => {
-            i += 1;
-            const idx = i;
-            const glyphClass = [
-              "inline-block",
-              highlight?.has(idx) ? "hero-stack-glyph" : "",
-              CJK_PUNCT.test(char) ? "hero-cjk-punct" : "",
-            ]
-              .filter(Boolean)
-              .join(" ");
-            return particleMode ? (
-              <span key={idx} data-ptchar className={glyphClass}>
-                {char}
-              </span>
-            ) : (
-              <motion.span
-                key={idx}
-                data-ptchar
-                className={glyphClass}
-                initial={{ opacity: 0, y: 44, filter: "blur(12px)" }}
-                animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                transition={{
-                  duration: 0.7,
-                  delay: 0.25 + idx * (isZh ? 0.08 : 0.055),
-                  ease: [0.22, 1, 0.36, 1],
-                }}
-              >
-                {char}
-              </motion.span>
-            );
-          })}
-          {wi < words.length - 1 && <span className="inline-block">&nbsp;</span>}
-        </span>
-      ))}
-    </>
-  );
+  return words.map((word, wi) => {
+    const glyphs = Array.from(word).map((char) => {
+      i += 1;
+      const idx = i;
+      const glyphClass = [
+        "inline-block",
+        highlight?.has(idx) ? "hero-stack-glyph" : "",
+        CJK_PUNCT.test(char) ? "hero-cjk-punct" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return <span key={idx} data-ptchar className={glyphClass}>{char}</span>;
+    });
+    // 中文字形直接参与 flex 换行；英文以单词为不可拆分的采样组。
+    return isZh ? glyphs : (
+      <span key={wi} className="inline-flex whitespace-nowrap">
+        {glyphs}
+        {wi < words.length - 1 && <span className="inline-block">&nbsp;</span>}
+      </span>
+    );
+  });
 }
-
-
 
 /**
  * 全屏沉浸式 Hero
  * - 深色：Galaxy 星空 + 粒子重组标题
  * - 浅色：Aurora 暖极光 + 粒子重组标题
- * - 降级：逐字上浮+去模糊（原有动效保留为降级路径）
+ * - 降级：静态 DOM 标题始终可读，首帧绘制成功后才交给粒子
  */
 export function ImmersiveHero({
   title,
@@ -155,9 +126,22 @@ export function ImmersiveHero({
   // Phase 9.1 粒子标题门控
   const canUseParticles = mounted && quality && quality.enabled;
   const anchorRef = useRef<HTMLSpanElement>(null);
-  // 粒子路径失败（采样/context 创建失败）时回退 DOM 标题
-  const [particleFailed, setParticleFailed] = useState(false);
-  const particleMode = !!canUseParticles && !particleFailed;
+  const [particleState, setParticleState] = useState({
+    title: resolvedTitle, quality, ready: false, failed: false,
+  });
+  // 在提交新标题/设备配置前撤销旧就绪状态，避免 effect 执行前出现空白帧。
+  if (particleState.title !== resolvedTitle || particleState.quality !== quality) {
+    setParticleState({ title: resolvedTitle, quality, ready: false, failed: false });
+  }
+  const particleMode = !!canUseParticles && !particleState.failed;
+  const particleReady = particleMode && particleState.ready;
+  const updateParticles = (update: { ready: boolean; failed?: boolean }) => {
+    setParticleState((current) =>
+      current.title === resolvedTitle && current.quality === quality
+        ? { ...current, ...update }
+        : current,
+    );
+  };
 
   return (
     <section className="hero-immersive relative h-screen w-full">
@@ -209,50 +193,31 @@ export function ImmersiveHero({
           aria-label={resolvedTitle}
           className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]"
         >
-          {!mounted ? (
-            /* SSR/水合前标题：ParticleGate 判定粒子可用时由 CSS 首帧隐藏。
-               逐字拆开，避免 HTML 里再出现一份连续标题。 */
-            <span
-              aria-hidden="true"
-              tabIndex={-1}
-              className="hero-title-ssr flex flex-wrap justify-center"
-            >
-              <TitleGlyphs title={resolvedTitle} particleMode isZh={isZh} />
-            </span>
-          ) : (
-            <>
-              {/* DOM 标题层：粒子模式下立即隐藏（仅作采样锚点），降级/失败时执行逐字动画
-                  首帧门控：data-particles-ready 存在时 CSS 直接透明，避免 SSR 白字闪现 */}
-              <span
-                key={particleMode ? "particle" : "fallback"}
-                ref={anchorRef}
-                aria-hidden="true"
-                tabIndex={-1}
-                className={`flex flex-wrap justify-center ${
-                  particleMode ? "opacity-0" : "opacity-100"
-                }`}
-              >
-                <TitleGlyphs title={resolvedTitle} particleMode={particleMode} isZh={isZh} />
-              </span>
-              {/* 粒子层：直接从碎裂态聚合成字；失败时回退 DOM 标题 */}
-              {canUseParticles && !particleFailed && (
-                <ParticleTitle
-                  title={resolvedTitle}
-                  anchorRef={anchorRef}
-                  isDark={isDark}
-                  quality={quality}
-                  onFail={() => setParticleFailed(true)}
-                />
-              )}
-            </>
+          {/* SSR、水合和降级共用同一锚点；仅成功绘制信号可以隐藏它。 */}
+          <span
+            ref={anchorRef}
+            aria-hidden="true"
+            tabIndex={-1}
+            data-particles-ready={particleReady}
+            className="hero-title-ssr flex flex-wrap justify-center"
+            style={{ opacity: particleReady ? 0 : 1 }}
+          >
+            <TitleGlyphs title={resolvedTitle} isZh={isZh} />
+          </span>
+          {particleMode && quality && (
+            <ParticleTitle
+              title={resolvedTitle}
+              anchorRef={anchorRef}
+              isDark={isDark}
+              quality={quality}
+              onReadyChange={(ready) => updateParticles({ ready })}
+              onFail={() => updateParticles({ ready: false, failed: true })}
+            />
           )}
         </h1>
 
         {/* 副标题：中文无空格可断，max-w-2xl 会因多一个字折行。 */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 1.2, delay: 1.2 }}
+        <div
           className={`hero-subtitle mb-12 ${isZh ? "max-w-[52rem]" : "max-w-2xl"}`}
         >
           <ShinyText
@@ -262,7 +227,7 @@ export function ImmersiveHero({
             shineColor={isDark ? "#e0ecff" : "#d97757"}
             className={`text-base leading-relaxed md:text-lg ${isZh ? "" : "tracking-wide"}`}
           />
-        </motion.div>
+        </div>
 
         {/* CTA */}
         <motion.div

@@ -296,7 +296,7 @@
   },
   "home": {
     "role": "Full-Stack Engineer",
-    "heroSubtitle": "Full-stack engineer. Ingestion pipelines and event dedup on one end; on the other, an interface that still reads with the animation off.",
+    "heroSubtitle": "Full-Stack Engineer",
     "readArticles": "Read Articles",
     "aboutMe": "About Me",
     "openSource": "Open Source",
