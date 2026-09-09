@@ -78,6 +78,7 @@ export function SearchModal() {
   const router = useRouter();
   const locale = useLocale();
   const t = useTranslations("search");
+  const tActions = useTranslations("currents");
 
   /** 打开入口：事件处理器内同步读历史（避免 effect 内 setState） */
   const openModal = useCallback(() => {
@@ -234,9 +235,6 @@ export function SearchModal() {
           <circle cx="11" cy="11" r="7" />
           <path d="m21 21-4.3-4.3" />
         </svg>
-        <kbd className="hidden rounded border border-[var(--border)] bg-[var(--bg-primary)] px-1.5 text-[10px] sm:inline">
-          ⌘K
-        </kbd>
       </button>
 
       {/* 模态框 */}
@@ -273,12 +271,20 @@ export function SearchModal() {
                     value={query}
                     onChange={(e) => setQuery(e.target.value)}
                     onKeyDown={onInputKeyDown}
+                    aria-label={t("open")}
                     placeholder={t("placeholder")}
                     className="h-12 w-full bg-transparent text-[15px] outline-none placeholder:text-[var(--text-muted)]"
                   />
-                  <kbd className="shrink-0 rounded border border-[var(--border)] px-1.5 py-0.5 text-[10px] text-[var(--text-muted)]">
-                    ESC
-                  </kbd>
+                  <button
+                    type="button"
+                    onClick={() => setOpen(false)}
+                    aria-label={tActions("close")}
+                    className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                      <path d="m6 6 12 12M18 6 6 18" />
+                    </svg>
+                  </button>
                 </div>
 
                 {/* 结果区 */}
@@ -381,15 +387,6 @@ export function SearchModal() {
                     </div>
                   )}
 
-                  {/* 初始空态 */}
-                  {!query.trim() &&
-                    !showHistory &&
-                    !showLoading &&
-                    !showError && (
-                      <p className="px-3 py-6 text-center text-sm text-[var(--text-muted)]">
-                        {t("hint")}
-                      </p>
-                    )}
                 </div>
               </div>
             </motion.div>

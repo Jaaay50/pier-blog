@@ -150,6 +150,8 @@
     "feedbackAlreadyReported": "Already reported in this type",
     "feedbackErrorRateLimit": "Too many submissions. Please try again later.",
     "feedbackErrorNetwork": "Network error. Please retry.",
+    "feedbackErrorVerification": "Human verification failed. Please verify again and retry.",
+    "feedbackErrorVerificationUnavailable": "Human verification is temporarily unavailable. Please try again later.",
     "feedbackErrorGeneric": "Submission failed. Please try again later.",
     "feedbackClose": "Dismiss",
     "filtersOpen": "Filters",
@@ -171,13 +173,19 @@
     "modelsColAbility": "Ability",
     "modelsColValueScore": "Value score",
     "modelsColConfidence": "Confidence",
-    "modelsColPrice": "Price (in/out)",
+    "modelsColPrice": "Price (in/out · per MTok)",
     "modelsColDelta": "Change",
     "modelsAbilityShort": "Ability",
     "modelsConfHigh": "High",
     "modelsConfMedium": "Medium",
     "modelsConfLow": "Low",
     "modelsConfTooltip": "Confidence combines source coverage, data freshness, cross-source agreement, and identity-mapping quality; it is independent of the ability score.",
+    "modelsPriceRetained": "Retained price",
+    "modelsPriceUnverified": "Unverified",
+    "modelsPriceFetchFailed": "Fetch failed",
+    "modelsPriceReverify": "Reverification required",
+    "modelsPriceNoVerified": "No verified price",
+    "modelsPriceDetailsLabel": "{status} — View {model} pricing details",
     "modelsPriceUnit": "USD per million tokens (vendor's official API list price)",
     "modelsPriceSubscription": "Subscription",
     "modelsPriceLocal": "Self-hosted",
@@ -248,9 +256,9 @@
     "modelsMethRuleConfidenceH": "Confidence",
     "modelsMethRuleConfidence": "Confidence combines coverage (45%), freshness (25%), agreement (25%), and identity mapping (5%), independently of ability. Limited coverage does not exclude a model. Without usable evaluations, ability, confidence, and rank display —.",
     "modelsMethRuleValueH": "Value",
-    "modelsMethRuleValue": "All included models remain visible in the Value view. Value scores require comparable official PAYG token prices and usable evaluations. Standard cost assumes 1M input + 0.25M output tokens; value is the geometric mean of ability percentile and inverted-cost percentile. Missing data displays —; ability never substitutes for value. Subscriptions, self-hosting, and non-comparable plans are not scored.",
+    "modelsMethRuleValue": "Every included model remains visible. Comparable prices use official USD global or international standard online, uncached, ordinary-context rates; time-of-day pricing uses the peak rate. The aggregate usage basket is 1M input + 0.25M output tokens. Value is the geometric mean of ability percentile and inverted-cost percentile. Non-USD rates retain their original currency without FX conversion. Unknown prices, subscriptions, self-hosting, and non-comparable plans are not scored and display —.",
     "modelsMethRuleFailureH": "Refresh & failure handling",
-    "modelsMethRuleFailure": "A failed source keeps its last valid snapshot and shows a check warning. If every source fails, no new leaderboard is published. Identical scores count as a successful check without advancing the score-change timestamp. History retains one effective point per day. Newly listed models show no rank movement.",
+    "modelsMethRuleFailure": "Failed assessment sources retain their last valid snapshot. If all assessments fail, no new ability scores are published. Unchanged scores do not advance the score-change clock; history retains one effective point per day. Prices are checked independently. Failures preserve the last valid quote and its actual verification date, never extending a promotion. Price changes update value only, not ability scores or ability history. Newly listed models show no rank movement.",
     "modelsMethSources": "Data sources & status",
     "modelsMethColSource": "Source",
     "modelsMethColOperator": "Operator",
@@ -296,7 +304,7 @@
   },
   "home": {
     "role": "Full-Stack Engineer",
-    "heroSubtitle": "Full-stack engineer. Ingestion pipelines and event dedup on one end; on the other, an interface that still reads with the animation off.",
+    "heroSubtitle": "Full-Stack Engineer",
     "readArticles": "Read Articles",
     "aboutMe": "About Me",
     "openSource": "Open Source",
@@ -451,7 +459,7 @@
     "label": "Experiments",
     "title": "Lab",
     "subtitle": "Interactive experiments built from first principles — WebGL shaders, physics engines, algorithm visualizations. All hand-written, zero dependencies.",
-    "metaDescription": "Six interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithm visualization, zero dependencies. Every demo keeps a readable still and description with 3D off.",
+    "metaDescription": "Twelve interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithm visualization, zero dependencies. Every demo keeps a readable still and description with 3D off.",
     "viewSource": "View Source",
     "reducedMotion": "Motion disabled per system preference",
     "webglUnavailable": "WebGL unavailable on this device, showing static preview",
@@ -461,42 +469,84 @@
         "desc": "Real-time particle simulation: thousands of particles with mouse repulsion and 3D drift, all on the GPU.",
         "layer": "The GPU update step and mouse repulsion are hand-written. No Three.js.",
         "tech": "WebGL · GLSL · 0 deps",
-        "stillAlt": "Sparse white points gathered into a loose cloud on a dark field, with a circular gap pushed open at the centre."
+        "stillAlt": "Blue, violet and white particles distributed on a dark canvas."
       },
       "shader": {
         "title": "Shader Mixer",
         "desc": "Live GLSL noise art: drag sliders to tune hue, flow speed and turbulence octaves — every frame computed in real time.",
         "layer": "The FBM noise fragment shader and uniform binding are hand-written.",
         "tech": "WebGL · FBM Noise · 0 deps",
-        "stillAlt": "Soft patches of blue and rust-red bleeding into each other, like out-of-focus light."
+        "stillAlt": "Violet and pink noise patterns forming curling streams."
       },
       "fluid": {
         "title": "Fluid Simulation",
         "desc": "Hand-written Navier-Stokes solver: ping-pong FBO, vorticity confinement, Jacobi pressure iterations — drag to inject velocity & dye.",
         "layer": "The full fluid pipeline is hand-written. No off-the-shelf fluid library.",
         "tech": "WebGL2 · GLSL · 0 deps",
-        "stillAlt": "A flattened spiral torus of cyan grid lines on a dark field, with a pink glow at its centre."
+        "stillAlt": "Blue and violet dye curling and diffusing through a velocity field on a dark canvas."
       },
       "physics": {
         "title": "Physics Sandbox",
         "desc": "Verlet integration + spatial hash collision: click to spawn balls, drag to throw, gravity toggle, elastic collisions.",
         "layer": "The integrator and broad-phase collision are hand-written. No physics engine.",
         "tech": "Canvas 2D · Verlet · 0 deps",
-        "stillAlt": "Translucent blue, cyan and violet balls of different sizes scattered across a dark field, some overlapping."
+        "stillAlt": "Five colored balls resting against the sandbox floor."
       },
       "flow": {
         "title": "Flow Field Particles",
         "desc": "Curl noise divergence-free flow: 2500 particles with long trails, mouse attract/repel toggle.",
         "layer": "The curl-noise field and trail integration are hand-written. No particle library.",
         "tech": "Canvas 2D · Curl Noise · 0 deps",
-        "stillAlt": "Cyan dashed trails streaming along curved flow lines on a dark field, like silk combed by wind."
+        "stillAlt": "Blue particles tracing curved flow lines with continuous trails."
       },
       "morph": {
         "title": "3D Morph",
         "desc": "Parametric surface per-point morph: sphere→torus→cube→wave, drag to rotate, auto-cycle.",
         "layer": "The parametric surface and per-vertex morph are hand-written. No model files.",
         "tech": "WebGL · ogl · 0 deps",
-        "stillAlt": "Cyan dotted lines looping into overlapping ellipses on a dark field, like a torus knot not yet pulled tight."
+        "stillAlt": "Blue-violet particles forming an undulating parametric surface."
+      },
+      "sdf": {
+        "title": "SDF Raymarching",
+        "desc": "Combine and subtract sphere, box and torus distance fields, then adjust shape, lighting and material to explore soft shadows and reflections.",
+        "layer": "Distance functions, ray marching, normal estimation, soft shadows and a single reflection bounce are implemented directly in GLSL, without a 3D engine.",
+        "tech": "WebGL2 · GLSL · SDF",
+        "stillAlt": "A union of sphere and box distance fields with shadows and reflections."
+      },
+      "cloth": {
+        "title": "Tearable Cloth",
+        "desc": "Drag, cut or pin cloth nodes, adjust wind and toggle a circular obstacle to see how mesh constraints hold the fabric together.",
+        "layer": "Verlet integration, XPBD distance constraints, cutting and obstacle collision are implemented in local algorithms, with simulation running in a Web Worker.",
+        "tech": "Canvas 2D · XPBD · Web Worker",
+        "stillAlt": "A pinned cloth mesh above a spherical obstacle."
+      },
+      "pathfinding": {
+        "title": "Pathfinding",
+        "desc": "Compare A* and Dijkstra visitation order and shortest paths on the same editable obstacle map, with playback and single-step controls.",
+        "layer": "Frontier selection, the Manhattan heuristic, distance updates and path reconstruction are implemented directly on a shared four-neighbor, unit-cost grid.",
+        "tech": "SVG · A* · Dijkstra",
+        "stillAlt": "A* and Dijkstra results on the same obstacle map."
+      },
+      "raft": {
+        "title": "Raft Consensus",
+        "desc": "Explore elections, log replication and majority commits in a five-node simulation; stop nodes or partition the network to inspect state changes.",
+        "layer": "Voting, term comparison, log-conflict backtracking and majority-commit rules are implemented directly in deterministic rounds, not a live distributed network.",
+        "tech": "TypeScript · SVG · Raft simulation",
+        "stillAlt": "Five nodes showing election, log replication and majority commits."
+      },
+      "audio": {
+        "title": "Sound & Spectrum",
+        "desc": "Switch oscillator waveforms and adjust frequency, gain and low-pass cutoff while viewing the waveform and spectrum. Sound starts only when you press Play.",
+        "layer": "Audio-node wiring, parameter controls and visualization are implemented in the component; oscillation, filtering and spectral analysis use the browser's native Web Audio API.",
+        "tech": "Web Audio API · AnalyserNode · Canvas 2D",
+        "stillAlt": "A silent time-domain baseline and empty frequency spectrum."
+      },
+      "geometry": {
+        "title": "Voronoi / Delaunay",
+        "desc": "Add, move or remove sample points to see Voronoi regions and the Delaunay triangulation update with the point set.",
+        "layer": "Bowyer–Watson triangulation and equidistant half-plane clipping are implemented directly to generate the triangle mesh and bounded Voronoi regions.",
+        "tech": "SVG · Bowyer–Watson · Half-plane clipping",
+        "stillAlt": "Voronoi regions and a Delaunay triangulation of sample points."
       }
     }
   },
@@ -534,6 +584,8 @@
     "alreadyReported": "You just submitted this type of feedback.",
     "errorRateLimit": "Too many submissions — please try again later.",
     "errorNetwork": "Network error — check your connection and retry.",
+    "errorVerification": "Human verification failed — verify again and retry.",
+    "errorVerificationUnavailable": "Human verification is temporarily unavailable — please try again later.",
     "errorGeneric": "Submission failed — please try again later.",
     "contentCorrectionNote": "Want to correct a specific report or event? Use \"Report a content issue\" at the bottom of its detail page."
   },

@@ -8,8 +8,6 @@ import { RecentArticles } from "@/components/home/RecentArticles";
 import { LabTeaser } from "@/components/LabTeaser";
 import { SiteFooter } from "@/components/SiteFooter";
 import { Waterline } from "@/components/Waterline";
-import { TransitionLink } from "@/components/TransitionLink";
-import { MagneticWrapper } from "@/components/MagneticWrapper";
 import { getAllPosts } from "@/lib/posts";
 import { getGitHubStats } from "@/lib/github";
 import { localizedMetadata, pageJsonLd } from "@/lib/site-metadata";
@@ -42,16 +40,7 @@ export default async function HomePage({
       <Navbar />
 
       {/* 第一屏：全屏沉浸式 Hero */}
-      <ImmersiveHero subtitle={t("heroSubtitle")}>
-        <MagneticWrapper strength={0.25}>
-          <TransitionLink
-            href="/blog"
-            className="rounded-xl bg-[var(--bg-card)]/80 backdrop-blur-md border border-[var(--border)] px-8 py-3 font-medium transition-all hover:border-[var(--border-hover)] hover:bg-[var(--bg-card)]"
-          >
-            {t("readArticles")}
-          </TransitionLink>
-        </MagneticWrapper>
-      </ImmersiveHero>
+      <ImmersiveHero subtitle={t("heroSubtitle")} />
 
       <HomeFeature locale={locale} />
 
@@ -101,7 +90,7 @@ export default async function HomePage({
         ]}
       />
 
-      <LabTeaser label={t("labTeaser")} enterLab={t("enterLab")} />
+      <LabTeaser enterLab={t("enterLab")} />
 
       {/* 静态发丝分隔线（原 WaveGrid 3D 波浪，视觉减法后移除；Phase 10.3 组件化为 Waterline） */}
       <Waterline className="my-24" />

@@ -3,6 +3,9 @@ import { type Metadata } from "next";
 import { ModelsLeaderboardClient } from "@/components/currents/ModelsLeaderboardClient";
 import { locales } from "@/i18n/config";
 import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
+import { serverFetchModelsLeaderboard } from "@/lib/currents/api";
+
+export const revalidate = 300;
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -23,7 +26,7 @@ export async function generateMetadata({
   });
 }
 
-/** 潮汐 · 模型榜 — SSG 静态壳 + 客户端数据岛（同 /currents/hot 架构） */
+/** 潮汐 · 模型榜 — ISR 默认首屏 + 客户端分类与重试。 */
 export default async function CurrentsModelsPage({
   params,
 }: {
@@ -32,6 +35,7 @@ export default async function CurrentsModelsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("currents");
+  const initial = await serverFetchModelsLeaderboard();
 
   return (
     <>
@@ -39,9 +43,8 @@ export default async function CurrentsModelsPage({
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("modelsTitle")}
         </h1>
-        <p className="max-w-2xl text-[var(--text-secondary)]">{t("modelsSubtitle")}</p>
       </header>
-      <ModelsLeaderboardClient />
+      <ModelsLeaderboardClient initial={initial} />
     </>
   );
 }

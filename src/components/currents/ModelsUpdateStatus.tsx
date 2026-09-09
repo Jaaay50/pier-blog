@@ -29,7 +29,7 @@ export function ModelsUpdateStatus({ update, detailed = false, sourceNames = {} 
         {update.lastContentChangeAt && <span>{t("modelsUpdateLastChange")} {time(update.lastContentChangeAt)}</span>}
         {update.nextScheduledCheckAt && <span>{t("modelsUpdateNextCheck")} {time(update.nextScheduledCheckAt)}</span>}
       </div>
-      {update.status !== "ok" && (
+      {detailed && update.status !== "ok" && (
         <p className={warning ? "rounded-lg border border-[var(--border-hover)] px-3 py-2 text-[var(--text-primary)]" : undefined}>
           {t(`modelsUpdateStatus_${update.status}`)}
         </p>

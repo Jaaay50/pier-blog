@@ -1,13 +1,13 @@
 "use client";
 
-import { RefObject, useEffect, useRef, useState } from "react";
+import { RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Renderer, Program, Mesh, Geometry } from "ogl";
 import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
 
 /**
  * Phase 9.1 — Hero 粒子重组标题
  *
- * 管线：DOM 标题仅作 SSR 可见层与采样锚点（粒子模式下客户端立即隐藏）→
+ * 管线：DOM 标题仅作 SSR 可见层与采样锚点（实际绘制成功后隐藏）→
  * 字体就绪后逐字采样 → 粒子直接从混沌四散（碎裂态）聚合成字，
  * 无完整字形停留 → 待机呼吸 + 鼠标斥力 + 滚动吹散。
  * 采样/context 失败时调用 onFail，由父组件回退 DOM 标题。
@@ -194,6 +194,8 @@ interface ParticleTitleProps {
   quality: WebGLQuality;
   /** 粒子路径失败回调（采样/context 创建失败，父组件回退 DOM 标题） */
   onFail: () => void;
+  /** 首次有效绘制后为 true，重建、失败及卸载时撤销。 */
+  onReadyChange?: (ready: boolean) => void;
 }
 
 export default function ParticleTitle({
@@ -202,22 +204,27 @@ export default function ParticleTitle({
   isDark,
   quality,
   onFail,
+  onReadyChange,
 }: ParticleTitleProps) {
   const hostRef = useRef<HTMLDivElement>(null);
-  const [visible, setVisible] = useState(false);
   const [rebuildTick, setRebuildTick] = useState(0);
   const isDarkRef = useRef(isDark);
   const themeDirtyRef = useRef(true);
   const onFailRef = useRef(onFail);
+  const onReadyRef = useRef(onReadyChange);
+  const readyRef = useRef(false);
 
   // 同步最新值到 ref（不触发重建）
   useEffect(() => {
     isDarkRef.current = isDark;
     themeDirtyRef.current = true;
   }, [isDark]);
-  useEffect(() => { onFailRef.current = onFail; }, [onFail]);
+  useLayoutEffect(() => {
+    onFailRef.current = onFail;
+    onReadyRef.current = onReadyChange;
+  }, [onFail, onReadyChange]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const host = hostRef.current;
     const anchor = anchorRef.current;
     if (!host || !anchor) return;
@@ -231,6 +238,11 @@ export default function ParticleTitle({
     let stopGate: (() => void) | null = null;
     let gateActive = true;
     let renderer: Renderer | null = null;
+    let geometry: Geometry | null = null;
+    let program: Program | null = null;
+    let fontTimer: ReturnType<typeof setTimeout> | null = null;
+    let removeContextLost = () => {};
+    let needsDrawValidation = true;
     let resizeTimer: ReturnType<typeof setTimeout> | null = null;
     let lastWidth = window.innerWidth;
 
@@ -244,21 +256,68 @@ export default function ParticleTitle({
       Math.round(9000 * quality.particleMultiplier)
     );
 
+    const setReady = (ready: boolean) => {
+      if (readyRef.current === ready) return;
+      // Canvas visibility and the parent's title handoff occur in the same task.
+      host.style.visibility = ready ? "visible" : "hidden";
+      // React may batch the callback; keep both visual layers atomic before paint.
+      anchor.style.opacity = ready ? "0" : "1";
+      readyRef.current = ready;
+      onReadyRef.current?.(ready);
+    };
+    const safelyRelease = (release: () => void) => {
+      try { release(); } catch { /* Context loss must not interrupt cleanup. */ }
+    };
+    const dispose = () => {
+      if (disposed) return;
+      disposed = true;
+      setReady(false);
+      if (fontTimer) clearTimeout(fontTimer);
+      if (resizeTimer) clearTimeout(resizeTimer);
+      window.removeEventListener("resize", handleResize);
+      if (quality.mouseInteraction) {
+        window.removeEventListener("mousemove", handleMouseMove);
+        document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
+      }
+      safelyRelease(() => stopGate?.());
+      if (animateId !== null) cancelAnimationFrame(animateId);
+      animateId = null;
+      safelyRelease(removeContextLost);
+      if (renderer) {
+        const gl = renderer.gl;
+        safelyRelease(() => geometry?.remove());
+        if (program) {
+          const activeProgram = program;
+          safelyRelease(() => gl.deleteShader(activeProgram.vertexShader));
+          safelyRelease(() => gl.deleteShader(activeProgram.fragmentShader));
+          safelyRelease(() => activeProgram.remove());
+        }
+        if (gl.canvas.parentNode === host) host.removeChild(gl.canvas);
+        safelyRelease(() => gl.getExtension("WEBGL_lose_context")?.loseContext());
+      }
+    };
+    const fail = () => {
+      if (disposed) return;
+      dispose();
+      onFailRef.current();
+    };
+
     const boot = async () => {
       // 字体门控：display 字体就绪后才采样（3s 超时兜底：保持 DOM 标题）
       try {
         await Promise.race([
           document.fonts.ready,
-          new Promise((resolve) => setTimeout(resolve, 3000)),
+          new Promise((resolve) => { fontTimer = setTimeout(resolve, 3000); }),
         ]);
       } catch {
         /* fonts API 异常时直接尝试采样 */
       }
+      if (fontTimer) clearTimeout(fontTimer);
       if (disposed) return;
 
       const sample = sampleText(anchor, host, targetCount);
       if (!sample) {
-        onFailRef.current(); // 采样失败：回退 DOM 标题
+        fail(); // 采样失败：回退 DOM 标题
         return;
       }
 
@@ -288,25 +347,27 @@ export default function ParticleTitle({
           premultipliedAlpha: false,
         });
       } catch {
-        onFailRef.current(); // context 创建失败：回退 DOM 标题
+        fail(); // context 创建失败：回退 DOM 标题
         return;
       }
       if (disposed) return;
       renderer = localRenderer;
       const gl = localRenderer.gl;
+      gl.canvas.addEventListener("webglcontextlost", fail);
+      removeContextLost = () => gl.canvas.removeEventListener("webglcontextlost", fail);
       gl.enable(gl.BLEND);
       gl.blendFunc(gl.SRC_ALPHA, isDarkRef.current ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
       gl.clearColor(0, 0, 0, 0);
       localRenderer.setSize(w, h);
 
-      const geometry = new Geometry(gl, {
+      geometry = new Geometry(gl, {
         aStart: { size: 2, data: starts },
         aTarget: { size: 2, data: targets },
         aSeed: { size: 4, data: seeds },
       });
 
       const [c1, c2, c3] = readThemeColors();
-      const program = new Program(gl, {
+      program = new Program(gl, {
         vertex,
         fragment,
         transparent: true,
@@ -325,6 +386,13 @@ export default function ParticleTitle({
           uColor3: { value: c3 },
         },
       });
+      // OGL logs shader failures instead of throwing: verify both shaders and link.
+      if (!gl.getShaderParameter(program.vertexShader, gl.COMPILE_STATUS) ||
+          !gl.getShaderParameter(program.fragmentShader, gl.COMPILE_STATUS) ||
+          !gl.getProgramParameter(program.program, gl.LINK_STATUS)) {
+        throw new Error("ParticleTitle shader initialization failed");
+      }
+      const activeProgram = program;
       const mesh = new Mesh(gl, { mode: gl.POINTS, geometry, program });
       gl.canvas.style.width = "100%";
       gl.canvas.style.height = "100%";
@@ -333,56 +401,69 @@ export default function ParticleTitle({
       const easeOutQuad = (k: number) => 1 - (1 - k) * (1 - k);
 
       const update = (t: number) => {
-        animateId = requestAnimationFrame(update);
+        animateId = null;
+        if (disposed) return;
+        try {
+          // next-themes 的父 effect 晚于本组件更新根节点 class。
+          // 在下一次实际绘制前读 CSS，避免锁住旧主题色；暂停时保留标记，
+          // 恢复首帧再同步，不额外开 RAF，也不每帧读取 computed style。
+          if (themeDirtyRef.current) {
+            const [c1, c2, c3] = readThemeColors();
+            activeProgram.uniforms.uColor1.value = c1;
+            activeProgram.uniforms.uColor2.value = c2;
+            activeProgram.uniforms.uColor3.value = c3;
+            gl.blendFunc(gl.SRC_ALPHA, isDarkRef.current ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
+            themeDirtyRef.current = false;
+            needsDrawValidation = true;
+          }
 
-        // next-themes 的父 effect 晚于本组件更新根节点 class。
-        // 在下一次实际绘制前读 CSS，避免锁住旧主题色；暂停时保留标记，
-        // 恢复首帧再同步，不额外开 RAF，也不每帧读取 computed style。
-        if (themeDirtyRef.current) {
-          const [c1, c2, c3] = readThemeColors();
-          program.uniforms.uColor1.value = c1;
-          program.uniforms.uColor2.value = c2;
-          program.uniforms.uColor3.value = c3;
-          gl.blendFunc(gl.SRC_ALPHA, isDarkRef.current ? gl.ONE : gl.ONE_MINUS_SRC_ALPHA);
-          themeDirtyRef.current = false;
+          if (lastTime !== null) elapsed += t - lastTime;
+          lastTime = t;
+
+          // 阶段机：开场即碎裂态，直接聚合成字（resize/切语言重建同样重播聚合）
+          if (phase === "boot") {
+            phase = "converge";
+            phaseT0 = elapsed;
+            activeProgram.uniforms.uProgress.value = 0;
+          } else if (phase === "converge") {
+            const k = Math.min(1, (elapsed - phaseT0) / CONVERGE_MS);
+            activeProgram.uniforms.uProgress.value = easeOutQuad(k);
+            if (k >= 1) phase = "idle";
+          } else {
+            activeProgram.uniforms.uProgress.value = 1;
+          }
+
+          // 滚动吹散
+          const s = Math.min(1, Math.max(0, window.scrollY / 420));
+          activeProgram.uniforms.uScatter.value = s * s * (3 - 2 * s);
+
+          // 鼠标平滑
+          smoothMouse.x += (targetMouse.x - smoothMouse.x) * 0.08;
+          smoothMouse.y += (targetMouse.y - smoothMouse.y) * 0.08;
+          smoothActive += (targetActive - smoothActive) * 0.06;
+          activeProgram.uniforms.uMouse.value[0] = smoothMouse.x;
+          activeProgram.uniforms.uMouse.value[1] = smoothMouse.y;
+          activeProgram.uniforms.uMouseActive.value = smoothActive;
+
+          activeProgram.uniforms.uTime.value = elapsed * 0.001;
+          localRenderer.render({ scene: mesh });
+          // Validate first/reconfigured/resumed draw only; avoid a per-frame GPU stall.
+          if (gl.isContextLost() || (needsDrawValidation && gl.getError() !== gl.NO_ERROR)) {
+            throw new Error("ParticleTitle draw failed");
+          }
+          needsDrawValidation = false;
+          if (disposed) return;
+          setReady(true);
+          animateId = requestAnimationFrame(update);
+        } catch {
+          fail();
         }
-
-        if (lastTime !== null) elapsed += t - lastTime;
-        lastTime = t;
-
-        // 阶段机：开场即碎裂态，直接聚合成字（resize/切语言重建同样重播聚合）
-        if (phase === "boot") {
-          phase = "converge";
-          phaseT0 = elapsed;
-          program.uniforms.uProgress.value = 0;
-          setVisible(true);
-        } else if (phase === "converge") {
-          const k = Math.min(1, (elapsed - phaseT0) / CONVERGE_MS);
-          program.uniforms.uProgress.value = easeOutQuad(k);
-          if (k >= 1) phase = "idle";
-        } else {
-          program.uniforms.uProgress.value = 1;
-        }
-
-        // 滚动吹散
-        const s = Math.min(1, Math.max(0, window.scrollY / 420));
-        program.uniforms.uScatter.value = s * s * (3 - 2 * s);
-
-        // 鼠标平滑
-        smoothMouse.x += (targetMouse.x - smoothMouse.x) * 0.08;
-        smoothMouse.y += (targetMouse.y - smoothMouse.y) * 0.08;
-        smoothActive += (targetActive - smoothActive) * 0.06;
-        program.uniforms.uMouse.value[0] = smoothMouse.x;
-        program.uniforms.uMouse.value[1] = smoothMouse.y;
-        program.uniforms.uMouseActive.value = smoothActive;
-
-        program.uniforms.uTime.value = elapsed * 0.001;
-        localRenderer.render({ scene: mesh });
       };
 
       const startLoop = () => {
         if (animateId === null && !disposed) {
           lastTime = null;
+          needsDrawValidation = true;
           animateId = requestAnimationFrame(update);
         }
       };
@@ -428,24 +509,9 @@ export default function ParticleTitle({
     };
     window.addEventListener("resize", handleResize);
 
-    boot();
+    boot().catch(fail);
 
-    return () => {
-      disposed = true;
-      if (resizeTimer) clearTimeout(resizeTimer);
-      window.removeEventListener("resize", handleResize);
-      if (quality.mouseInteraction) {
-        window.removeEventListener("mousemove", handleMouseMove);
-        document.documentElement.removeEventListener("mouseleave", handleMouseLeave);
-      }
-      stopGate?.();
-      if (animateId !== null) cancelAnimationFrame(animateId);
-      if (renderer) {
-        const gl = renderer.gl;
-        if (gl.canvas.parentNode === host) host.removeChild(gl.canvas);
-        gl.getExtension("WEBGL_lose_context")?.loseContext();
-      }
-    };
+    return dispose;
     // isDark 经 isDarkRef 消费（主题切换不重建）；anchorRef 为稳定 ref
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [title, quality, rebuildTick]);
@@ -454,9 +520,8 @@ export default function ParticleTitle({
     <div
       ref={hostRef}
       aria-hidden
-      className={`pointer-events-none absolute -inset-x-10 -inset-y-16 z-20 transition-opacity duration-500 ${
-        visible ? "opacity-100" : "opacity-0"
-      }`}
+      style={{ visibility: "hidden" }}
+      className="pointer-events-none absolute -inset-x-10 -inset-y-16 z-20"
     />
   );
 }

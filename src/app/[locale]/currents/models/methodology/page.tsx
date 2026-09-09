@@ -50,7 +50,6 @@ export default async function CurrentsModelsMethodologyPage({
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("modelsMethTitle")}
         </h1>
-        <p className="max-w-2xl text-[var(--text-secondary)]">{t("modelsMethSubtitle")}</p>
       </header>
 
       <section aria-labelledby="meth-rules" className="mb-10">

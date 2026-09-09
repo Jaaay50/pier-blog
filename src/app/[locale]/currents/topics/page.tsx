@@ -3,6 +3,9 @@ import { type Metadata } from "next";
 import { CurrentsTopicsClient } from "@/components/currents/CurrentsTopicsClient";
 import { locales } from "@/i18n/config";
 import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
+import { serverFetchTopics } from "@/lib/currents/api";
+
+export const revalidate = 300;
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -23,7 +26,7 @@ export async function generateMetadata({
   });
 }
 
-/** 潮汐 · 主题地图 — SSG 静态壳 + 客户端数据岛 */
+/** 潮汐 · 主题地图 — ISR 首屏，故障时保留客户端重试。 */
 export default async function CurrentsTopicsPage({
   params,
 }: {
@@ -32,6 +35,7 @@ export default async function CurrentsTopicsPage({
   const { locale } = await params;
   setRequestLocale(locale);
   const t = await getTranslations("currents");
+  const initial = await serverFetchTopics(locale);
 
   return (
     <>
@@ -39,9 +43,8 @@ export default async function CurrentsTopicsPage({
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("topicsTitle")}
         </h1>
-        <p className="max-w-2xl text-[var(--text-secondary)]">{t("topicsSubtitle")}</p>
       </header>
-      <CurrentsTopicsClient />
+      <CurrentsTopicsClient initial={initial} />
     </>
   );
 }

@@ -7,7 +7,7 @@ interface PageHeroProps {
   description: string;
 }
 
-export function PageHero({ label, title, description }: PageHeroProps) {
+export function PageHero({ label, title }: PageHeroProps) {
   return (
     <header className="page-hero relative overflow-hidden py-12 md:py-20">
       <FluidBackground
@@ -17,13 +17,9 @@ export function PageHero({ label, title, description }: PageHeroProps) {
       />
       <div className="site-content relative">
         <p className="mb-4 text-sm font-medium text-[var(--text-muted)]">{label}</p>
-        <h1 className="mb-4 text-4xl font-bold tracking-tight md:text-5xl">
+        <h1 className="text-4xl font-bold tracking-tight md:text-5xl">
           <ThemedGradientText>{title}</ThemedGradientText>
         </h1>
-        {/* Reserve the longest current intro at each width; longer copy can still grow. */}
-        <p className="min-h-[6lh] max-w-2xl text-lg text-[var(--text-secondary)] min-[360px]:min-h-[5lh] sm:min-h-[3lh] md:min-h-[2lh]">
-          {description}
-        </p>
       </div>
     </header>
   );

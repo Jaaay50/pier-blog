@@ -21,11 +21,10 @@ const ShaderMixer = dynamic(() => import("@/components/lab/ShaderMixer"), {
  * WebGL 不可用时背景降为静态渐变，玻璃材质保留。
  */
 interface LabTeaserProps {
-  label: string;
   enterLab: string;
 }
 
-export function LabTeaser({ label, enterLab }: LabTeaserProps) {
+export function LabTeaser({ enterLab }: LabTeaserProps) {
   const ref = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
   const glassRef = useRef<HTMLDivElement>(null);
@@ -114,11 +113,8 @@ export function LabTeaser({ label, enterLab }: LabTeaserProps) {
       >
         {/* 玻璃板内容 */}
         <div className="relative z-10 text-right">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-[0.3em] text-[var(--text-muted)]">
+          <p className="mb-6 text-base font-semibold text-[var(--text-primary)]">
             Lab
-          </p>
-          <p className="mb-8 text-sm leading-relaxed text-[var(--text-primary)]">
-            {label}
           </p>
           <MagneticWrapper strength={0.2}>
             <TransitionLink

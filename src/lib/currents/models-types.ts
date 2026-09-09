@@ -29,13 +29,32 @@ export const MODELS_CATEGORIES: readonly ModelsCategory[] = [
   "value",
 ];
 
+export interface ModelRate {
+  id: string; currency: string; inputPerMtok: number; outputPerMtok: number;
+  region: string; contextMin: number; contextMax: number | null;
+  serviceTier: "standard" | "priority" | "batch" | "beta";
+  modelVariant?: string;
+  timeBand: "all" | "peak" | "off_peak"; schedule: string | null;
+  effectiveFrom: string | null; effectiveUntil: string | null; sourceUrl: string; verifiedAt: string;
+}
+
 export interface ModelsPrice {
   kind: "payg" | "subscription" | "local" | "unavailable";
+  rates?: ModelRate[];
+  verification?: { status: "verified" | "stale" | "unknown"; checkedAt: string | null; lastErrorCode: string | null };
+  benchmark?: { rateId: string | null; policy: "standard-uncached-ordinary-context-peak"; inputUsdPerMtok: number; outputUsdPerMtok: number } | null;
   inputUsdPerMtok: number | null;
   outputUsdPerMtok: number | null;
   sourceUrl: string | null;
   verifiedAt: string | null;
   notes: string | null;
+}
+
+export interface ModelPriceUpdate {
+  checkedAt: string | null;
+  changedAt: string | null;
+  status: "never" | "ok" | "partial" | "failed";
+  models: Record<string, string>;
 }
 
 export interface ModelsLeaderboardRow {
@@ -83,6 +102,8 @@ export interface ModelsLeaderboardResponse {
   observing: ModelsLeaderboardRow[];
   meta: {
     update?: ModelsUpdate;
+    priceUpdate?: ModelPriceUpdate;
+    valueValidUntil?: string | null;
     scoringVersion: string;
     computedAt: string | null;
     empty: boolean;
@@ -153,11 +174,12 @@ export interface ModelsDetailResponse {
     configLabel: string | null;
     isDefaultConfig: boolean;
   }>;
-  meta: { scoringVersion: string; generatedAt: string };
+  meta: { scoringVersion: string; generatedAt: string; valueValidUntil?: string | null };
 }
 
 export interface ModelsMetaResponse {
   update?: ModelsUpdate;
+  priceUpdate?: ModelPriceUpdate;
   schemaVersion: number;
   scoringVersion: string;
   scoringParams: {
@@ -269,15 +291,39 @@ function isStringArray(value: unknown): value is string[] {
   return Array.isArray(value) && value.every(isString);
 }
 
-function isModelsPrice(value: unknown): value is ModelsPrice {
+function isModelRate(value: unknown): value is ModelRate {
+  if (!isRecord(value)) return false;
+  return isString(value.id) && value.id.length > 0 && isString(value.currency) && /^[A-Z]{3}$/.test(value.currency)
+    && isFiniteNumber(value.inputPerMtok) && value.inputPerMtok >= 0 && isFiniteNumber(value.outputPerMtok) && value.outputPerMtok >= 0
+    && isString(value.region) && value.region.length > 0 && isNonNegativeInteger(value.contextMin)
+    && (value.contextMax === null || isPositiveInteger(value.contextMax))
+    && (value.contextMax === null || (value.contextMax as number) > (value.contextMin as number))
+    && ["standard", "priority", "batch", "beta"].includes(value.serviceTier as string)
+    && (value.modelVariant === undefined || (isString(value.modelVariant) && value.modelVariant.length > 0))
+    && ["all", "peak", "off_peak"].includes(value.timeBand as string) && isNullableString(value.schedule)
+    && isNullableTimestamp(value.effectiveFrom) && isNullableTimestamp(value.effectiveUntil)
+    && (value.effectiveFrom === null || value.effectiveUntil === null || Date.parse(value.effectiveUntil as string) > Date.parse(value.effectiveFrom as string))
+    && isHttpUrl(value.sourceUrl) && isString(value.verifiedAt) && Number.isFinite(Date.parse(value.verifiedAt));
+}
+
+export function isModelsPrice(value: unknown): value is ModelsPrice {
   if (!isRecord(value) || !PRICE_KIND_SET.has(value.kind as ModelsPrice["kind"])) return false;
   if (!isNullableFiniteNumber(value.inputUsdPerMtok) || !isNullableFiniteNumber(value.outputUsdPerMtok)) return false;
   if ((value.inputUsdPerMtok !== null && value.inputUsdPerMtok < 0) || (value.outputUsdPerMtok !== null && value.outputUsdPerMtok < 0)) return false;
-  if (!isNullableHttpUrl(value.sourceUrl) || !isNullableString(value.verifiedAt) || !isNullableString(value.notes)) return false;
+  if (!isNullableHttpUrl(value.sourceUrl) || !isNullableTimestamp(value.verifiedAt) || !isNullableString(value.notes)) return false;
+  if (value.rates !== undefined && (!Array.isArray(value.rates) || value.rates.length > 200 || !value.rates.every(isModelRate) || new Set(value.rates.map(r => r.id)).size !== value.rates.length)) return false;
+  if (value.verification !== undefined && (!isRecord(value.verification) || !["verified", "stale", "unknown"].includes(value.verification.status as string) || !isNullableTimestamp(value.verification.checkedAt) || !isNullableString(value.verification.lastErrorCode))) return false;
+  if (value.benchmark !== undefined && value.benchmark !== null && (!isRecord(value.benchmark) || !isNullableString(value.benchmark.rateId) || value.benchmark.policy !== "standard-uncached-ordinary-context-peak" || !isFiniteNumber(value.benchmark.inputUsdPerMtok) || value.benchmark.inputUsdPerMtok < 0 || !isFiniteNumber(value.benchmark.outputUsdPerMtok) || value.benchmark.outputUsdPerMtok < 0)) return false;
   if (value.kind === "payg") {
     return value.inputUsdPerMtok !== null && value.inputUsdPerMtok >= 0 && value.outputUsdPerMtok !== null && value.outputUsdPerMtok >= 0;
   }
   return true;
+}
+
+export function isModelPriceUpdate(value: unknown): value is ModelPriceUpdate {
+  return isRecord(value) && isNullableTimestamp(value.checkedAt) && isNullableTimestamp(value.changedAt)
+    && ["never", "ok", "partial", "failed"].includes(value.status as string)
+    && isRecord(value.models) && Object.values(value.models).every(isString);
 }
 
 function isModelsSourceMeta(value: unknown): value is ModelsSourceMeta {
@@ -332,6 +378,8 @@ export function isModelsLeaderboardResponse(
     && Array.isArray(value.meta.sources)
     && value.meta.sources.every(isModelsSourceMeta)
     && (value.meta.update === undefined || isModelsUpdate(value.meta.update))
+    && (value.meta.priceUpdate === undefined || isModelPriceUpdate(value.meta.priceUpdate))
+    && (value.meta.valueValidUntil === undefined || isNullableTimestamp(value.meta.valueValidUntil))
     && isString(value.meta.generatedAt);
 }
 
@@ -354,7 +402,8 @@ export function isModelsMetaResponse(value: unknown): value is ModelsMetaRespons
   if (!Array.isArray(value.models) || !value.models.every(isMetaModel)) return false;
   if (!isNumberRecord(value.modelCounts) || !Object.values(value.modelCounts).every(isNonNegativeInteger)) return false;
   return isNonNegativeInteger(value.pendingCount) && isNullableString(value.computedAt) && isString(value.generatedAt)
-    && (value.update === undefined || isModelsUpdate(value.update));
+    && (value.update === undefined || isModelsUpdate(value.update))
+    && (value.priceUpdate === undefined || isModelPriceUpdate(value.priceUpdate));
 }
 
 function isDetailBoard(value: unknown): boolean {
@@ -416,7 +465,8 @@ export function isModelsDetailResponse(value: unknown): value is ModelsDetailRes
   if (!Array.isArray(value.rankings) || !value.rankings.every(isDetailRanking)) return false;
   if (!Array.isArray(value.history) || !value.history.every(isDetailHistory)) return false;
   if (!Array.isArray(value.aliases) || !value.aliases.every(isDetailAlias)) return false;
-  return isRecord(value.meta) && isString(value.meta.scoringVersion) && isString(value.meta.generatedAt);
+  return isRecord(value.meta) && isString(value.meta.scoringVersion) && isString(value.meta.generatedAt)
+    && (value.meta.valueValidUntil === undefined || isNullableTimestamp(value.meta.valueValidUntil));
 }
 
 /** 可信度分档（后端只出数值，档位映射是前端展示约定）。 */

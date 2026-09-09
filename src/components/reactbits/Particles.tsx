@@ -18,6 +18,8 @@ interface ParticlesProps {
   disableRotation?: boolean;
   pixelRatio?: number;
   className?: string;
+  onReadyChange?: (ready: boolean) => void;
+  interactionLabel?: string;
 }
 
 const defaultColors: string[] = ['#ffffff', '#ffffff', '#ffffff'];
@@ -97,7 +99,7 @@ const fragment = /* glsl */ `
       }
       gl_FragColor = vec4(vColor + 0.2 * sin(uv.yxx + uTime + vRandom.y * 6.28), 1.0);
     } else {
-      float circle = smoothstep(0.5, 0.4, d) * 0.8;
+      float circle = (1.0 - smoothstep(0.4, 0.5, d)) * 0.8;
       gl_FragColor = vec4(vColor + 0.2 * sin(uv.yxx + uTime + vRandom.y * 6.28), circle);
     }
   }
@@ -116,159 +118,113 @@ const Particles: React.FC<ParticlesProps> = ({
   cameraDistance = 20,
   disableRotation = false,
   pixelRatio = 1,
-  className
+  className,
+  onReadyChange,
+  interactionLabel
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
-  const mouseRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const live = useRef({ particleCount, particleSpread, speed, particleColors, moveParticlesOnHover, particleHoverFactor, alphaParticles, particleBaseSize, sizeRandomness, cameraDistance, disableRotation, onReadyChange });
+  useEffect(() => { live.current = { particleCount, particleSpread, speed, particleColors, moveParticlesOnHover, particleHoverFactor, alphaParticles, particleBaseSize, sizeRandomness, cameraDistance, disableRotation, onReadyChange }; }, [particleCount, particleSpread, speed, particleColors, moveParticlesOnHover, particleHoverFactor, alphaParticles, particleBaseSize, sizeRandomness, cameraDistance, disableRotation, onReadyChange]);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-
-    const renderer = new Renderer({ dpr: pixelRatio, depth: false, alpha: true });
-    const gl = renderer.gl;
-    container.appendChild(gl.canvas);
-    gl.clearColor(0, 0, 0, 0);
-
-    const camera = new Camera(gl, { fov: 15 });
-    camera.position.set(0, 0, cameraDistance);
-
-    const resize = () => {
-      const width = container.clientWidth;
-      const height = container.clientHeight;
-      renderer.setSize(width, height);
-      camera.perspective({ aspect: gl.canvas.width / gl.canvas.height });
+    const container = containerRef.current; if (!container) return;
+    let renderer: Renderer | undefined, geometry: Geometry | undefined, program: Program | undefined;
+    let raf: number | null = null, last: number | null = null, disposed = false;
+    let stopGate = () => {}, clearResize = () => {}, clearInput = () => {};
+    const stop = () => { if (raf !== null) cancelAnimationFrame(raf); raf = null; last = null; };
+    const dispose = () => {
+      if (disposed) return; disposed = true; stopGate(); stop(); clearResize(); clearInput(); geometry?.remove(); program?.remove();
+      const gl = renderer?.gl;
+      if (gl) { gl.canvas.removeEventListener('webglcontextlost', fail); if (gl.canvas.parentNode === container) container.removeChild(gl.canvas); gl.getExtension('WEBGL_lose_context')?.loseContext(); }
     };
-    window.addEventListener('resize', resize, false);
-    resize();
+    const fail = () => { dispose(); live.current.onReadyChange?.(false); };
+    try {
+      renderer = new Renderer({ dpr: pixelRatio, depth: false, alpha: true });
+      const activeRenderer = renderer, gl = renderer.gl;
+      gl.clearColor(0, 0, 0, 0); container.appendChild(gl.canvas); gl.canvas.style.display = 'block';
+      gl.canvas.addEventListener('webglcontextlost', fail);
+      const camera = new Camera(gl, { fov: 15 }); camera.position.set(0, 0, live.current.cameraDistance);
+      const resize = () => { activeRenderer.setSize(Math.max(1, container.clientWidth), Math.max(1, container.clientHeight)); camera.perspective({ aspect: Math.max(1, container.clientWidth) / Math.max(1, container.clientHeight) }); };
+      resize(); const ro = new ResizeObserver(resize); ro.observe(container); clearResize = () => ro.disconnect();
+      const mouse = { x: 0, y: 0 };
+      let pointer: number | null = null;
+      const move = (e: PointerEvent) => { if (!live.current.moveParticlesOnHover || (pointer !== null && pointer !== e.pointerId)) return; const rect = container.getBoundingClientRect(); mouse.x = Math.max(-1, Math.min(1, (e.clientX - rect.left) / Math.max(1, rect.width) * 2 - 1)); mouse.y = Math.max(-1, Math.min(1, 1 - (e.clientY - rect.top) / Math.max(1, rect.height) * 2)); };
+      const leave = () => { mouse.x = 0; mouse.y = 0; };
+      const down = (event: PointerEvent) => {
+        if (!live.current.moveParticlesOnHover || !container.hasAttribute('tabindex') || pointer !== null || event.button !== 0) return;
+        event.preventDefault(); pointer = event.pointerId;
+        container.setPointerCapture(pointer); move(event);
+      };
+      const release = () => {
+        const id = pointer; pointer = null;
+        if (id !== null && container.hasPointerCapture(id)) container.releasePointerCapture(id);
+        leave();
+      };
+      const up = (event: PointerEvent) => { if (event.pointerId === pointer) release(); };
+      const exit = () => { if (pointer === null) leave(); };
+      const key = (event: KeyboardEvent) => {
+        if (!live.current.moveParticlesOnHover) return;
+        if (event.key === 'Escape') { leave(); return; }
+        const directions: Record<string, [number, number]> = { ArrowLeft: [-0.15, 0], ArrowRight: [0.15, 0], ArrowUp: [0, 0.15], ArrowDown: [0, -0.15] };
+        const delta = directions[event.key]; if (!delta) return;
+        event.preventDefault(); mouse.x = Math.max(-1, Math.min(1, mouse.x + delta[0])); mouse.y = Math.max(-1, Math.min(1, mouse.y + delta[1]));
+      };
+      container.addEventListener('keydown', key);
+      container.addEventListener('pointerdown', down); container.addEventListener('pointermove', move); container.addEventListener('pointerleave', exit);
+      container.addEventListener('pointerup', up); container.addEventListener('pointercancel', up); container.addEventListener('lostpointercapture', up);
+      clearInput = () => {
+        container.removeEventListener('keydown', key); container.removeEventListener('pointerdown', down); container.removeEventListener('pointermove', move); container.removeEventListener('pointerleave', exit);
+        container.removeEventListener('pointerup', up); container.removeEventListener('pointercancel', up); container.removeEventListener('lostpointercapture', up); release();
+      };
+      let builtCount = 0, paletteKey = '';
+      const buildGeometry = () => {
+        const count = Math.max(1, Math.min(10000, Math.round(live.current.particleCount)));
+        const positions = new Float32Array(count * 3), randoms = new Float32Array(count * 4), colors = new Float32Array(count * 3);
+        const palette = live.current.particleColors?.length ? live.current.particleColors : defaultColors;
+        for (let i = 0; i < count; i++) {
+          let x: number, y: number, z: number, len: number;
+          do { x = Math.random() * 2 - 1; y = Math.random() * 2 - 1; z = Math.random() * 2 - 1; len = Math.hypot(x, y, z); } while (len > 1 || len === 0);
+          const radius = Math.cbrt(Math.random()); positions.set([x / len * radius, y / len * radius, z / len * radius], i * 3);
+          randoms.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
+          colors.set(hexToRgb(palette[i % palette.length]), i * 3);
+        }
+        geometry?.remove(); geometry = new Geometry(gl, { position: { size: 3, data: positions }, random: { size: 4, data: randoms }, color: { size: 3, data: colors } });
+        builtCount = count; paletteKey = palette.join(',');
+        return geometry;
+      };
+      program = new Program(gl, { vertex, fragment, uniforms: { uTime: { value: 0 }, uSpread: { value: particleSpread }, uBaseSize: { value: particleBaseSize * pixelRatio }, uSizeRandomness: { value: sizeRandomness }, uAlphaParticles: { value: alphaParticles ? 1 : 0 } }, transparent: true, depthTest: false });
+      const activeProgram = program;
+      if (!gl.getProgramParameter(program.program, gl.LINK_STATUS)) throw new Error('Unable to link particles');
+      const particles = new Mesh(gl, { mode: gl.POINTS, geometry: buildGeometry(), program });
+      let elapsed = 0, ready = false;
+      const frame = (time: number) => {
+        raf = null; if (disposed) return;
+        const dt = last === null ? 0 : Math.min(50, time - last); last = time;
+        const p = live.current; elapsed += dt * p.speed;
+        try {
+          if (builtCount !== Math.max(1, Math.min(10000, Math.round(p.particleCount)))) particles.geometry = buildGeometry();
+          const palette = p.particleColors?.length ? p.particleColors : defaultColors;
+          if (palette.join(',') !== paletteKey && geometry) {
+            const colors = geometry.attributes.color.data as Float32Array;
+            for (let i = 0; i < builtCount; i++) colors.set(hexToRgb(palette[i % palette.length]), i * 3);
+            geometry.attributes.color.needsUpdate = true; paletteKey = palette.join(',');
+          }
+          activeProgram.uniforms.uTime.value = elapsed * 0.001; activeProgram.uniforms.uSpread.value = p.particleSpread;
+          activeProgram.uniforms.uBaseSize.value = p.particleBaseSize * pixelRatio; activeProgram.uniforms.uSizeRandomness.value = p.sizeRandomness; activeProgram.uniforms.uAlphaParticles.value = p.alphaParticles ? 1 : 0;
+          camera.position.z = p.cameraDistance;
+          particles.position.x = p.moveParticlesOnHover ? -mouse.x * p.particleHoverFactor : 0; particles.position.y = p.moveParticlesOnHover ? -mouse.y * p.particleHoverFactor : 0;
+          if (!p.disableRotation) { particles.rotation.x = Math.sin(elapsed * 0.0002) * 0.1; particles.rotation.y = Math.cos(elapsed * 0.0005) * 0.15; particles.rotation.z += dt * 0.0006 * p.speed; }
+          activeRenderer.render({ scene: particles, camera });
+        } catch { fail(); return; }
+        if (!ready) { ready = true; live.current.onReadyChange?.(true); }
+        raf = requestAnimationFrame(frame);
+      };
+      stopGate = observeRenderGate(container, (active) => { if (active && !disposed && raf === null) raf = requestAnimationFrame(frame); else if (!active) { release(); stop(); } });
+    } catch { fail(); }
+    return dispose;
+  }, [pixelRatio]);
 
-    const handleMouseMove = (e: MouseEvent) => {
-      const rect = container.getBoundingClientRect();
-      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-      const y = -(((e.clientY - rect.top) / rect.height) * 2 - 1);
-      mouseRef.current = { x, y };
-    };
-
-    if (moveParticlesOnHover) {
-      container.addEventListener('mousemove', handleMouseMove);
-    }
-
-    const count = particleCount;
-    const positions = new Float32Array(count * 3);
-    const randoms = new Float32Array(count * 4);
-    const colors = new Float32Array(count * 3);
-    const palette = particleColors && particleColors.length > 0 ? particleColors : defaultColors;
-
-    for (let i = 0; i < count; i++) {
-      let x: number, y: number, z: number, len: number;
-      do {
-        x = Math.random() * 2 - 1;
-        y = Math.random() * 2 - 1;
-        z = Math.random() * 2 - 1;
-        len = x * x + y * y + z * z;
-      } while (len > 1 || len === 0);
-      const r = Math.cbrt(Math.random());
-      positions.set([x * r, y * r, z * r], i * 3);
-      randoms.set([Math.random(), Math.random(), Math.random(), Math.random()], i * 4);
-      const col = hexToRgb(palette[Math.floor(Math.random() * palette.length)]);
-      colors.set(col, i * 3);
-    }
-
-    const geometry = new Geometry(gl, {
-      position: { size: 3, data: positions },
-      random: { size: 4, data: randoms },
-      color: { size: 3, data: colors }
-    });
-
-    const program = new Program(gl, {
-      vertex,
-      fragment,
-      uniforms: {
-        uTime: { value: 0 },
-        uSpread: { value: particleSpread },
-        uBaseSize: { value: particleBaseSize * pixelRatio },
-        uSizeRandomness: { value: sizeRandomness },
-        uAlphaParticles: { value: alphaParticles ? 1 : 0 }
-      },
-      transparent: true,
-      depthTest: false
-    });
-
-    const particles = new Mesh(gl, { mode: gl.POINTS, geometry, program });
-
-    let animationFrameId: number | null = null;
-    let lastTime: number | null = null;
-    let elapsed = 0;
-
-    const update = (t: number) => {
-      animationFrameId = requestAnimationFrame(update);
-      const delta = lastTime === null ? 0 : t - lastTime;
-      lastTime = t;
-      elapsed += delta * speed;
-
-      program.uniforms.uTime.value = elapsed * 0.001;
-
-      if (moveParticlesOnHover) {
-        particles.position.x = -mouseRef.current.x * particleHoverFactor;
-        particles.position.y = -mouseRef.current.y * particleHoverFactor;
-      } else {
-        particles.position.x = 0;
-        particles.position.y = 0;
-      }
-
-      if (!disableRotation) {
-        particles.rotation.x = Math.sin(elapsed * 0.0002) * 0.1;
-        particles.rotation.y = Math.cos(elapsed * 0.0005) * 0.15;
-        particles.rotation.z += 0.01 * speed;
-      }
-
-      renderer.render({ scene: particles, camera });
-    };
-
-    const startLoop = () => {
-      if (animationFrameId === null) animationFrameId = requestAnimationFrame(update);
-    };
-    const stopLoop = () => {
-      if (animationFrameId !== null) {
-        cancelAnimationFrame(animationFrameId);
-        animationFrameId = null;
-        lastTime = null;
-      }
-    };
-
-    startLoop();
-
-    // 视口外 / 标签页隐藏时暂停渲染
-    const stopGate = observeRenderGate(container, active =>
-      active ? startLoop() : stopLoop()
-    );
-
-    return () => {
-      stopGate();
-      window.removeEventListener('resize', resize);
-      if (moveParticlesOnHover) {
-        container.removeEventListener('mousemove', handleMouseMove);
-      }
-      stopLoop();
-      if (container.contains(gl.canvas)) {
-        container.removeChild(gl.canvas);
-      }
-    };
-  }, [
-    particleCount,
-    particleSpread,
-    speed,
-    moveParticlesOnHover,
-    particleHoverFactor,
-    alphaParticles,
-    particleBaseSize,
-    sizeRandomness,
-    cameraDistance,
-    disableRotation,
-    pixelRatio
-  ]);
-
-  return <div ref={containerRef} className={`relative w-full h-full ${className}`} />;
+  return <div ref={containerRef} tabIndex={interactionLabel ? 0 : undefined} role={interactionLabel ? "img" : undefined} aria-label={interactionLabel} style={{ touchAction: moveParticlesOnHover && interactionLabel ? 'none' : undefined }} className={`relative w-full h-full ${className ?? ''}`} />;
 };
 
 export default Particles;

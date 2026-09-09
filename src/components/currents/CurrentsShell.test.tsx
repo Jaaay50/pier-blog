@@ -70,13 +70,36 @@ function getSideNav() {
 }
 
 beforeEach(() => {
+  window.history.replaceState(null, "", "/currents");
   mockPathname.mockReturnValue("/currents");
   mockSearchParams.mockReturnValue(new URLSearchParams());
 });
 
-afterEach(() => cleanup());
+afterEach(() => { cleanup(); vi.restoreAllMocks(); });
 
 describe("CurrentsShell", () => {
+  it("same-page product views update history without a whole-page transition", () => {
+    const push = vi.spyOn(window.history, "pushState");
+    const transition = vi.fn();
+    Object.defineProperty(document, "startViewTransition", { configurable: true, value: transition });
+    renderShell();
+    fireEvent.click(screen.getByRole("link", { name: "全部动态" }));
+    expect(push).toHaveBeenCalledWith(null, "", "/currents?view=all");
+    expect(window.location.search).toBe("?view=all");
+    expect(transition).not.toHaveBeenCalled();
+    Reflect.deleteProperty(document, "startViewTransition");
+  });
+
+  it("modifier clicks retain browser behavior and never mutate query history", () => {
+    const push = vi.spyOn(window.history, "pushState");
+    renderShell();
+    const link = screen.getByRole("link", { name: "全部动态" });
+    link.setAttribute("target", "_blank");
+    const event = new MouseEvent("click", { bubbles: true, cancelable: true, ctrlKey: true });
+    fireEvent(link, event);
+    expect(event.defaultPrevented).toBe(false);
+    expect(push).not.toHaveBeenCalled();
+  });
   it.each(["", "view=all", "view=papers", "view=all&favorites=1"])("keeps the root hero above navigation for %s", (query) => {
     mockSearchParams.mockReturnValue(new URLSearchParams(query));
     const { container } = renderShell(<header><h1>Hero</h1></header>);

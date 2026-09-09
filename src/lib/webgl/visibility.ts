@@ -8,7 +8,7 @@ export function observeRenderGate(
   el: Element,
   onChange: (active: boolean) => void
 ): () => void {
-  let inView = true;
+  let inView = false;
   let pageVisible = !document.hidden;
   let last: boolean | null = null;
 
@@ -22,6 +22,7 @@ export function observeRenderGate(
 
   const io = new IntersectionObserver(
     entries => {
+      if (entries.length === 0) return;
       inView = entries[entries.length - 1].isIntersecting;
       emit();
     },

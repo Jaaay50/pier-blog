@@ -6,10 +6,12 @@ import {
   fireEvent,
   render,
   screen,
+  within,
 } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import zh from "@/messages/zh.json";
+import en from "@/messages/en.json";
 import { CurrentsFilters } from "./CurrentsFilters";
 
 const desktopListeners = new Set<(event: MediaQueryListEvent) => void>();
@@ -17,13 +19,13 @@ let desktopMatches = false;
 const FOCUSABLE_SELECTOR_FOR_TEST =
   'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
 
-function renderFilters() {
+function renderFilters(locale: "zh" | "en" = "zh", onViewChange = vi.fn()) {
   return render(
-    <NextIntlClientProvider locale="zh" messages={{ currents: zh.currents }}>
+    <NextIntlClientProvider locale={locale} messages={{ currents: locale === "zh" ? zh.currents : en.currents }}>
       <button type="button">页面外按钮</button>
       <CurrentsFilters
         view="selected"
-        onViewChange={vi.fn()}
+        onViewChange={onViewChange}
         category="all"
         onCategoryChange={vi.fn()}
         query=""
@@ -93,6 +95,54 @@ afterEach(() => {
 });
 
 describe("CurrentsFilters mobile sheet", () => {
+  it.each(["zh", "en"] as const)("%s exposes three compact primary tabs without opening the sheet at 320px", (locale) => {
+    Object.defineProperty(window, "innerWidth", { configurable: true, value: 320 });
+    Object.defineProperty(document.documentElement, "clientWidth", { configurable: true, value: 320 });
+    const onViewChange = vi.fn();
+    renderFilters(locale, onViewChange);
+    const messages = locale === "zh" ? zh.currents : en.currents;
+    const trigger = screen.getByRole("button", { name: messages.filtersOpen });
+    const mobileBar = trigger.parentElement!;
+    const tablist = within(mobileBar).getByRole("tablist", { name: "view" });
+    const tabs = within(tablist).getAllByRole("tab");
+
+    expect(tabs.map((tab) => tab.textContent)).toEqual([messages.viewSelected, messages.viewAll, messages.viewPapers]);
+    expect(screen.queryByRole("dialog")).toBeNull();
+    expect(tablist.className).toContain("grid-cols-3");
+    expect(tablist.className).toContain("min-w-0");
+    expect(trigger.className).toContain("shrink-0");
+    expect(trigger.className).toContain("w-10");
+    expect(trigger.textContent).toBe("");
+    for (const [index, tab] of tabs.entries()) {
+      expect(tab.getAttribute("type")).toBe("button");
+      expect(tab.getAttribute("aria-selected")).toBe(index === 0 ? "true" : "false");
+      expect(tab.className).toContain("focus-visible:outline");
+      tab.focus();
+      expect(document.activeElement).toBe(tab);
+      fireEvent.click(tab);
+    }
+    expect(onViewChange.mock.calls.map(([view]) => view)).toEqual(["selected", "all", "papers"]);
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
+  });
+
+  it("keeps only secondary filters in the sheet and restores the primary toolbar after closing", () => {
+    renderFilters();
+    const trigger = screen.getByRole("button", { name: "筛选" });
+    const mobileBar = trigger.parentElement!;
+    fireEvent.click(trigger);
+    const dialog = screen.getByRole("dialog", { name: "筛选" });
+    expect(within(dialog).queryByRole("tablist", { name: "view" })).toBeNull();
+    expect(within(dialog).getByRole("tablist", { name: zh.currents.categoriesLabel })).toBeTruthy();
+    expect(within(dialog).getByRole("searchbox")).toBeTruthy();
+    expect(mobileBar.inert).toBe(true);
+    expect(mobileBar.getAttribute("aria-hidden")).toBe("true");
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(mobileBar.inert).not.toBe(true);
+    expect(mobileBar.hasAttribute("aria-hidden")).toBe(false);
+    expect(within(mobileBar).getAllByRole("tab")).toHaveLength(3);
+    expect(document.activeElement).toBe(trigger);
+  });
+
   it("锁定页面、隔离背景并把键盘焦点限制在面板内", () => {
     renderFilters();
     const outside = screen.getByRole("button", { name: "页面外按钮" });
@@ -227,6 +277,9 @@ describe("CurrentsFilters desktop collapse", () => {
     expect(toolbar!.hasAttribute("inert")).toBe(true);
     expect(toolbar!.getAttribute("aria-hidden")).toBe("true");
     expect(toolbar!.className).toContain("opacity-0");
+    expect(toolbar!.className).toContain("pointer-events-none");
+    expect(toolbar!.parentElement?.className).toContain("pointer-events-none");
+    expect(stickyWrapper!.className).toContain("pointer-events-none");
   });
 
   it("折叠 marker 位于完整展开筛选区之后，不会留下前置占位或提前遮挡正文", () => {
@@ -270,6 +323,7 @@ describe("CurrentsFilters desktop collapse", () => {
     });
     expect(expanded!.hasAttribute("inert")).toBe(true);
     expect(toolbar!.hasAttribute("inert")).toBe(false);
+    expect(toolbar!.className).toContain("pointer-events-auto");
   });
 
   it("紧凑态向上回到折叠线以上 32px 才恢复展开态（滞回）", async () => {

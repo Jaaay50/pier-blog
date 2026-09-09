@@ -5,9 +5,11 @@ import { renderToString } from "react-dom/server";
 import { hydrateRoot } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ImmersiveHero } from "./ImmersiveHero";
+import zh from "@/messages/zh.json";
+import en from "@/messages/en.json";
 
 const mocks = vi.hoisted(() => ({
-  theme: vi.fn(), quality: vi.fn(), locale: vi.fn(), aurora: vi.fn(), galaxy: vi.fn(),
+  theme: vi.fn(), quality: vi.fn(), locale: vi.fn(), aurora: vi.fn(), galaxy: vi.fn(), particles: vi.fn(),
 }));
 
 vi.mock("next-themes", () => ({
@@ -22,6 +24,10 @@ vi.mock("@/lib/webgl", () => ({
   useWebGLQuality: mocks.quality,
 }));
 
+vi.mock("@/components/reactbits/ShinyText", () => ({
+  default: ({ text, className }: { text: string; className: string }) => <span className={className}>{text}</span>,
+}));
+
 vi.mock("next/dynamic", () => ({
   default: (loader: () => Promise<unknown>) => {
     if (loader.toString().includes("reactbits/Aurora")) {
@@ -30,12 +36,8 @@ vi.mock("next/dynamic", () => ({
     if (loader.toString().includes("reactbits/Galaxy")) {
       return function MockGalaxy(props: unknown) { mocks.galaxy(props); return <canvas data-galaxy />; };
     }
-    return () => null;
+    return function MockParticleTitle(props: unknown) { mocks.particles(props); return <canvas data-particles />; };
   },
-}));
-
-vi.mock("@/components/reactbits/ShinyText", () => ({
-  default: ({ text }: { text: string }) => <span>{text}</span>,
 }));
 
 vi.mock("motion/react", () => ({
@@ -245,12 +247,135 @@ describe("ImmersiveHero", () => {
     expect(document.querySelectorAll(".hero-cjk-punct")).toHaveLength(1);
   });
 
-  it("gives the Chinese subtitle a line long enough to stay on one row", () => {
-    render(
-      <ImmersiveHero subtitle="一头连着采集管线与事件去重，一头连着你眼前这块屏幕。中间那段路，我自己走完。" />,
-    );
-    const wrap = document.querySelector(".hero-subtitle");
-    expect(wrap?.className).toContain("max-w-[52rem]");
-    expect(wrap?.className).not.toContain("max-w-2xl");
+  it.each([
+    ["zh", zh.home.heroSubtitle, "max-w-[52rem]"],
+    ["en", en.home.heroSubtitle, "max-w-2xl"],
+  ])("restores the original %s subtitle without a replacement action", (locale, subtitle, widthClass) => {
+    mocks.locale.mockReturnValue(locale);
+    const { container } = render(<ImmersiveHero subtitle={subtitle} />);
+    const wrap = container.querySelector(".hero-subtitle");
+    expect(wrap?.textContent).toBe(subtitle);
+    expect(wrap?.className).toContain(widthClass);
+    expect(wrap?.querySelector("span")?.className).toContain("text-base");
+    expect(container.querySelector("h1")).not.toBeNull();
+    expect(container.querySelector("a, button")).toBeNull();
+  });
+});
+
+
+describe("ImmersiveHero readable title handoff", () => {
+  const quality = {
+    enabled: true, reducedMotion: false, webglSupported: true,
+    tier: "high", dpr: 1.5, particleMultiplier: 1, mouseInteraction: false,
+  };
+  const anchor = (container: HTMLElement) => container.querySelector<HTMLSpanElement>(".hero-title-ssr")!;
+
+  it("renders visible static title glyphs and subtitle in SSR without hidden or blurred entry styles", () => {
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(<ImmersiveHero subtitle="全栈工程师" />);
+    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).textContent).toBe("全栈的栈，也是栈桥的栈");
+    expect(anchor(container).querySelector("[style]")).toBeNull();
+    expect(container.querySelector(".hero-subtitle")?.getAttribute("initial")).toBeNull();
+    expect(container.querySelector(".hero-subtitle")?.textContent).toBe("全栈工程师");
+    expect(container.querySelector("[data-particles]")).toBeNull();
+  });
+
+  it("retains the same visible anchor through hydration and capability discovery", async () => {
+    const element = <ImmersiveHero subtitle="全栈工程师" />;
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(element);
+    document.body.appendChild(container);
+    const originalAnchor = anchor(container);
+    const onRecoverableError = vi.fn();
+    let root: ReturnType<typeof hydrateRoot> | undefined;
+    try {
+      await act(async () => { root = hydrateRoot(container, element, { onRecoverableError }); });
+      mocks.quality.mockReturnValue(quality);
+      await act(async () => { root?.render(<ImmersiveHero subtitle="全栈工程师" />); });
+      expect(onRecoverableError).not.toHaveBeenCalled();
+      expect(anchor(container)).toBe(originalAnchor);
+      expect(anchor(container).style.opacity).toBe("1");
+      expect(container.querySelector("[data-particles]")).not.toBeNull();
+      expect(mocks.particles.mock.lastCall![0].anchorRef.current).toBe(originalAnchor);
+    } finally {
+      await act(async () => { root?.unmount(); });
+      container.remove();
+    }
+  });
+
+  it("hides the title only after a drawn-frame signal and restores it immediately when readiness is revoked", () => {
+    mocks.quality.mockReturnValue(quality);
+    const { container } = render(<ImmersiveHero subtitle="全栈工程师" />);
+    const originalAnchor = anchor(container);
+    expect(originalAnchor.style.opacity).toBe("1");
+    act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
+    expect(anchor(container).style.opacity).toBe("0");
+    act(() => mocks.particles.mock.lastCall![0].onReadyChange(false));
+    expect(anchor(container)).toBe(originalAnchor);
+    expect(originalAnchor.style.opacity).toBe("1");
+    expect(originalAnchor.querySelector("[style]")).toBeNull();
+  });
+
+  it("restores the static anchor and unmounts particles after a render failure", () => {
+    mocks.quality.mockReturnValue(quality);
+    const { container } = render(<ImmersiveHero subtitle="全栈工程师" />);
+    act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
+    act(() => mocks.particles.mock.lastCall![0].onFail());
+    expect(anchor(container).style.opacity).toBe("1");
+    expect(container.querySelector("[data-particles]")).toBeNull();
+  });
+
+  it("keeps the title visible when WebGL is disabled and requires another frame when re-enabled", () => {
+    mocks.quality.mockReturnValue(quality);
+    const { container, rerender } = render(<ImmersiveHero subtitle="全栈工程师" />);
+    act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
+    mocks.quality.mockReturnValue({ ...quality, enabled: false });
+    rerender(<ImmersiveHero subtitle="全栈工程师" />);
+    expect(anchor(container).style.opacity).toBe("1");
+    expect(container.querySelector("[data-particles]")).toBeNull();
+    mocks.quality.mockReturnValue(quality);
+    rerender(<ImmersiveHero subtitle="全栈工程师" />);
+    expect(anchor(container).style.opacity).toBe("1");
+    expect(container.querySelector("[data-particles]")).not.toBeNull();
+  });
+
+  it("does not apply the previous title's readiness or delayed callbacks to a new locale", () => {
+    mocks.quality.mockReturnValue(quality);
+    const { container, rerender } = render(<ImmersiveHero subtitle="全栈工程师" />);
+    const staleCallbacks = mocks.particles.mock.lastCall![0];
+    act(() => staleCallbacks.onReadyChange(true));
+    mocks.locale.mockReturnValue("en");
+    rerender(<ImmersiveHero subtitle="Full-Stack Engineer" />);
+    expect(anchor(container).style.opacity).toBe("1");
+    expect(container.querySelector("h1")?.getAttribute("aria-label")).toBe("A pier has to hold at both ends");
+    act(() => { staleCallbacks.onReadyChange(true); staleCallbacks.onFail(); });
+    expect(anchor(container).style.opacity).toBe("1");
+    expect(container.querySelector("[data-particles]")).not.toBeNull();
+    act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
+    expect(anchor(container).style.opacity).toBe("0");
+  });
+
+  it("retries a failed title on locale change while keeping the new title readable", () => {
+    mocks.quality.mockReturnValue(quality);
+    const { container, rerender } = render(<ImmersiveHero subtitle="全栈工程师" />);
+    act(() => mocks.particles.mock.lastCall![0].onFail());
+    mocks.locale.mockReturnValue("en");
+    rerender(<ImmersiveHero subtitle="Full-Stack Engineer" />);
+    expect(anchor(container).style.opacity).toBe("1");
+    expect(container.querySelector("[data-particles]")).not.toBeNull();
+  });
+
+  it("allows Chinese glyph wrapping while preserving emphasis and English word groups", () => {
+    const { container, rerender } = render(<ImmersiveHero subtitle="全栈工程师" />);
+    expect(anchor(container).querySelector(".whitespace-nowrap")).toBeNull();
+    const glyphs = anchor(container).querySelectorAll("[data-ptchar]");
+    expect(glyphs).toHaveLength(11);
+    expect(glyphs[3].className).toContain("hero-stack-glyph");
+    expect(glyphs[10].className).toContain("hero-stack-glyph");
+    mocks.locale.mockReturnValue("en");
+    rerender(<ImmersiveHero subtitle="Full-Stack Engineer" />);
+    expect(anchor(container).querySelectorAll(".whitespace-nowrap")).toHaveLength(8);
+    expect(anchor(container).querySelectorAll("[data-ptchar]")).toHaveLength(24);
   });
 });

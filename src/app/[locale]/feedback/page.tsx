@@ -59,6 +59,8 @@ export default async function FeedbackPage({
     alreadyReported: t("alreadyReported"),
     errorRateLimit: t("errorRateLimit"),
     errorNetwork: t("errorNetwork"),
+    errorVerification: t("errorVerification"),
+    errorVerificationUnavailable: t("errorVerificationUnavailable"),
     errorGeneric: t("errorGeneric"),
   };
 
@@ -72,16 +74,10 @@ export default async function FeedbackPage({
             <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
               {t("title")}
             </h1>
-            <p className="max-w-2xl leading-relaxed text-[var(--text-secondary)]">
-              {t("subtitle")}
-            </p>
           </header>
 
           <section>
             <SiteFeedbackForm locale={locale} labels={labels} />
-            <p className="mt-8 border-t border-[var(--border)] pt-6 text-[13px] leading-relaxed text-[var(--text-muted)]">
-              {t("contentCorrectionNote")}
-            </p>
           </section>
         </div>
       </CurrentsShell>

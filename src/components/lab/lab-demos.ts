@@ -5,6 +5,12 @@ export const LAB_DEMO_IDS = [
   "particles",
   "morph",
   "shader",
+  "sdf",
+  "cloth",
+  "pathfinding",
+  "raft",
+  "audio",
+  "geometry",
 ] as const;
 
 export type LabDemoId = (typeof LAB_DEMO_IDS)[number];
@@ -16,7 +22,7 @@ export interface LabDemoMeta {
   full?: boolean;
 }
 
-/** 服务端 figure 顺序：旗舰流体全宽 → 物理/流场 → 粒子/形变 → shader 全宽。 */
+/** 画廊顺序与布局元信息；所有展示均提供真实静帧。 */
 export const LAB_DEMOS: LabDemoMeta[] = [
   { id: "fluid", still: "/lab/fluid.webp", tall: true, full: true },
   { id: "physics", still: "/lab/physics.webp" },
@@ -24,4 +30,10 @@ export const LAB_DEMOS: LabDemoMeta[] = [
   { id: "particles", still: "/lab/particles.webp" },
   { id: "morph", still: "/lab/morph.webp" },
   { id: "shader", still: "/lab/shader.webp", tall: true, full: true },
+  { id: "sdf", still: "/lab/sdf.webp", tall: true, full: true },
+  { id: "cloth", still: "/lab/cloth.webp" },
+  { id: "geometry", still: "/lab/geometry.webp" },
+  { id: "pathfinding", still: "/lab/pathfinding.webp", tall: true, full: true },
+  { id: "raft", still: "/lab/raft.webp", tall: true, full: true },
+  { id: "audio", still: "/lab/audio.webp", full: true },
 ];

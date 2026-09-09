@@ -1,11 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { NextIntlClientProvider } from "next-intl";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ModelsLeaderboardClient } from "./ModelsLeaderboardClient";
-import type { ModelsLeaderboardResponse, ModelsLeaderboardRow } from "@/lib/currents/models-types";
+import type { ModelRate, ModelsPrice, ModelsLeaderboardResponse, ModelsLeaderboardRow } from "@/lib/currents/models-types";
 import zh from "@/messages/zh.json";
+import en from "@/messages/en.json";
 
 const mockFetchLeaderboard = vi.fn();
 
@@ -13,8 +14,8 @@ vi.mock("@/lib/currents/api", () => ({
   fetchModelsLeaderboard: (...args: unknown[]) => mockFetchLeaderboard(...args),
 }));
 
-vi.mock("@/components/TransitionLink", () => ({
-  TransitionLink: ({ href, children, ...props }: { href: string; children: React.ReactNode } & Record<string, unknown>) => (
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children, ...props }: { href: string; children: React.ReactNode } & Record<string, unknown>) => (
     <a href={href} {...props}>
       {children}
     </a>
@@ -120,18 +121,17 @@ function response(overrides: Partial<ModelsLeaderboardResponse> = {}): ModelsLea
   };
 }
 
-function renderClient() {
+function renderClient(initial?: ModelsLeaderboardResponse) {
   return render(
     <NextIntlClientProvider locale="zh" messages={messages}>
-      <ModelsLeaderboardClient />
+      <ModelsLeaderboardClient initial={initial} />
     </NextIntlClientProvider>,
   );
 }
 
+beforeEach(() => { mockFetchLeaderboard.mockReset(); });
+
 describe("ModelsLeaderboardClient", () => {
-  beforeEach(() => {
-    mockFetchLeaderboard.mockReset();
-  });
   afterEach(() => cleanup());
 
   it("渲染主榜表格：排名/模型/能力分/可信度/价格/变化分离呈现", async () => {
@@ -145,8 +145,9 @@ describe("ModelsLeaderboardClient", () => {
     // 能力分与价格分离（价格不混入能力）
     expect(screen.getAllByText("90.5").length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText("$5 / $25").length).toBeGreaterThanOrEqual(1);
-    // 价格缺失显示未挂牌
-    expect(screen.getAllByText("未挂牌").length).toBeGreaterThanOrEqual(1);
+    // 价格缺失显示空值，不推断厂商未定价
+    expect(screen.queryByText("未挂牌")).toBeNull();
+    expect(screen.getAllByText("—").length).toBeGreaterThanOrEqual(1);
     // 可信度分档
     expect(screen.getAllByText(/高 0\.90/).length).toBeGreaterThanOrEqual(1);
     expect(screen.getAllByText(/低 0\.40/).length).toBeGreaterThanOrEqual(1);
@@ -261,7 +262,7 @@ describe("ModelsLeaderboardClient", () => {
     await waitFor(() => expect(screen.getByText("榜单数据准备中，稍后再来。")).toBeTruthy());
   });
 
-  it("来源陈旧提示与 Preview 徽章", async () => {
+  it("来源状态留在详情与方法页，保留 Preview 身份", async () => {
     mockFetchLeaderboard.mockResolvedValue(
       response({
         items: [
@@ -295,9 +296,9 @@ describe("ModelsLeaderboardClient", () => {
     // 行内 Preview 徽章（span）与视图 tab（button）共存，按元素类型区分
     const previewBadges = screen.getAllByText("Preview").filter((el) => el.tagName === "SPAN");
     expect(previewBadges.length).toBeGreaterThanOrEqual(1);
-    expect(screen.getByText("1 个来源数据陈旧")).toBeTruthy();
-    expect(screen.getAllByText("数据陈旧").length).toBeGreaterThanOrEqual(1);
-    expect(document.querySelector('[data-mobile-stale="hy3"]')).not.toBeNull();
+    expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
+    expect(screen.queryByText("数据陈旧")).toBeNull();
+    expect(document.querySelector('[data-mobile-stale="hy3"]')).toBeNull();
   });
 
   it("切换后的 loading/error 不展示上一榜的更新时间与 stale 元数据", async () => {
@@ -311,7 +312,7 @@ describe("ModelsLeaderboardClient", () => {
     }));
     mockFetchLeaderboard.mockRejectedValueOnce(new Error("network"));
     renderClient();
-    await screen.findByText("1 个来源数据陈旧");
+    await screen.findAllByText("Claude Opus 5");
     fireEvent.click(screen.getByRole("tab", { name: "编程" }));
     expect(screen.queryByText("1 个来源数据陈旧")).toBeNull();
     expect(screen.queryByText(/榜单计算于/)).toBeNull();
@@ -330,7 +331,8 @@ describe("ModelsLeaderboardClient", () => {
     } }));
     mockFetchLeaderboard.mockRejectedValueOnce(new Error("network"));
     renderClient();
-    await screen.findByText(/部分来源检查失败/);
+    await screen.findByText(/最近检查/);
+    expect(screen.queryByText(/部分来源检查失败/)).toBeNull();
     expect(screen.getByText(/最近检查/)).toBeTruthy();
     expect(screen.getByText(/成绩变化/)).toBeTruthy();
     expect(screen.queryByText(/榜单计算于/)).toBeNull();
@@ -340,6 +342,13 @@ describe("ModelsLeaderboardClient", () => {
     await screen.findByRole("button", { name: "重试" });
     expect(screen.queryByText(/部分来源检查失败/)).toBeNull();
   });
+});
+
+it("renders ISR initial data without waiting for a duplicate client request", () => {
+  renderClient(response());
+  expect(screen.getAllByText("Claude Opus 5")).toHaveLength(2);
+  expect(mockFetchLeaderboard).not.toHaveBeenCalled();
+  expect(screen.queryByText("底部说明")).toBeNull();
 });
 
 afterEach(() => cleanup());
@@ -359,4 +368,135 @@ it("never substitutes ability for missing value score", async () => {
  const tr=screen.getByRole("table").querySelector("tbody tr")!;
  expect(tr.children[2].querySelector("span")?.textContent).toBe("—");
  expect(tr.children[2].textContent).toContain("能力 90.5");
+});
+
+it("expires a mounted quote at its boundary while leaving the ability score intact", async () => {
+  vi.useFakeTimers();
+  const now=Date.parse("2026-09-09T00:00:00Z");vi.setSystemTime(now);
+  try {
+    const data=response();data.meta.generatedAt=new Date(now).toISOString();
+    data.items[0].price={kind:"payg",inputUsdPerMtok:.1,outputUsdPerMtok:.5,sourceUrl:"https://example.com/prices",verifiedAt:new Date(now).toISOString(),notes:null,
+      rates:[{id:"promo",currency:"USD",inputPerMtok:.1,outputPerMtok:.5,region:"global",contextMin:0,contextMax:null,serviceTier:"standard",timeBand:"all",schedule:null,effectiveFrom:null,effectiveUntil:new Date(now+1000).toISOString(),sourceUrl:"https://example.com/prices",verifiedAt:new Date(now).toISOString()}]};
+    renderClient(data);
+    const priceCell=()=>screen.getByRole("table").querySelector("tbody tr")!.children[4];
+    expect(within(priceCell() as HTMLElement).getByText("$0.1 / $0.5")).toBeTruthy();
+    expect(within(priceCell() as HTMLElement).getByRole("link", { name: /待核验/ })).toBeTruthy();
+    await act(async()=>vi.advanceTimersByTimeAsync(1000));
+    expect(within(priceCell() as HTMLElement).getByText("—")).toBeTruthy();
+    expect(within(priceCell() as HTMLElement).getByRole("link", { name: /待重新核验/ })).toBeTruthy();
+    expect(screen.getByRole("table").querySelector("tbody tr")!.children[2].textContent).toContain("90.5");
+  } finally {cleanup();vi.useRealTimers();}
+});
+
+it("expires the entire value board at the global boundary for an unlisted competing tariff", async()=>{
+  vi.useFakeTimers();const now=Date.parse('2026-09-09T00:00:00Z');vi.setSystemTime(now);
+  try{
+    const value=response({category:'value',items:[row({slug:'unchanged',name:'Unchanged',valueScore:81.4})],observing:[]});
+    value.meta.generatedAt=new Date(now).toISOString();value.meta.valueValidUntil=new Date(now+1000).toISOString();
+    mockFetchLeaderboard.mockResolvedValue(value);
+    renderClient(response());
+    await act(async()=>{fireEvent.click(screen.getByRole('tab',{name:'性价比'}));});
+    expect(screen.getAllByText('81.4').length).toBeGreaterThan(0);
+    await act(async()=>vi.advanceTimersByTimeAsync(1000));
+    expect(screen.queryByText('81.4')).toBeNull();
+    const priceCell=screen.getByRole('table').querySelector('tbody tr')!.children[4] as HTMLElement;
+    expect(within(priceCell).getByText('$5 / $25')).toBeTruthy();
+    expect(within(priceCell).getByRole('link',{name:/待核验/})).toBeTruthy();
+  } finally {cleanup();vi.useRealTimers();}
+});
+
+
+describe("leaderboard price provenance signals", () => {
+  const now = Date.parse("2026-09-09T00:00:00Z");
+  const verifiedAt = "2026-09-08T12:34:56Z";
+  const sourceUrl = "https://example.com/official-model-pricing";
+  const rate: ModelRate = {
+    id: "standard", currency: "USD", inputPerMtok: 1.25, outputPerMtok: 4.5,
+    region: "global", contextMin: 0, contextMax: null, serviceTier: "standard",
+    timeBand: "all", schedule: null, effectiveFrom: null, effectiveUntil: null,
+    sourceUrl, verifiedAt,
+  };
+  const verification = { status: "verified" as const, checkedAt: verifiedAt, lastErrorCode: null };
+  const base: ModelsPrice = {
+    kind: "payg", inputUsdPerMtok: 1.25, outputUsdPerMtok: 4.5,
+    sourceUrl, verifiedAt, notes: null, rates: [rate], verification,
+  };
+  const unavailable: ModelsPrice = {
+    ...base, kind: "unavailable", inputUsdPerMtok: null, outputUsdPerMtok: null,
+    rates: [], verifiedAt: null, verification: { ...verification, status: "unknown" },
+  };
+  const labels = {
+    zh: { retained: "沿用旧价", unknown: "待核验", failed: "抓取失败", missing: "暂无已核验价格", reverify: "待重新核验" },
+    en: { retained: "Retained price", unknown: "Unverified", failed: "Fetch failed", missing: "No verified price", reverify: "Reverification required" },
+  };
+  type State = keyof typeof labels.zh;
+  const cases: Array<{ name: string; price: ModelsPrice; amount: string; state: State | null }> = [
+    { name: "fresh verified", price: base, amount: "$1.25 / $4.5", state: null },
+    { name: "stale retains numbers", price: { ...base, verification: { ...verification, status: "stale", lastErrorCode: "fetch_failed" } }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "stale without error", price: { ...base, verification: { ...verification, status: "stale" } }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "unknown price", price: { ...base, verification: { ...verification, status: "unknown" } }, amount: "$1.25 / $4.5", state: "unknown" },
+    { name: "legacy missing verification", price: { ...base, rates: [], verification: undefined }, amount: "$1.25 / $4.5", state: "unknown" },
+    { name: "verified with parser error", price: { ...base, verification: { ...verification, lastErrorCode: "parse_failed" } }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified missing date", price: { ...base, verifiedAt: null }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified invalid date", price: { ...base, verifiedAt: "invalid" }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified older than seven days", price: { ...base, verifiedAt: new Date(now - 7 * 86_400_000 - 1).toISOString() }, amount: "$1.25 / $4.5", state: "retained" },
+    { name: "verified at seven day boundary", price: { ...base, verifiedAt: new Date(now - 7 * 86_400_000).toISOString() }, amount: "$1.25 / $4.5", state: null },
+    { name: "unavailable fetch failure", price: { ...unavailable, verification: { ...verification, status: "unknown", lastErrorCode: "fetch_failed" } }, amount: "—", state: "failed" },
+    { name: "fetch failure takes priority over stale", price: { ...unavailable, verification: { ...verification, status: "stale", lastErrorCode: "fetch_failed" } }, amount: "—", state: "failed" },
+    { name: "unavailable unknown is not unpublished", price: unavailable, amount: "—", state: "missing" },
+    { name: "unavailable without verification", price: { ...unavailable, verification: undefined }, amount: "—", state: "missing" },
+    { name: "unavailable stale", price: { ...unavailable, verification: { ...verification, status: "stale" } }, amount: "—", state: "reverify" },
+    { name: "unavailable parser error", price: { ...unavailable, verification: { ...verification, lastErrorCode: "parse_failed" } }, amount: "—", state: "reverify" },
+    { name: "expired rates never revive flat prices", price: { ...base, rates: [{ ...rate, effectiveUntil: new Date(now).toISOString() }] }, amount: "—", state: "reverify" },
+    { name: "upcoming rates never revive flat prices", price: { ...base, rates: [{ ...rate, effectiveFrom: new Date(now + 86_400_000).toISOString() }] }, amount: "—", state: "reverify" },
+    { name: "unavailable CNY still has a price", price: { ...unavailable, verifiedAt, verification, rates: [{ ...rate, currency: "CNY" }] }, amount: "CN¥1.25 / CN¥4.5", state: null },
+    { name: "unavailable Beta retains formatter suffix", price: { ...unavailable, verifiedAt, verification: { ...verification, status: "stale" }, rates: [{ ...rate, serviceTier: "beta" }] }, amount: "$1.25 / $4.5 · Beta", state: "retained" },
+    { name: "explicit zero is still a price", price: { ...base, rates: [{ ...rate, inputPerMtok: 0, outputPerMtok: 0 }] }, amount: "$0 / $0", state: null },
+  ];
+
+  beforeEach(() => { vi.useFakeTimers(); vi.setSystemTime(now); });
+  afterEach(() => { cleanup(); vi.useRealTimers(); });
+
+  describe.each(["zh", "en"] as const)("%s", (locale) => {
+    it.each(cases)("$name in desktop and mobile markup", ({ price, amount, state }) => {
+      const name = "Provenance Model";
+      const slug = "provenance-model";
+      const data = response({ items: [row({ slug, name, price })], observing: [] });
+      data.meta.generatedAt = new Date(now).toISOString();
+      const { container } = render(
+        <NextIntlClientProvider locale={locale} messages={locale === "zh" ? zh : en}>
+          <ModelsLeaderboardClient initial={data} />
+        </NextIntlClientProvider>,
+      );
+      const modelLinks = screen.getAllByRole("link", { name });
+      expect(modelLinks).toHaveLength(2);
+      const href = `/currents/models/${slug}#model-pricing`;
+      for (const modelLink of modelLinks) {
+        expect(modelLink.getAttribute("href")).toBe(`/currents/models/${slug}`);
+        const scope = modelLink.closest("tr, li") as HTMLElement;
+        const priceScope = scope.tagName === "TR" ? scope.children[4] as HTMLElement : scope;
+        expect(within(priceScope).getAllByText(amount).length).toBeGreaterThanOrEqual(1);
+        if (amount === "—") expect(scope.textContent).not.toContain("$1.25 / $4.5");
+        if (state) {
+          const status = labels[locale][state];
+          const template = (locale === "zh" ? zh : en).currents.modelsPriceDetailsLabel;
+          const accessibleName = template.replace("{status}", status).replace("{model}", name);
+          const link = within(scope).getByRole("link", { name: accessibleName });
+          expect(link.textContent?.startsWith(status)).toBe(true);
+          expect(link.getAttribute("href")).toBe(href);
+          expect(link.className).toContain("focus-visible:");
+        } else {
+          expect(scope.querySelector(`a[href="${href}"]`)).toBeNull();
+          for (const status of Object.values(labels[locale])) expect(within(scope).queryByText(status)).toBeNull();
+        }
+        expect(scope.querySelector("time")).toBeNull();
+        expect(scope.textContent).not.toContain(verifiedAt);
+        expect(scope.textContent).not.toContain("12:34");
+        expect(scope.textContent).not.toMatch(/原厂未公开|未挂牌|Not listed|Unpublished/);
+      }
+      expect(container.querySelector(`a[href="${sourceUrl}"]`)).toBeNull();
+      expect(container.textContent).not.toContain(sourceUrl);
+      expect(mockFetchLeaderboard).not.toHaveBeenCalled();
+    });
+  });
 });

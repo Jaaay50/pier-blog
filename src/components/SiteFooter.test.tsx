@@ -26,6 +26,10 @@ describe("SiteFooter", () => {
     );
     expect(container.querySelector("footer > .site-shell")?.className).toBe("site-shell mx-auto py-12");
     expect(container.querySelector(".currents-shell-container")).toBeNull();
+    const messages = locale === "zh" ? zh : en;
+    expect(container.textContent).not.toContain(messages.footer.tagline);
+    expect(container.textContent).not.toContain(messages.footer.builtWith);
+    expect(container.textContent).toContain(`© ${new Date().getFullYear()} Pier.`);
   });
 
   it("只把站内导航包成 nav，Cloudborne 留在品牌外链列", () => {

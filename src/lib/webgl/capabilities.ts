@@ -37,6 +37,7 @@ export function detectWebGLSupport(): boolean {
       canvas.getContext('webgl') ||
       canvas.getContext('experimental-webgl');
     cachedSupport = !!gl;
+    (gl as WebGLRenderingContext | null)?.getExtension('WEBGL_lose_context')?.loseContext();
   } catch {
     cachedSupport = false;
   }

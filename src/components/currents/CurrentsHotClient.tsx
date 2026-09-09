@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { TransitionLink } from "@/components/TransitionLink";
 import { fetchHot } from "@/lib/currents/api";
-import type { CurrentsHotEvent, CurrentsHotStatus, CurrentsHotType } from "@/lib/currents/types";
+import type { CurrentsHotEvent, CurrentsHotStatus, CurrentsHotType, CurrentsHotResponse } from "@/lib/currents/types";
 import { CurrentsError } from "./CurrentsError";
 
 const STATUS_LABEL_KEY: Record<CurrentsHotStatus, string> = {
@@ -152,16 +152,21 @@ function EventList({ events, watching }: { events: CurrentsHotEvent[]; watching?
   );
 }
 
-export function CurrentsHotClient() {
+export function CurrentsHotClient({ initial = null }: { initial?: CurrentsHotResponse | null } = {}) {
   const t = useTranslations("currents");
   const locale = useLocale();
-  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
-  const [main, setMain] = useState<CurrentsHotEvent[]>([]);
-  const [watching, setWatching] = useState<CurrentsHotEvent[]>([]);
+  const [status, setStatus] = useState<"loading" | "ok" | "error">(initial ? "ok" : "loading");
+  const [main, setMain] = useState<CurrentsHotEvent[]>(initial?.items ?? []);
+  const [watching, setWatching] = useState<CurrentsHotEvent[]>(initial?.watching ?? []);
+  const initialSatisfiedRef = useRef(Boolean(initial));
   const [type, setType] = useState<CurrentsHotType>("all");
   const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
+    if (initialSatisfiedRef.current) {
+      initialSatisfiedRef.current = false;
+      return;
+    }
     const controller = new AbortController();
     fetchHot(locale, 30, controller.signal, type)
       .then((res) => {
@@ -190,7 +195,8 @@ export function CurrentsHotClient() {
             key={tab.id}
             role="tab"
             aria-selected={type === tab.id}
-            onClick={() => {
+              onClick={() => {
+                if (type === tab.id) return;
               setType(tab.id);
               setStatus("loading");
             }}
@@ -227,7 +233,6 @@ export function CurrentsHotClient() {
               <h2 className="font-display mb-1 border-b border-[var(--border)] pb-2 text-lg font-semibold tracking-tight">
                 {t("hotWatchingTitle")}
               </h2>
-              <p className="mb-4 text-[13px] text-[var(--text-muted)]">{t("hotWatchingSubtitle")}</p>
               <EventList events={watching} watching />
             </section>
           )}

@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Renderer, Program, Mesh, Geometry, Vec3 } from "ogl";
+import { Renderer, Program, Mesh, Geometry, Camera } from "ogl";
+import { useLocale } from "next-intl";
 import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
 
 /**
@@ -45,7 +46,7 @@ void main() {
   
   vec4 mvPos = modelViewMatrix * vec4(pos, 1.0);
   gl_Position = projectionMatrix * mvPos;
-  gl_PointSize = uPointSize * (200.0 / -mvPos.z);
+  gl_PointSize = uPointSize * (3.5 / max(0.1, -mvPos.z));
   
   float mixer = (pos.y + 1.5) / 3.0;
   vColor = mix(uColor1, uColor2, mixer);
@@ -61,7 +62,7 @@ varying float vAlpha;
 void main() {
   vec2 uv = gl_PointCoord - 0.5;
   float d = length(uv);
-  float a = smoothstep(0.5, 0.2, d) * vAlpha;
+  float a = (1.0 - smoothstep(0.2, 0.5, d)) * vAlpha;
   if (a < 0.02) discard;
   gl_FragColor = vec4(vColor, a);
 }
@@ -69,7 +70,7 @@ void main() {
 
 type Shape = "sphere" | "torus" | "cube" | "wave";
 
-function generateSphere(count: number): Float32Array {
+export function generateSphere(count: number): Float32Array {
   const arr: number[] = [];
   for (let i = 0; i < count; i++) {
     for (let j = 0; j < count; j++) {
@@ -85,7 +86,7 @@ function generateSphere(count: number): Float32Array {
   return new Float32Array(arr);
 }
 
-function generateTorus(count: number): Float32Array {
+export function generateTorus(count: number): Float32Array {
   const arr: number[] = [];
   const R = 1.0, r = 0.4;
   for (let i = 0; i < count; i++) {
@@ -102,13 +103,13 @@ function generateTorus(count: number): Float32Array {
   return new Float32Array(arr);
 }
 
-function generateCube(count: number): Float32Array {
+export function generateCube(count: number): Float32Array {
   const arr: number[] = [];
   for (let i = 0; i < count; i++) {
     for (let j = 0; j < count; j++) {
       const u = (i / (count - 1)) * 2 - 1;
       const v = (j / (count - 1)) * 2 - 1;
-      const face = Math.floor(Math.random() * 6);
+      const face = (i * count + j) % 6;
       switch (face) {
         case 0: arr.push(1, u, v); break;
         case 1: arr.push(-1, u, v); break;
@@ -122,7 +123,7 @@ function generateCube(count: number): Float32Array {
   return new Float32Array(arr);
 }
 
-function generateWave(count: number): Float32Array {
+export function generateWave(count: number): Float32Array {
   const arr: number[] = [];
   for (let i = 0; i < count; i++) {
     for (let j = 0; j < count; j++) {
@@ -137,237 +138,113 @@ function generateWave(count: number): Float32Array {
 
 const SHAPES: Shape[] = ["sphere", "torus", "cube", "wave"];
 
-interface Morph3DProps {
-  quality: WebGLQuality;
-  autoRotate: boolean;
-  isDark: boolean;
-  onShapeChange?: (shape: Shape) => void;
+export function morphDelta(previous: number | null, now: number) {
+  return previous === null ? 0 : Math.max(0, Math.min(0.05, (now - previous) / 1000));
 }
 
-export default function Morph3D({ quality, autoRotate, isDark, onShapeChange }: Morph3DProps) {
+interface Morph3DProps {
+  quality: WebGLQuality; autoRotate: boolean; isDark: boolean;
+  onShapeChange?: (shape: Shape) => void; onReadyChange?: (ready: boolean) => void;
+}
+
+export default function Morph3D({ quality, autoRotate, isDark, onShapeChange, onReadyChange }: Morph3DProps) {
   const hostRef = useRef<HTMLDivElement>(null);
   const [currentShape, setCurrentShape] = useState<Shape>("sphere");
-
+  const [autoCycle, setAutoCycle] = useState(true);
+  const zh = useLocale() === "zh";
+  const live = useRef({ autoRotate, isDark, onShapeChange, onReadyChange, autoCycle });
+  const desired = useRef<Shape>("sphere");
+  useEffect(() => { live.current = { autoRotate, isDark, onShapeChange, onReadyChange, autoCycle }; }, [autoRotate, isDark, onShapeChange, onReadyChange, autoCycle]);
   const nextShape = () => {
-    const idx = SHAPES.indexOf(currentShape);
-    const next = SHAPES[(idx + 1) % SHAPES.length];
-    setCurrentShape(next);
-    onShapeChange?.(next);
+    const next = SHAPES[(SHAPES.indexOf(desired.current) + 1) % SHAPES.length];
+    desired.current = next; setCurrentShape(next); live.current.onShapeChange?.(next);
   };
 
   useEffect(() => {
-    const host = hostRef.current;
-    if (!host) return;
-
-    let renderer: Renderer;
+    const host = hostRef.current; if (!host) return;
+    let renderer: Renderer | undefined, geometry: Geometry | undefined, program: Program | undefined;
+    let raf: number | null = null, last: number | null = null, disposed = false;
+    let stopGate = () => {}, removeInput = () => {}, disconnectResize = () => {};
+    const stop = () => { if (raf !== null) cancelAnimationFrame(raf); raf = null; last = null; };
+    const dispose = () => {
+      if (disposed) return; disposed = true; stopGate(); stop(); disconnectResize(); removeInput();
+      geometry?.remove(); program?.remove();
+      const gl = renderer?.gl;
+      if (gl) { gl.canvas.removeEventListener("webglcontextlost", fail); if (gl.canvas.parentNode === host) host.removeChild(gl.canvas); gl.getExtension("WEBGL_lose_context")?.loseContext(); }
+    };
+    const fail = () => { dispose(); live.current.onReadyChange?.(false); };
     try {
-      renderer = new Renderer({ alpha: true, dpr: quality.dpr });
-    } catch {
-      return;
-    }
-    const gl = renderer.gl;
-    gl.clearColor(0, 0, 0, 0);
-    gl.enable(gl.BLEND);
-    gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    host.appendChild(gl.canvas);
-
-    const resize = () => {
-      renderer.setSize(host.clientWidth, host.clientHeight);
-    };
-    resize();
-    const ro = new ResizeObserver(resize);
-    ro.observe(host);
-
-    // 相机（透视投影手动模拟）
-    const camera = { position: new Vec3(0, 0, 3.5), fov: 45 };
-    const aspect = () => host.clientWidth / host.clientHeight;
-    const projectionMatrix = () => {
-      const f = 1 / Math.tan((camera.fov * Math.PI) / 360);
-      const a = aspect();
-      const near = 0.1, far = 100;
-      return [
-        f / a, 0, 0, 0,
-        0, f, 0, 0,
-        0, 0, (far + near) / (near - far), -1,
-        0, 0, (2 * far * near) / (near - far), 0,
-      ];
-    };
-
-    const shapes: Record<Shape, Float32Array> = {
-      sphere: generateSphere(COUNT),
-      torus: generateTorus(COUNT),
-      cube: generateCube(COUNT),
-      wave: generateWave(COUNT),
-    };
-
-    const delays = new Float32Array(COUNT * COUNT);
-    for (let i = 0; i < delays.length; i++) delays[i] = Math.random();
-
-    const geometry = new Geometry(gl, {
-      position: { size: 3, data: shapes.sphere },
-      targetPos: { size: 3, data: shapes.sphere },
-      delay: { size: 1, data: delays },
-    });
-
-    const getColors = () => {
-      if (isDark) return [[0.42, 0.61, 0.8], [0.55, 0.5, 0.8]];
-      return [[0.85, 0.47, 0.34], [0.83, 0.64, 0.5]];
-    };
-
-    const [c1, c2] = getColors();
-    const program = new Program(gl, {
-      vertex,
-      fragment,
-      uniforms: {
-        uMorphProgress: { value: 1 },
-        uTime: { value: 0 },
-        uMouse: { value: [0, 0] },
-        uColor1: { value: c1 },
-        uColor2: { value: c2 },
-        uPointSize: { value: quality.dpr * 2.5 },
-        projectionMatrix: { value: projectionMatrix() },
-      },
-      transparent: true,
-      depthTest: false,
-    });
-
-    const mesh = new Mesh(gl, { mode: gl.POINTS, geometry, program });
-
-    let rotX = 0.2, rotY = 0;
-    let rotVX = 0, rotVY = 0;
-    let targetRotX = rotX, targetRotY = rotY;
-    let dragging = false;
-    let lastMX = 0, lastMY = 0;
-
-    const onPointerDown = (e: PointerEvent) => {
-      dragging = true;
-      lastMX = e.clientX;
-      lastMY = e.clientY;
-    };
-
-    const onPointerMove = (e: PointerEvent) => {
-      if (!dragging) return;
-      const dx = e.clientX - lastMX;
-      const dy = e.clientY - lastMY;
-      lastMX = e.clientX; lastMY = e.clientY;
-      targetRotY += dx * 0.01;
-      targetRotX -= dy * 0.01;
-      targetRotX = Math.max(-Math.PI / 2, Math.min(Math.PI / 2, targetRotX));
-    };
-
-    const onPointerUp = () => { dragging = false; };
-
-    gl.canvas.addEventListener("pointerdown", onPointerDown);
-    gl.canvas.addEventListener("pointermove", onPointerMove);
-    gl.canvas.addEventListener("pointerup", onPointerUp);
-    gl.canvas.addEventListener("pointerleave", onPointerUp);
-
-    let raf: number | null = null;
-    let lastTime: number | null = null;
-    let elapsed = 0;
-    let morphProgress = 1;
-    let morphing = false;
-    let shapeIndex = 0;
-
-    const startMorph = (nextIndex: number) => {
-      const from = SHAPES[shapeIndex];
-      const to = SHAPES[nextIndex];
-      geometry.attributes.position.data = shapes[from];
-      geometry.attributes.targetPos.data = shapes[to];
-      geometry.attributes.position.needsUpdate = true;
-      geometry.attributes.targetPos.needsUpdate = true;
-      morphProgress = 0;
-      morphing = true;
-      shapeIndex = nextIndex;
-    };
-
-    const frame = (t: number) => {
-      raf = requestAnimationFrame(frame);
-      if (lastTime !== null) elapsed += t - lastTime;
-      lastTime = t;
-      const dt = Math.min(16, lastTime ? t - lastTime : 16) / 1000;
-
-      if (morphing) {
-        morphProgress += dt * 0.8;
-        if (morphProgress >= 1) {
-          morphProgress = 1;
-          morphing = false;
+      renderer = new Renderer({ alpha: false, dpr: quality.dpr, antialias: true });
+      const activeRenderer = renderer, gl = renderer.gl;
+      const camera = new Camera(gl, { fov: 45 }); camera.position.z = 4;
+      const count = quality.tier === "high" ? COUNT : 48;
+      const shapes: Record<Shape, Float32Array> = { sphere: generateSphere(count), torus: generateTorus(count), cube: generateCube(count), wave: generateWave(count) };
+      const source = new Float32Array(shapes.sphere), target = new Float32Array(shapes.sphere);
+      const delays = Float32Array.from({ length: count * count }, (_, i) => ((i * 17) % 100) / 100);
+      geometry = new Geometry(gl, { position: { size: 3, data: source }, targetPos: { size: 3, data: target }, delay: { size: 1, data: delays } });
+      const activeGeometry = geometry;
+      program = new Program(gl, { vertex, fragment, uniforms: { uMorphProgress: { value: 1 }, uTime: { value: 0 }, uMouse: { value: [0, 0] }, uColor1: { value: [0.42, 0.61, 0.8] }, uColor2: { value: [0.55, 0.5, 0.8] }, uPointSize: { value: quality.dpr * 2.7 } }, transparent: true, depthTest: false });
+      const activeProgram = program;
+      if (!gl.getProgramParameter(program.program, gl.LINK_STATUS)) throw new Error("Unable to link morph shader");
+      const mesh = new Mesh(gl, { mode: gl.POINTS, geometry, program }); mesh.rotation.x = 0.2;
+      const resize = () => { activeRenderer.setSize(Math.max(1, host.clientWidth), Math.max(1, host.clientHeight)); camera.perspective({ aspect: Math.max(1, host.clientWidth) / Math.max(1, host.clientHeight) }); };
+      resize(); const ro = new ResizeObserver(resize); ro.observe(host); disconnectResize = () => ro.disconnect();
+      host.appendChild(gl.canvas); gl.canvas.style.display = "block"; gl.canvas.style.touchAction = "none";
+      gl.canvas.addEventListener("webglcontextlost", fail);
+      let dragging: number | null = null, mx = 0, my = 0, targetX = 0.2, targetY = 0;
+      const down = (e: PointerEvent) => { if (dragging !== null) return; dragging = e.pointerId; mx = e.clientX; my = e.clientY; gl.canvas.setPointerCapture(e.pointerId); };
+      const move = (e: PointerEvent) => { if (dragging !== e.pointerId) return; targetY += (e.clientX - mx) * 0.01; targetX = Math.max(-1.5, Math.min(1.5, targetX + (e.clientY - my) * 0.01)); mx = e.clientX; my = e.clientY; };
+      const up = (e: PointerEvent) => { if (dragging !== e.pointerId) return; dragging = null; if (gl.canvas.hasPointerCapture(e.pointerId)) gl.canvas.releasePointerCapture(e.pointerId); };
+      gl.canvas.tabIndex = 0;
+      gl.canvas.setAttribute("aria-label", zh ? "3D 形变，按方向键旋转" : "3D morph: use arrow keys to rotate");
+      const key = (event: KeyboardEvent) => {
+        if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+        event.preventDefault();
+        if (event.key === "ArrowLeft") targetY -= 0.15;
+        if (event.key === "ArrowRight") targetY += 0.15;
+        if (event.key === "ArrowUp") targetX = Math.max(-1.5, targetX - 0.15);
+        if (event.key === "ArrowDown") targetX = Math.min(1.5, targetX + 0.15);
+      };
+      gl.canvas.addEventListener("keydown", key);
+      gl.canvas.addEventListener("pointerdown", down); gl.canvas.addEventListener("pointermove", move); gl.canvas.addEventListener("pointerup", up); gl.canvas.addEventListener("pointercancel", up); gl.canvas.addEventListener("lostpointercapture", up);
+      removeInput = () => { gl.canvas.removeEventListener("keydown", key); gl.canvas.removeEventListener("pointerdown", down); gl.canvas.removeEventListener("pointermove", move); gl.canvas.removeEventListener("pointerup", up); gl.canvas.removeEventListener("pointercancel", up); gl.canvas.removeEventListener("lostpointercapture", up); };
+      let progress = 1, elapsed = 0, cycleTime = 0, shape: Shape = "sphere", ready = false;
+      const frame = (stamp: number) => {
+        raf = null; if (disposed) return;
+        const dt = morphDelta(last, stamp); last = stamp; elapsed += dt; cycleTime += dt;
+        if (live.current.autoCycle && cycleTime >= 6 && progress >= 1) {
+          desired.current = SHAPES[(SHAPES.indexOf(shape) + 1) % SHAPES.length]; setCurrentShape(desired.current); live.current.onShapeChange?.(desired.current);
         }
-      }
-
-      rotVX += (targetRotX - rotX) * 0.1;
-      rotVY += (targetRotY - rotY) * 0.1;
-      rotVX *= 0.92;
-      rotVY *= 0.92;
-      rotX += rotVX;
-      rotY += rotVY;
-      if (autoRotate && !dragging) rotY += dt * 0.3;
-
-      const cosX = Math.cos(rotX), sinX = Math.sin(rotX);
-      const cosY = Math.cos(rotY), sinY = Math.sin(rotY);
-      const modelView = [
-        cosY, sinX * sinY, cosX * sinY, 0,
-        0, cosX, -sinX, 0,
-        -sinY, sinX * cosY, cosX * cosY, 0,
-        0, 0, -camera.position.z, 1,
-      ];
-
-      program.uniforms.uMorphProgress.value = morphProgress;
-      program.uniforms.uTime.value = elapsed * 0.001;
-      program.uniforms.modelViewMatrix = { value: modelView };
-      program.uniforms.projectionMatrix.value = projectionMatrix();
-
-      renderer.render({ scene: mesh });
-    };
-
-    const startLoop = () => {
-      if (raf === null) {
-        lastTime = null;
+        if (desired.current !== shape) {
+          for (let i = 0; i < source.length; i++) {
+            const p = Math.max(0, Math.min(1, progress * 1.3 - delays[Math.floor(i / 3)] * 0.3));
+            const eased = p * p * (3 - 2 * p); source[i] += (target[i] - source[i]) * eased;
+          }
+          target.set(shapes[desired.current]); activeGeometry.attributes.position.needsUpdate = true; activeGeometry.attributes.targetPos.needsUpdate = true;
+          shape = desired.current; progress = 0; cycleTime = 0;
+        }
+        progress = Math.min(1, progress + dt * 0.8);
+        if (live.current.autoRotate && dragging === null) targetY += dt * 0.3;
+        const follow = 1 - Math.exp(-10 * dt); mesh.rotation.x += (targetX - mesh.rotation.x) * follow; mesh.rotation.y += (targetY - mesh.rotation.y) * follow;
+        activeProgram.uniforms.uMorphProgress.value = progress; activeProgram.uniforms.uTime.value = elapsed;
+        activeProgram.uniforms.uColor1.value = live.current.isDark ? [0.42, 0.75, 0.9] : [0.55, 0.2, 0.1];
+        activeProgram.uniforms.uColor2.value = live.current.isDark ? [0.65, 0.5, 0.95] : [0.2, 0.4, 0.6];
+        const bg = live.current.isDark ? [0.04, 0.05, 0.08] : [0.95, 0.94, 0.92]; gl.clearColor(bg[0], bg[1], bg[2], 1);
+        try { activeRenderer.render({ scene: mesh, camera }); } catch { fail(); return; }
+        if (!ready) { ready = true; live.current.onReadyChange?.(true); }
         raf = requestAnimationFrame(frame);
-      }
-    };
-    const stopLoop = () => {
-      if (raf !== null) {
-        cancelAnimationFrame(raf);
-        raf = null;
-      }
-    };
+      };
+      stopGate = observeRenderGate(host, (active) => { if (active && !disposed && raf === null) raf = requestAnimationFrame(frame); else if (!active) { dragging = null; stop(); } });
+    } catch { fail(); }
+    return dispose;
+  }, [quality.dpr, quality.tier, zh]);
 
-    startLoop();
-    const stopGate = observeRenderGate(host, (active) => (active ? startLoop() : stopLoop()));
-
-    // 响应外部 shape 变化
-    const shapeChangeHandler = () => {
-      const nextIdx = SHAPES.indexOf(currentShape);
-      if (nextIdx !== shapeIndex && !morphing) {
-        startMorph(nextIdx);
-      }
-    };
-    shapeChangeHandler();
-
-    return () => {
-      stopGate();
-      stopLoop();
-      ro.disconnect();
-      gl.canvas.removeEventListener("pointerdown", onPointerDown);
-      gl.canvas.removeEventListener("pointermove", onPointerMove);
-      gl.canvas.removeEventListener("pointerup", onPointerUp);
-      gl.canvas.removeEventListener("pointerleave", onPointerUp);
-      if (gl.canvas.parentNode === host) host.removeChild(gl.canvas);
-      gl.getExtension("WEBGL_lose_context")?.loseContext();
-    };
-  }, [quality, autoRotate, isDark, currentShape]);
-
-  return (
-    <div className="relative h-full w-full">
-      <div ref={hostRef} className="h-full w-full" />
-      <button
-        type="button"
-        onClick={nextShape}
-        className="absolute bottom-4 right-4 rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/80 px-4 py-2 text-sm text-[var(--text-secondary)] backdrop-blur-sm transition-colors hover:border-[var(--accent)] hover:text-[var(--accent)]"
-      >
-        Next Shape →
-      </button>
+  const names: Record<Shape, string> = zh ? { sphere: "球体", torus: "环面", cube: "立方体", wave: "波面" } : { sphere: "Sphere", torus: "Torus", cube: "Cube", wave: "Wave" };
+  return <div className="relative h-full w-full">
+    <div ref={hostRef} role="img" aria-label={names[currentShape]} className="h-full w-full" />
+    <div className="absolute bottom-3 left-3 right-3 flex flex-wrap items-center justify-between gap-2">
+      <button type="button" aria-pressed={autoCycle} onClick={() => setAutoCycle((value) => !value)} className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-primary)]">{zh ? "自动形变" : "Auto Morph"} {autoCycle ? "ON" : "OFF"}</button>
+      <button type="button" onClick={nextShape} className="rounded-lg border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-primary)]">{names[currentShape]} · {zh ? "下一形态" : "Next Shape"} →</button>
     </div>
-  );
+  </div>;
 }

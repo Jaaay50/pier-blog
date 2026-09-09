@@ -1,45 +1,44 @@
 // @vitest-environment jsdom
 
-import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { cleanup, render, screen, within } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { createTranslator } from "next-intl";
+import zh from "@/messages/zh.json";
+import en from "@/messages/en.json";
 import { LabGallery } from "./LabGallery";
+import { LAB_DEMOS } from "./lab-demos";
 
+let locale: "zh" | "en" = "zh";
 vi.mock("next-intl/server", () => ({
-  getTranslations: vi.fn(async () => {
-    const t = (key: string) => {
-      const parts = key.split(".");
-      if (parts[2] === "stillAlt") return `${parts[1]}-alt`;
-      return parts[parts.length - 1];
-    };
-    return t;
-  }),
+  getTranslations: vi.fn(async () => createTranslator({ locale, messages: locale === "zh" ? zh : en, namespace: "lab" })),
 }));
-
 vi.mock("./LabDemoEnhance", () => ({
-  LabDemoEnhance: () => <div data-testid="enhance" />,
+  // eslint-disable-next-line @next/next/no-img-element -- Mirrors the SSR poster contract.
+  LabDemoEnhance: ({ still, alt }: { still: string; alt: string }) => <img src={still} alt={alt} />,
 }));
+afterEach(cleanup);
 
 describe("LabGallery", () => {
-  it("SSRs six figures with titles, layer copy, and still images", async () => {
+  it.each(["zh", "en"] as const)("SSRs approved explanations and all twelve posters in %s without a runtime", async (language) => {
+    locale = language;
     render(await LabGallery());
     const figures = document.querySelectorAll("figure");
-    expect(figures).toHaveLength(6);
-    const images = screen.getAllByRole("img");
-    expect(images).toHaveLength(6);
-    for (const img of images) {
-      expect(img.getAttribute("src")?.endsWith(".webp")).toBe(true);
-    }
-    expect(screen.getAllByText("layer")).toHaveLength(6);
-    expect(screen.getAllByText("title")).toHaveLength(6);
-    const alts = images.map((img) => img.getAttribute("alt"));
-    expect(alts).toEqual([
-      "fluid-alt",
-      "physics-alt",
-      "flow-alt",
-      "particles-alt",
-      "morph-alt",
-      "shader-alt",
-    ]);
-    expect(new Set(alts).size).toBe(6);
+    const messages = language === "zh" ? zh.lab : en.lab;
+    expect(figures).toHaveLength(12);
+    expect(screen.getAllByRole("img")).toHaveLength(12);
+    LAB_DEMOS.forEach((demo, index) => {
+      const copy = messages.demos[demo.id];
+      const figure = figures[index] as HTMLElement;
+      expect(within(figure).getByRole("heading", { name: copy.title })).toBeTruthy();
+      expect(within(figure).getByRole("img", { name: copy.stillAlt }).getAttribute("src")).toBe(demo.still);
+      for (const field of ["desc", "layer", "tech"] as const) {
+        expect(copy[field].trim().length).toBeGreaterThan(0);
+        expect(within(figure).getByText(copy[field])).toBeTruthy();
+      }
+      expect(figure.querySelectorAll("figcaption p")).toHaveLength(3);
+      expect(within(figure).getByText(copy.layer).className).toContain("text-base font-medium");
+      expect(figure.textContent).not.toContain(`demos.${demo.id}.`);
+    });
+    expect(messages.metaDescription).toMatch(language === "zh" ? /^十二个/ : /^Twelve/);
   });
 });

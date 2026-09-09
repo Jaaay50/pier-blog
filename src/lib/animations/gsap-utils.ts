@@ -29,56 +29,6 @@ export function fadeInUp(
 }
 
 /**
- * 滚动触发淡入
- */
-export function scrollFadeIn(
-  element: gsap.TweenTarget,
-  options?: {
-    trigger?: gsap.DOMTarget;
-    start?: string;
-    end?: string;
-    scrub?: boolean;
-  }
-) {
-  return gsap.from(element, {
-    opacity: 0,
-    y: 60,
-    duration: 1,
-    scrollTrigger: {
-      trigger: (options?.trigger ?? element) as gsap.DOMTarget,
-      start: options?.start ?? 'top 85%',
-      end: options?.end ?? 'top 60%',
-      scrub: options?.scrub ?? false,
-      toggleActions: 'play none none reverse',
-    },
-  });
-}
-
-/**
- * 视差滚动效果
- */
-export function parallax(
-  element: gsap.TweenTarget,
-  options?: {
-    speed?: number;
-    trigger?: gsap.DOMTarget;
-  }
-) {
-  const speed = options?.speed ?? 0.5;
-  
-  return gsap.to(element, {
-    y: () => -window.innerHeight * speed,
-    ease: 'none',
-    scrollTrigger: {
-      trigger: (options?.trigger ?? element) as gsap.DOMTarget,
-      start: 'top bottom',
-      end: 'bottom top',
-      scrub: true,
-    },
-  });
-}
-
-/**
  * 磁性效果（用 quickTo 替代每次 mousemove 创建 tween）
  */
 export function magneticEffect(
@@ -120,26 +70,6 @@ export function magneticEffect(
 }
 
 /**
- * 分段滚动动画（钉住元素）
- */
-export function pinSection(
-  element: gsap.DOMTarget,
-  options?: {
-    start?: string;
-    end?: string;
-    pinSpacing?: boolean;
-  }
-) {
-  return ScrollTrigger.create({
-    trigger: element,
-    start: options?.start ?? 'top top',
-    end: options?.end ?? '+=100%',
-    pin: true,
-    pinSpacing: options?.pinSpacing ?? true,
-  });
-}
-
-/**
  * FLIP 动画辅助函数
  */
 export function flip(
@@ -178,34 +108,5 @@ export function flip(
         ease: options?.ease ?? 'power2.inOut',
       }
     );
-  });
-}
-
-/**
- * 文字逐字符动画
- */
-export function splitText(
-  element: HTMLElement,
-  options?: {
-    duration?: number;
-    stagger?: number;
-    ease?: string;
-  }
-) {
-  const text = element.textContent || '';
-  element.innerHTML = text
-    .split('')
-    .map((char) => `<span style="display: inline-block;">${char === ' ' ? '&nbsp;' : char}</span>`)
-    .join('');
-
-  const chars = element.querySelectorAll('span');
-
-  return gsap.from(chars, {
-    opacity: 0,
-    y: 20,
-    rotationX: -90,
-    duration: options?.duration ?? 0.6,
-    stagger: options?.stagger ?? 0.03,
-    ease: options?.ease ?? 'power2.out',
   });
 }

@@ -20,6 +20,13 @@ vi.mock("@/components/TransitionLink", () => ({
 afterEach(() => cleanup());
 
 describe("CurrentsAgentPage", () => {
+  it.each(["zh", "en"])("%s: 页头保留顶部间距，不紧贴粘性导航", async (locale) => {
+    render(await CurrentsAgentPage({ params: Promise.resolve({ locale }) }));
+
+    const heading = screen.getByRole("heading", { level: 1 });
+    expect(heading.closest("header")?.classList.contains("pt-14")).toBe(true);
+  });
+
   it("所有内部反馈入口只添加一次 locale 前缀", async () => {
     render(await CurrentsAgentPage({ params: Promise.resolve({ locale: "zh" }) }));
 

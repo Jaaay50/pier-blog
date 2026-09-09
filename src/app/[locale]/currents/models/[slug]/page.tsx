@@ -9,7 +9,9 @@ import {
   type ModelsDetailRanking,
   type ModelsDetailResponse,
 } from "@/lib/currents/models-types";
-import { TransitionLink } from "@/components/TransitionLink";
+import { Link as TransitionLink } from "@/i18n/navigation";
+import { ModelPriceDetails } from "@/components/currents/ModelPriceDetails";
+import { ModelValueRanking } from "@/components/currents/ModelValueRanking";
 import { ModelTopicLink } from "@/components/currents/ModelTopicLink";
 import { currentsTitleSuffix, pageMetadata } from "@/lib/metadata";
 
@@ -18,6 +20,7 @@ export const dynamicParams = true;
 export function generateStaticParams() {
   return []; // 运行时按需生成，不预构建
 }
+
 
 const CJK_RE = /[\u3400-\u9fff\uf900-\ufaff]/;
 
@@ -64,11 +67,6 @@ function formatDate(iso: string | null, locale: string): string | null {
     month: "short",
     day: "numeric",
   });
-}
-
-function formatUsd(v: number | null): string {
-  if (v === null) return "—";
-  return `$${v % 1 === 0 ? v.toFixed(0) : String(v)}`;
 }
 
 /** 静态 SVG 名次迷你曲线（rank 越小越好 → 反向 y 轴；≤1 个点不画线）。 */
@@ -194,9 +192,7 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
 
   const releaseDate = formatDate(model.releaseDate, locale);
   const verifiedAt = formatDate(model.verifiedAt, locale);
-  const priceVerifiedAt = formatDate(price.verifiedAt, locale);
-  const modelNotes = locale === "en" && model.notes && CJK_RE.test(model.notes) ? null : model.notes;
-  const priceNotes = locale === "en" && price.notes && CJK_RE.test(price.notes) ? null : price.notes;
+
 
   return (
     <article className="pb-16 pt-14">
@@ -245,58 +241,14 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
               <dd className="break-all font-mono text-[12px] text-[var(--text-primary)]">{model.officialModelId}</dd>
             </div>
           )}
-          <div className="flex justify-between gap-3 sm:block">
-            <dt className="text-[var(--text-muted)]">{t("modelsDetailPrice")}</dt>
-            <dd className="text-[var(--text-primary)]">
-              {price.kind === "payg" ? (
-                <span className="tabular-nums">
-                  {formatUsd(price.inputUsdPerMtok)} / {formatUsd(price.outputUsdPerMtok)}{" "}
-                  <span className="text-[11px] text-[var(--text-muted)]">{t("modelsPriceUnit")}</span>
-                </span>
-              ) : (
-                <span>
-                  {price.kind === "subscription"
-                    ? t("modelsPriceSubscription")
-                    : price.kind === "local"
-                      ? t("modelsPriceLocal")
-                      : t("modelsPriceUnavailable")}
-                </span>
-              )}
-              {priceNotes && (
-                <span className="ml-1.5 text-[11px] text-[var(--text-muted)]">
-                  {locale === "zh" ? `（${priceNotes}）` : `(${priceNotes})`}
-                </span>
-              )}
-            </dd>
-          </div>
         </dl>
-        <p className="mt-3 text-[11px] leading-relaxed text-[var(--text-muted)]">
-          {model.officialUrl && (
-            <>
-              <a
-                href={model.officialUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[var(--accent)] hover:underline"
-              >
-                {t("modelsDetailOfficialLink")}
-              </a>
-              {" · "}
-            </>
-          )}
-          {verifiedAt ? t("modelsDetailVerifiedAt", { date: verifiedAt }) : t("modelsDetailUnverified")}
-          {price.sourceUrl && priceVerifiedAt && (
-            <>
-              {" · "}
-              <a href={price.sourceUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] hover:underline">
-                {t("modelsDetailPriceSource")}
-              </a>{" "}
-              ({priceVerifiedAt})
-            </>
-          )}
-        </p>
-        {modelNotes && <p className="mt-2 text-[12px] text-[var(--text-muted)]">{modelNotes}</p>}
+        <dl className="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+          {model.officialUrl && <div><dt className="text-[var(--text-secondary)]">{t("modelsDetailOfficialLink")}</dt><dd><a href={model.officialUrl} target="_blank" rel="noopener noreferrer" className="text-[var(--accent)] underline">{model.name}</a></dd></div>}
+          <div><dt className="text-[var(--text-secondary)]">{locale==='zh'?'身份核验日期':'Identity verified'}</dt><dd>{verifiedAt??'—'}</dd></div>
+        </dl>
       </section>
+
+      <ModelPriceDetails price={price} locale={locale} initialNow={Date.parse(detail.meta.generatedAt)} />
 
       {/* 各类别排名 + 来源分项 */}
       <section aria-labelledby="model-rankings" className="mt-8">
@@ -312,6 +264,32 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
           {orderedRankings.map((r) => {
             const tier = confidenceTier(r.confidence);
             const rankHistory = historyByCategory.get(r.category) ?? [];
+            if (r.category === "value") {
+              return (
+                <ModelValueRanking
+                  key={r.category}
+                  price={price}
+                  initialNow={Date.parse(detail.meta.generatedAt)}
+                  valueValidUntil={detail.meta.valueValidUntil}
+                  rank={r.rank}
+                  valueScore={r.valueScore}
+                  title={t(CATEGORY_KEY[r.category])}
+                  observingLabel={r.status === "observing" ? t("modelsObserving") : null}
+                  confidence={
+                    <span className={`rounded-full border px-2 py-0.5 text-[11px] tabular-nums ${TIER_CLASS[tier]}`}>
+                      {t(tier === "high" ? "modelsConfHigh" : tier === "medium" ? "modelsConfMedium" : "modelsConfLow")}{" "}
+                      {r.confidence.toFixed(2)}
+                    </span>
+                  }
+                  history={
+                    <RankSparkline
+                      points={rankHistory}
+                      label={t("modelsDetailHistoryLabel", { category: t(CATEGORY_KEY[r.category]) })}
+                    />
+                  }
+                />
+              );
+            }
             return (
               <div key={r.category} className="rounded-xl border border-[var(--border)] p-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
@@ -332,15 +310,11 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
                       label={t("modelsDetailHistoryLabel", { category: t(CATEGORY_KEY[r.category]) })}
                     />
                     <span className="text-lg font-semibold tabular-nums text-[var(--text-primary)]">
-                      {r.category === "value" && r.valueScore !== null ? r.valueScore.toFixed(1) : r.abilityScore.toFixed(1)}
+                      {r.abilityScore.toFixed(1)}
                     </span>
                   </div>
                 </div>
-                {r.category !== "value" ? (
-                  <SourceBreakdown ranking={r} sourceNames={sourceNames} t={t} />
-                ) : (
-                  <p className="mt-2 text-[12px] text-[var(--text-muted)]">{t("modelsDetailValueNote")}</p>
-                )}
+                <SourceBreakdown ranking={r} sourceNames={sourceNames} t={t} />
               </div>
             );
           })}
@@ -353,7 +327,6 @@ export default async function CurrentsModelDetailPage({ params }: PageProps) {
           <h2 id="model-aliases" className="mb-2 text-base font-semibold text-[var(--text-primary)]">
             {t("modelsDetailAliases")}
           </h2>
-          <p className="mb-3 text-[12px] text-[var(--text-muted)]">{t("modelsDetailAliasesNote")}</p>
           <ul className="flex flex-wrap gap-2">
             {aliases.map((a) => (
               <li

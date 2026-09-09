@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import Particles from "@/components/reactbits/Particles";
 import { type WebGLQuality } from "@/lib/webgl";
 
@@ -25,6 +26,7 @@ interface ParticlePlaygroundProps {
     rotation: string;
   };
   isDark: boolean;
+  onReadyChange?: (ready: boolean) => void;
 }
 
 const DEFAULTS = {
@@ -39,8 +41,10 @@ export default function ParticlePlayground({
   quality,
   labels,
   isDark,
+  onReadyChange,
 }: ParticlePlaygroundProps) {
   const [params, setParams] = useState(DEFAULTS);
+  const zh = useLocale() === "zh";
 
   const colors = isDark
     ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
@@ -65,11 +69,13 @@ export default function ParticlePlayground({
     <div className="flex h-full flex-col">
       <div className="relative min-h-0 flex-1 overflow-hidden bg-gradient-to-br from-[var(--bg-primary)] to-[var(--bg-secondary)]">
         <Particles
+          onReadyChange={onReadyChange}
+          interactionLabel={zh ? "粒子系统，移动指针或按方向键改变位置" : "Particle system: move the pointer or use arrow keys to change position"}
           particleCount={Math.round(params.count * quality.particleMultiplier)}
           particleSpread={params.spread}
           speed={params.speed}
           particleColors={colors}
-          moveParticlesOnHover={quality.mouseInteraction}
+          moveParticlesOnHover
           particleHoverFactor={params.hover}
           alphaParticles
           particleBaseSize={80}

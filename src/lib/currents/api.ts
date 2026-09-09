@@ -2,7 +2,7 @@
  * Currents 只读 API 客户端。
  * - 客户端组件（"use client" 数据岛）：通过浏览器 fetch
  * - 详情页/日报页（ISR Server Component）：服务端 fetch，配 next.revalidate
- * 页面壳保持 SSG；仅 /currents/[id] 与 /currents/daily* 为 ISR。
+ * 列表、模型、热点、主题与详情均可注入 ISR 首屏；筛选仍由客户端接管。
  */
 import type {
   CurrentsDailyArchiveResponse,
@@ -40,11 +40,13 @@ function clientApiBase(): string {
 }
 
 export class CurrentsApiError extends Error {
-  status: number | null;
-  constructor(message: string, status: number | null) {
+  readonly status: number | null;
+  readonly code: string | null;
+  constructor(message: string, status: number | null, code: string | null = null) {
     super(message);
     this.name = "CurrentsApiError";
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -178,15 +180,35 @@ function isCurrentsEventTimelineEntry(value: unknown): boolean {
   return true;
 }
 
+const publicGetCache = new Map<string, { value: unknown; expiresAt: number }>();
+const PUBLIC_GET_CACHE_MS = 60_000;
+const PUBLIC_GET_CACHE_LIMIT = 32;
+
+/** Only completed, public GET responses are retained, never feedback/token data.
+ * In-flight requests remain independent so one component's abort cannot cancel
+ * another consumer; add subscriber-aware deduplication only if traces justify it. */
+export function clearCurrentsReadCache(): void {
+  publicGetCache.clear();
+}
+
 async function fetchJson<T>(
   path: string,
   signal?: AbortSignal,
   validator?: (value: unknown) => value is T,
 ): Promise<T> {
+  const url = `${clientApiBase()}${path}`;
+  const cacheable = typeof window !== "undefined";
+  const cached = cacheable ? publicGetCache.get(url) : undefined;
+  if (signal?.aborted) throw new CurrentsApiError("network-error", null);
+  if (cached && cached.expiresAt > Date.now() && (!validator || validator(cached.value))) {
+    return cached.value as T;
+  }
+  publicGetCache.delete(url);
   let res: Response;
   try {
-    res = await fetch(`${clientApiBase()}${path}`, {
-      signal,
+    const timeoutSignal = AbortSignal.timeout(10_000);
+    res = await fetch(url, {
+      signal: signal ? AbortSignal.any([signal, timeoutSignal]) : timeoutSignal,
       headers: { Accept: "application/json" },
     });
   } catch {
@@ -203,6 +225,10 @@ async function fetchJson<T>(
   }
   if (validator && !validator(value)) {
     throw new CurrentsApiError("contract-error", res.status);
+  }
+  if (cacheable && !signal?.aborted) {
+    publicGetCache.set(url, { value, expiresAt: Date.now() + PUBLIC_GET_CACHE_MS });
+    if (publicGetCache.size > PUBLIC_GET_CACHE_LIMIT) publicGetCache.delete(publicGetCache.keys().next().value!);
   }
   return value as T;
 }
@@ -416,6 +442,12 @@ export function fetchModelsLeaderboard(
   );
 }
 
+/** ISR first paint uses the same model contract as client refreshes. */
+export async function serverFetchModelsLeaderboard(category: ModelsCategory = "overall", view: ModelsView = "released") {
+  const value = await serverFetch<unknown>(`/v1/models/leaderboard?category=${encodeURIComponent(category)}&view=${encodeURIComponent(view)}`, 300);
+  return isModelsLeaderboardResponse(value, category, view) ? value : null;
+}
+
 export function fetchModelsMeta(signal?: AbortSignal): Promise<ModelsMetaResponse> {
   return fetchJson<ModelsMetaResponse>(`/v1/models/meta`, signal, isModelsMetaResponse);
 }
@@ -434,6 +466,16 @@ export function fetchHot(
 
 export function fetchTopics(locale: string, signal?: AbortSignal): Promise<CurrentsTopicsResponse> {
   return fetchJson<CurrentsTopicsResponse>(`/v1/topics?locale=${encodeURIComponent(locale)}`, signal);
+}
+
+export async function serverFetchHot(locale: string): Promise<CurrentsHotResponse | null> {
+  const value = await serverFetch<CurrentsHotResponse>(`/v1/hot?locale=${encodeURIComponent(locale)}&limit=30&type=all`, 300);
+  return value?.schemaVersion === 2 && Array.isArray(value.items) ? value : null;
+}
+
+export async function serverFetchTopics(locale: string): Promise<CurrentsTopicsResponse | null> {
+  const value = await serverFetch<CurrentsTopicsResponse>(`/v1/topics?locale=${encodeURIComponent(locale)}`, 300);
+  return value && Array.isArray(value.groups) && Array.isArray(value.topics) ? value : null;
 }
 
 export const FEEDBACK_CATEGORIES = [
@@ -461,6 +503,7 @@ export interface SubmitFeedbackParams {
   category: CurrentsFeedbackCategory;
   message?: string;
   locale: "zh" | "en";
+  turnstileToken: string;
   /** honeypot：正常用户永远不填；非空时后端静默丢弃 */
   website?: string;
 }
@@ -470,6 +513,7 @@ export interface SubmitSiteFeedbackParams {
   /** 全局反馈必填（无内容上下文的空反馈没有可执行性） */
   message: string;
   locale: "zh" | "en";
+  turnstileToken: string;
   /** 反馈入口所在页面路径；已清洗（仅路径，无 query/hash/凭据）。仅作分流上下文。 */
   pagePath?: string;
   /** honeypot：正常用户永远不填；非空时后端静默丢弃 */
@@ -501,78 +545,71 @@ export function sanitizeFeedbackPagePath(raw: string | null | undefined): string
   return path;
 }
 
-/**
- * POST /v1/feedback —— 阶段 C 全局产品反馈（targetType "site"）。
- * 与内容纠错共用同一端点与防护层（限流/幂等/容量/honeypot），错误语义一致。
- */
-export async function submitSiteFeedback(
-  { category, message, locale, pagePath, website }: SubmitSiteFeedbackParams,
+async function feedbackHttpError(res: Response): Promise<CurrentsApiError> {
+  let code: string | null = null;
+  try {
+    const body = (await res.json()) as { error?: unknown };
+    if (typeof body.error === "string") code = body.error;
+  } catch {
+    // Non-JSON error responses still retain their HTTP status.
+  }
+  return new CurrentsApiError(`http-${res.status}`, res.status, code);
+}
+
+/** All three feedback entrypoints share a bounded, non-retrying POST. A timeout
+ * may occur after the server saved the feedback, so the UI retains the draft
+ * and requires a new verification token; server idempotency resolves retries. */
+async function postFeedback(
+  payload: Record<string, unknown>,
   signal?: AbortSignal,
 ): Promise<{ ok: true; duplicate?: boolean }> {
+  const timeout = AbortSignal.timeout(15_000);
+  const requestSignal = signal ? AbortSignal.any([signal, timeout]) : timeout;
   let res: Response;
   try {
     res = await fetch(`${clientApiBase()}/v1/feedback`, {
       method: "POST",
-      signal,
+      signal: requestSignal,
       headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        targetType: "site",
-        category,
-        message: message.trim(),
-        locale,
-        ...(pagePath ? { pagePath } : {}),
-        ...(website ? { website } : {}),
-      }),
+      body: JSON.stringify(payload),
     });
   } catch {
     throw new CurrentsApiError("network-error", null);
   }
-  if (!res.ok) throw new CurrentsApiError(`http-${res.status}`, res.status);
+  if (!res.ok) throw await feedbackHttpError(res);
   try {
-    const body = (await res.json()) as { ok?: boolean; duplicate?: boolean };
-    if (body.ok !== true) throw new CurrentsApiError("invalid-json", res.status);
-    return { ok: true, ...(body.duplicate ? { duplicate: true } : {}) };
+    const body: unknown = await res.json();
+    if (!isRecord(body) || body.ok !== true || (body.duplicate !== undefined && typeof body.duplicate !== "boolean")) {
+      throw new CurrentsApiError("invalid-json", res.status);
+    }
+    return { ok: true, ...(body.duplicate === true ? { duplicate: true } : {}) };
   } catch (err) {
+    if (requestSignal.aborted) throw new CurrentsApiError("network-error", null);
     if (err instanceof CurrentsApiError) throw err;
     throw new CurrentsApiError("invalid-json", res.status);
   }
 }
 
-/**
- * POST /v1/feedback —— 阶段 A 反馈提交（后端唯一公开写入端点）。
- * 错误语义：429 限流 / 其他 HTTP 错误 / 网络错误均抛 CurrentsApiError，由 UI 分支展示。
- */
-export async function submitFeedback(
-  { targetType, targetId, category, message, locale, website }: SubmitFeedbackParams,
+export function submitSiteFeedback(
+  { category, message, locale, turnstileToken, pagePath, website }: SubmitSiteFeedbackParams,
   signal?: AbortSignal,
 ): Promise<{ ok: true; duplicate?: boolean }> {
-  let res: Response;
-  try {
-    res = await fetch(`${clientApiBase()}/v1/feedback`, {
-      method: "POST",
-      signal,
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
-      body: JSON.stringify({
-        targetType,
-        targetId,
-        category,
-        ...(message && message.trim() !== "" ? { message: message.trim() } : {}),
-        locale,
-        ...(website ? { website } : {}),
-      }),
-    });
-  } catch {
-    throw new CurrentsApiError("network-error", null);
-  }
-  if (!res.ok) throw new CurrentsApiError(`http-${res.status}`, res.status);
-  try {
-    const body = (await res.json()) as { ok?: boolean; duplicate?: boolean };
-    if (body.ok !== true) throw new CurrentsApiError("invalid-json", res.status);
-    return { ok: true, ...(body.duplicate ? { duplicate: true } : {}) };
-  } catch (err) {
-    if (err instanceof CurrentsApiError) throw err;
-    throw new CurrentsApiError("invalid-json", res.status);
-  }
+  return postFeedback({
+    targetType: "site", category, message: message.trim(), locale, turnstileToken,
+    ...(pagePath ? { pagePath } : {}),
+    ...(website ? { website } : {}),
+  }, signal);
+}
+
+export function submitFeedback(
+  { targetType, targetId, category, message, locale, turnstileToken, website }: SubmitFeedbackParams,
+  signal?: AbortSignal,
+): Promise<{ ok: true; duplicate?: boolean }> {
+  return postFeedback({
+    targetType, targetId, category, locale, turnstileToken,
+    ...(message && message.trim() !== "" ? { message: message.trim() } : {}),
+    ...(website ? { website } : {}),
+  }, signal);
 }
 
 export function fetchTopicItems(

@@ -150,13 +150,10 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
   return (
     <div className="pb-8 xl:grid xl:grid-cols-[minmax(0,52rem)_15rem] xl:gap-14 2xl:grid-cols-[minmax(0,54rem)_16rem]">
       <article className="min-w-0">
-      <header className="pb-2">
+      <header className="pb-2 pt-14">
         <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
           {t("heading")}
         </h1>
-        <p className="max-w-2xl leading-relaxed text-[var(--text-secondary)]">
-          {t("subtitle")}
-        </p>
         <ul className="mt-5 flex flex-wrap gap-2" aria-label="status">
           {[t("statusInvite"), t("statusReadonly"), t("statusBilingual")].map((s) => (
             <li
@@ -261,9 +258,6 @@ http_headers = { "Authorization" = "Bearer TOKEN" }`;
               {t("mcpGenericTitle")}
             </h3>
             <CodeBlock label="mcp.json" copyLabel={t("copyLabel")} copiedLabel={t("copiedLabel")} copyFailedLabel={t("copyFailedLabel")}>{genericConfig}</CodeBlock>
-            <p className="mt-2 text-[13px] text-[var(--text-muted)]">
-              {t("mcpEndpointNote", { endpoint: MCP_ENDPOINT })}
-            </p>
           </div>
         </div>
       </Section>

@@ -37,7 +37,7 @@ interface SkillsShowcaseProps {
  * 触屏设备无 hover：Card 1/3 保持静态（性能优先）
  * 滚动进入视口时 3D 飞入（rotateX + translateY + stagger）
  */
-export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps) {
+export function SkillsShowcase({ title, skills }: SkillsShowcaseProps) {
   const { resolvedTheme } = useTheme();
   const quality = useWebGLQuality();
   // quality 挂载后才非 null，兼作水合门
@@ -103,14 +103,6 @@ export function SkillsShowcase({ title, subtitle, skills }: SkillsShowcaseProps)
               <span className="opacity-0">{title}</span>
             )}
           </h2>
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={inView ? { opacity: 1 } : {}}
-            transition={{ delay: 0.6, duration: 0.8 }}
-            className="text-[var(--text-muted)]"
-          >
-            {subtitle}
-          </motion.p>
         </div>
 
         {/* 3D 飞入卡片，透视容器 */}

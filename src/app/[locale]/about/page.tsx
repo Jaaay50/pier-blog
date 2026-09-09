@@ -99,6 +99,12 @@ export default async function AboutPage({
 
       <PageHero label={t("label")} title={t("title")} description={t("intro")} />
 
+      <div className="site-content">
+        <p className="max-w-3xl text-lg leading-relaxed text-[var(--text-secondary)]">
+          {t("intro")}
+        </p>
+      </div>
+
       {/* Skills */}
       <section className="pb-16 pt-10 md:pt-16">
         <div className="site-content">
@@ -205,12 +211,9 @@ export default async function AboutPage({
         <div className="site-content">
           <div className="about-contact-panel grid items-center gap-8 rounded-2xl border border-[var(--border)] px-6 py-8 md:grid-cols-[minmax(0,1fr)_auto] md:gap-12 md:px-10 md:py-10">
             <div className="min-w-0">
-              <h2 className="mb-3 text-2xl font-bold tracking-tight">
+              <h2 className="text-2xl font-bold tracking-tight">
                 {t("getInTouch")}
               </h2>
-              <p className="max-w-xl text-[var(--text-secondary)]">
-                {t("contactPrompt")}
-              </p>
             </div>
             <div className="md:justify-self-end">
               <a

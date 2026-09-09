@@ -14,6 +14,8 @@ type TestProgram = { uniforms: Uniforms };
 const mocks = vi.hoisted(() => ({
   programs: [] as TestProgram[],
   gate: vi.fn(), stopGate: vi.fn(), draw: vi.fn(), construct: vi.fn(),
+  removeGeometry: vi.fn(), removeProgram: vi.fn(), deleteShader: vi.fn(),
+  shader: vi.fn(), link: vi.fn(), error: vi.fn(), lost: vi.fn(),
   sample: vi.fn(), geometry: vi.fn(), blend: vi.fn(), loseContext: vi.fn(),
 }));
 
@@ -23,6 +25,9 @@ vi.mock("ogl", () => ({
     gl = {
       canvas: document.createElement("canvas"),
       SRC_ALPHA: 770, ONE: 1, ONE_MINUS_SRC_ALPHA: 771, BLEND: 3042, POINTS: 0,
+      COMPILE_STATUS: 35713, LINK_STATUS: 35714, NO_ERROR: 0,
+      getShaderParameter: mocks.shader, getProgramParameter: mocks.link,
+      getError: mocks.error, isContextLost: mocks.lost, deleteShader: mocks.deleteShader,
       enable: vi.fn(), blendFunc: mocks.blend, clearColor: vi.fn(),
       getExtension: () => ({ loseContext: mocks.loseContext }),
     };
@@ -30,8 +35,9 @@ vi.mock("ogl", () => ({
     setSize = vi.fn();
     render = mocks.draw;
   },
-  Geometry: class { constructor() { mocks.geometry(); } },
+  Geometry: class { constructor() { mocks.geometry(); } remove = mocks.removeGeometry; },
   Program: class {
+    remove = mocks.removeProgram;
     uniforms: Uniforms;
     constructor(_gl: unknown, options: { uniforms: Uniforms }) {
       this.uniforms = options.uniforms;
@@ -52,6 +58,7 @@ const quality: WebGLQuality = {
 };
 const titles = { en: "A pier has to hold at both ends", zh: "全栈的栈，也是栈桥的栈" };
 const onFail = vi.fn();
+const onReadyChange = vi.fn();
 
 // 使用真实 next-themes 与项目 CSS；不能先改 html.class 再 rerender，
 // 也不能按 isDark mock getComputedStyle，否则会掩盖父子 effect 的取色竞态。
@@ -71,7 +78,7 @@ function TitleFixture({ title = titles.en }: { title?: string }) {
     <button onClick={() => setTheme("dark")}>Dark</button>
     <span ref={anchorRef}><span data-ptchar>{title}</span></span>
     <ParticleTitle title={title} anchorRef={anchorRef} isDark={resolvedTheme === "dark"}
-      quality={quality} onFail={onFail} />
+      quality={quality} onFail={onFail} onReadyChange={onReadyChange} />
   </>;
 }
 
@@ -114,6 +121,10 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.useFakeTimers();
   mocks.programs.length = 0;
+  mocks.shader.mockReturnValue(true);
+  mocks.link.mockReturnValue(true);
+  mocks.error.mockReturnValue(0);
+  mocks.lost.mockReturnValue(false);
   window.localStorage.clear();
   document.documentElement.className = "";
   style = document.createElement("style");
@@ -266,6 +277,9 @@ describe("ParticleTitle theme synchronization", () => {
     expect(mocks.sample).toHaveBeenCalledTimes(2);
     expect(mocks.stopGate).toHaveBeenCalledOnce();
     expect(mocks.loseContext).toHaveBeenCalledOnce();
+    expect(mocks.removeGeometry).toHaveBeenCalledOnce();
+    expect(mocks.removeProgram).toHaveBeenCalledOnce();
+    expect(mocks.deleteShader).toHaveBeenCalledTimes(2);
     expect(frames.size).toBe(1);
   });
 
@@ -324,4 +338,120 @@ describe("ParticleTitle theme synchronization", () => {
     expect(mocks.programs).toHaveLength(0);
     expect(view.container.querySelector("canvas")).toBeNull();
   });
+});
+
+describe("ParticleTitle draw readiness", () => {
+  it("does not report ready until a validated draw and revokes on unmount", async () => {
+    const view = render(<Fixture />);
+    await finishBoot();
+    expect(onReadyChange).not.toHaveBeenCalledWith(true);
+    mocks.draw.mockImplementationOnce(() => {
+      expect(onReadyChange).not.toHaveBeenCalledWith(true);
+    });
+    frame(0);
+    expect(onReadyChange).toHaveBeenLastCalledWith(true);
+    expect(view.container.querySelector("[data-ptchar]")?.parentElement?.style.opacity).toBe("0");
+    expect(view.container.querySelector("canvas")?.parentElement?.style.visibility).toBe("visible");
+    frame(16);
+    expect(onReadyChange.mock.calls.filter(([ready]) => ready)).toHaveLength(1);
+    expect(mocks.error).toHaveBeenCalledOnce();
+    view.unmount();
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(frames.size).toBe(0);
+  });
+
+  it.each(["vertex", "fragment", "link", "sample-throws"])("never becomes ready after %s failure", async failure => {
+    if (failure === "vertex") mocks.shader.mockReturnValueOnce(false);
+    if (failure === "fragment") mocks.shader.mockReturnValueOnce(true).mockReturnValueOnce(false);
+    if (failure === "link") mocks.link.mockReturnValueOnce(false);
+    if (failure === "sample-throws") mocks.sample.mockImplementationOnce(() => { throw new Error("sample"); });
+    const view = render(<Fixture />);
+    await finishBoot();
+    expect(onFail).toHaveBeenCalledOnce();
+    expect(onReadyChange).not.toHaveBeenCalledWith(true);
+    expect(frames.size).toBe(0);
+    expect(view.container.querySelector("canvas")).toBeNull();
+  });
+
+  it.each(["throw", "gl-error", "lost"])("rejects an invalid first draw: %s", async failure => {
+    render(<Fixture />);
+    await finishBoot();
+    if (failure === "throw") mocks.draw.mockImplementationOnce(() => { throw new Error("draw"); });
+    if (failure === "gl-error") mocks.error.mockReturnValueOnce(1282);
+    if (failure === "lost") mocks.lost.mockReturnValueOnce(true);
+    frame(0);
+    expect(onFail).toHaveBeenCalledOnce();
+    expect(onReadyChange).not.toHaveBeenCalledWith(true);
+    expect(frames.size).toBe(0);
+  });
+
+  it("revokes readiness on context loss without resuming on visibility changes", async () => {
+    const view = render(<Fixture />);
+    await finishBoot();
+    frame(0);
+    fireEvent(view.container.querySelector("canvas")!, new Event("webglcontextlost"));
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(onFail).toHaveBeenCalledOnce();
+    expect(view.container.querySelector("[data-ptchar]")?.parentElement?.style.opacity).toBe("1");
+    act(() => gateChange(true));
+    expect(frames.size).toBe(0);
+    expect(view.container.querySelector("canvas")).toBeNull();
+  });
+
+  it("revokes readiness on a later render exception", async () => {
+    render(<Fixture />);
+    await finishBoot();
+    frame(0);
+    mocks.draw.mockImplementationOnce(() => { throw new Error("later draw"); });
+    frame(16);
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(onFail).toHaveBeenCalledOnce();
+    expect(frames.size).toBe(0);
+  });
+
+  it("keeps text available while waiting for fonts and throughout glyph rebuild", async () => {
+    let resolveFonts!: () => void;
+    Object.defineProperty(document.fonts, "ready", {
+      configurable: true, value: new Promise<void>(resolve => { resolveFonts = resolve; }),
+    });
+    const view = render(<Fixture />);
+    expect(onReadyChange).not.toHaveBeenCalledWith(true);
+    await act(async () => resolveFonts());
+    frame(0);
+    onReadyChange.mockClear();
+    view.rerender(<Fixture title={titles.zh} />);
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    await finishBoot();
+    expect(onReadyChange).not.toHaveBeenCalledWith(true);
+    frame(0);
+    expect(onReadyChange).toHaveBeenLastCalledWith(true);
+  });
+
+  it("revokes and revalidates readiness after a width rebuild", async () => {
+    render(<Fixture />);
+    await finishBoot();
+    frame(0);
+    onReadyChange.mockClear();
+    vi.stubGlobal("innerWidth", window.innerWidth + 100);
+    fireEvent(window, new Event("resize"));
+    await act(async () => { vi.advanceTimersByTime(300); });
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    await finishBoot();
+    frame(0);
+    expect(onReadyChange).toHaveBeenLastCalledWith(true);
+    expect(mocks.construct).toHaveBeenCalledTimes(2);
+  });
+
+  it("revalidates GL errors when the render gate resumes", async () => {
+    render(<Fixture />);
+    await finishBoot();
+    frame(0);
+    act(() => gateChange(false));
+    mocks.error.mockReturnValueOnce(1282);
+    act(() => gateChange(true));
+    frame(16);
+    expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(onFail).toHaveBeenCalledOnce();
+  });
+
 });

@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "model": {
+    "slug": "gpt-6-astra",
+    "name": "GPT-6 Astra",
+    "vendor": "OpenAI",
+    "vendorId": "openai",
+    "status": "released",
+    "releaseDate": "2026-09-03",
+    "contextWindow": null,
+    "officialModelId": "gpt-6-astra",
+    "officialUrl": "https://openai.com/index/gpt-6-astra",
+    "verifiedAt": "2026-09-07",
+    "notes": null
+  },
+  "price": {
+    "kind": "unavailable",
+    "inputUsdPerMtok": null,
+    "outputUsdPerMtok": null,
+    "sourceUrl": "https://openai.com/index/gpt-6-astra",
+    "verifiedAt": null,
+    "notes": null,
+    "rates": [],
+    "verification": {
+      "status": "unknown",
+      "checkedAt": "2026-09-08T17:23:02.465Z",
+      "lastErrorCode": "fetch_failed"
+    },
+    "benchmark": null
+  },
+  "rankings": [],
+  "history": [],
+  "aliases": [
+    {
+      "alias": "gpt-6-astra",
+      "sourceId": null,
+      "configLabel": null,
+      "isDefaultConfig": false
+    },
+    {
+      "alias": "gpt-6-astra-max",
+      "sourceId": null,
+      "configLabel": "max",
+      "isDefaultConfig": false
+    }
+  ],
+  "meta": {
+    "scoringVersion": "mlv2",
+    "valueValidUntil": "2027-01-01T00:00:00.000Z",
+    "generatedAt": "2026-09-08T17:23:02.569Z"
+  }
+}

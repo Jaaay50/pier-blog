@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import {
   submitFeedback,
   FEEDBACK_CATEGORIES,
@@ -27,6 +28,8 @@ export interface FeedbackLabels {
   errorGeneric: string;
   errorRateLimit: string;
   errorNetwork: string;
+  errorVerification: string;
+  errorVerificationUnavailable: string;
   close: string;
 }
 
@@ -37,7 +40,15 @@ interface FeedbackFormProps {
   labels: FeedbackLabels;
 }
 
-type SubmitState = "idle" | "submitting" | "success" | "error-rate-limit" | "error-network" | "error-generic";
+type SubmitState =
+  | "idle"
+  | "submitting"
+  | "success"
+  | "error-rate-limit"
+  | "error-network"
+  | "error-verification"
+  | "error-verification-unavailable"
+  | "error-generic";
 
 /**
  * 独立反馈入口（阶段 A）：资讯详情页与事件页正文末尾的低调文字按钮，
@@ -49,15 +60,23 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
   const [category, setCategory] = useState<CurrentsFeedbackCategory>("content_error");
   const [message, setMessage] = useState("");
   const [state, setState] = useState<SubmitState>("idle");
+  const [turnstileToken, setTurnstileToken] = useState("");
   // 已提交类别集合只在打开面板时读取一次（客户端交互后才会用到，无水合分歧）
   const [submittedKeys, setSubmittedKeys] = useState<Set<string>>(new Set());
   const honeypotRef = useRef<HTMLInputElement>(null);
+  const submittingRef = useRef(false);
+  const turnstileRef = useRef<TurnstileWidgetHandle>(null);
 
   const normalizedLocale: "zh" | "en" = locale === "zh" ? "zh" : "en";
   const storageKey = feedbackSubmittedKey(targetType, targetId, category);
   const panelId = `feedback-panel-${targetType}-${targetId}`;
   const statusId = `feedback-status-${targetType}-${targetId}`;
   const alreadyReported = submittedKeys.has(storageKey);
+
+  const resetTurnstile = () => {
+    setTurnstileToken("");
+    turnstileRef.current?.reset();
+  };
 
   const handleOpen = () => {
     setSubmittedKeys(readFeedbackSubmittedKeys(window.localStorage));
@@ -68,15 +87,17 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
   const handleClose = () => {
     setOpen(false);
     setState("idle");
+    setTurnstileToken("");
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (state === "submitting" || alreadyReported) return;
+    if (submittingRef.current || state === "submitting" || alreadyReported || turnstileToken === "") return;
 
     // honeypot：bot 自动填表时带上，后端静默丢弃；正常用户永远为空
     const honeypot = honeypotRef.current?.value ?? "";
 
+    submittingRef.current = true;
     setState("submitting");
     try {
       await submitFeedback({
@@ -85,16 +106,26 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
         category,
         message: message.trim() || undefined,
         locale: normalizedLocale,
+        turnstileToken,
         ...(honeypot !== "" ? { website: honeypot } : {}),
       });
       markFeedbackSubmittedKey(window.localStorage, storageKey);
       setSubmittedKeys(readFeedbackSubmittedKeys(window.localStorage));
       setMessage("");
+      resetTurnstile();
       setState("success");
     } catch (err: unknown) {
       if (err instanceof CurrentsApiError && err.status === 429) setState("error-rate-limit");
       else if (err instanceof CurrentsApiError && err.status === null) setState("error-network");
-      else setState("error-generic");
+      else if (err instanceof CurrentsApiError && err.code === "human_verification_failed") {
+        setState("error-verification");
+      } else if (err instanceof CurrentsApiError && err.code === "verification_unavailable") {
+        setState("error-verification-unavailable");
+      } else setState("error-generic");
+      // A failed/uncertain request may already have consumed this single-use token.
+      resetTurnstile();
+    } finally {
+      submittingRef.current = false;
     }
   };
 
@@ -124,6 +155,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
             <button
               type="button"
               onClick={handleClose}
+              disabled={state === "submitting"}
               className="rounded-sm text-xs text-[var(--text-muted)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)]"
             >
               {labels.close}
@@ -136,7 +168,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
             </p>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
-              <fieldset>
+              <fieldset disabled={state === "submitting"}>
                 <legend className="mb-2 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
                   {labels.categoryLabel}
                 </legend>
@@ -157,7 +189,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                         checked={category === cat}
                         onChange={() => {
                           setCategory(cat);
-                          if (state !== "idle") setState("idle");
+                          if (state !== "idle" && state !== "error-verification-unavailable") setState("idle");
                         }}
                         className="sr-only"
                       />
@@ -173,6 +205,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                 </label>
                 <textarea
                   id={`feedback-message-${targetId}`}
+                  disabled={state === "submitting"}
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={labels.messagePlaceholder}
@@ -180,7 +213,6 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                   rows={3}
                   className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus-visible:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                 />
-                <p className="mt-1 text-right text-[11px] tabular-nums text-[var(--text-muted)]">{message.length}/1000</p>
               </div>
 
               {/* honeypot：视觉隐藏 + tabIndex -1，正常用户不可达 */}
@@ -195,10 +227,23 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                 style={{ left: "-9999px" }}
               />
 
+              <TurnstileWidget
+                ref={turnstileRef}
+                onToken={(token) => {
+                  setTurnstileToken(token);
+                  if (!submittingRef.current && state.startsWith("error-verification")) setState("idle");
+                }}
+                onExpired={resetTurnstile}
+                onError={() => {
+                  setTurnstileToken("");
+                  if (!submittingRef.current) setState("error-verification-unavailable");
+                }}
+              />
+
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="submit"
-                  disabled={state === "submitting" || alreadyReported}
+                  disabled={state === "submitting" || alreadyReported || turnstileToken === ""}
                   aria-describedby={alreadyReported || state.startsWith("error-") ? statusId : undefined}
                   className="rounded-lg bg-[var(--accent)] px-4 py-2 text-sm font-medium text-[var(--accent-contrast)] transition-colors hover:bg-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
                 >
@@ -212,6 +257,15 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                 )}
                 {state === "error-network" && (
                   <span id={statusId} className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorNetwork}</span>
+                )}
+                {state === "error-verification" && (
+                  <span id={statusId} className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorVerification}</span>
+                )}
+                {state === "error-verification-unavailable" && (
+                  <>
+                    <span id={statusId} className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorVerificationUnavailable}</span>
+                    <button type="button" onClick={() => { setState("idle"); resetTurnstile(); }} className="rounded-sm text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2">{normalizedLocale === "zh" ? "重新验证" : "Retry verification"}</button>
+                  </>
                 )}
                 {state === "error-generic" && (
                   <span id={statusId} className="text-[13px] text-[var(--text-secondary)]" role="alert">{labels.errorGeneric}</span>

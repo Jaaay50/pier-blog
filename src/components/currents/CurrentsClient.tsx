@@ -1,8 +1,8 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useReducer, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { usePathname, useRouter } from "@/i18n/navigation";
+import { useRouter } from "@/i18n/navigation";
 import { useSearchParams } from "next/navigation";
 import { fetchItems, fetchSources } from "@/lib/currents/api";
 import type {
@@ -87,11 +87,11 @@ function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null
   const t = useTranslations("currents");
   const locale = useLocale();
   const router = useRouter();
-  const pathname = usePathname();
   const searchParams = useSearchParams();
 
   // ---- URL 状态 ----
-  const view = (searchParams.get("view") ?? "selected") as ViewKey;
+  const rawView = searchParams.get("view");
+  const view: ViewKey = rawView === "all" || rawView === "papers" ? rawView : "selected";
   const category = (searchParams.get("category") ?? "all") as CategoryKey;
   const query = searchParams.get("q") ?? "";
   const source = searchParams.get("source") ?? "";
@@ -148,21 +148,28 @@ function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null
 
   const sentinelRef = useRef<HTMLDivElement>(null);
   const requestSeqRef = useRef(0);
+  const activeFilterKeyRef = useRef(filterKey);
+  useLayoutEffect(() => {
+    activeFilterKeyRef.current = filterKey;
+  }, [filterKey]);
+  const moreControllerRef = useRef<AbortController | null>(null);
   const autoLoadPausedRef = useRef(false);
 
   const syncUrl = useCallback(
     (updates: Record<string, string | null>, mode: "push" | "replace" = "replace") => {
-      const params = new URLSearchParams(searchParams.toString());
+      // These filters are client-owned. Native history keeps Next's search params
+      // in sync without a redundant RSC navigation before the data request.
+      const url = new URL(window.location.href);
+      const params = url.searchParams;
       for (const [key, value] of Object.entries(updates)) {
         if (value == null || value === "") params.delete(key);
         else params.set(key, value);
       }
-      const qs = params.toString();
-      const href = (qs ? `${pathname}?${qs}` : pathname) as Parameters<typeof router.replace>[0];
-      if (mode === "push") router.push(href, { scroll: false });
-      else router.replace(href, { scroll: false });
+      const href = `${url.pathname}${url.search}${url.hash}`;
+      if (mode === "push") window.history.pushState(null, "", href);
+      else window.history.replaceState(null, "", href);
     },
-    [pathname, router, searchParams],
+    [],
   );
 
   // ---- 信源元数据 ----
@@ -183,7 +190,13 @@ function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null
   // ---- 首屏 / 筛选变化加载 ----
   useEffect(() => {
     const keyWithoutRetry = `${locale}|${view}|${category}|${query}|${source}|${minScore}`;
-    if (ssrFilterKeyRef.current === keyWithoutRetry && retryCount === 0) {
+    const satisfiedBySsr = ssrFilterKeyRef.current === keyWithoutRetry && retryCount === 0;
+    // SSR satisfies only the initial load. Keeping this marker forever leaves
+    // selected -> all -> selected reset to a skeleton with no request to finish it.
+    ssrFilterKeyRef.current = null;
+    moreControllerRef.current?.abort();
+    moreControllerRef.current = null;
+    if (satisfiedBySsr) {
       return;
     }
 
@@ -204,22 +217,26 @@ function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null
       controller.signal,
     )
       .then((res) => {
-        if (controller.signal.aborted || seq !== requestSeqRef.current) return;
+        if (controller.signal.aborted || seq !== requestSeqRef.current || activeFilterKeyRef.current !== filterKey) return;
         dispatch({ type: "firstOk", res });
       })
       .catch((err) => {
-        if (controller.signal.aborted || seq !== requestSeqRef.current) return;
+        if (controller.signal.aborted || seq !== requestSeqRef.current || activeFilterKeyRef.current !== filterKey) return;
         if (err instanceof DOMException && err.name === "AbortError") return;
         dispatch({ type: "firstError" });
       });
 
     return () => controller.abort();
-  }, [locale, view, category, query, source, minScore, retryCount]);
+  }, [locale, view, category, query, source, minScore, retryCount, filterKey]);
+
+  useEffect(() => () => moreControllerRef.current?.abort(), []);
 
   // ---- 加载更多 ----
   const loadMore = useCallback(() => {
-    if (list.status !== "ok" || list.loadingMore || !list.hasMore || !list.nextCursor) return;
+    if (list.status !== "ok" || list.loadingMore || moreControllerRef.current || !list.hasMore || !list.nextCursor) return;
     const cursor = list.nextCursor;
+    const controller = new AbortController();
+    moreControllerRef.current = controller;
     const seq = ++requestSeqRef.current;
     dispatch({ type: "moreStart" });
     fetchItems({
@@ -231,17 +248,20 @@ function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null
       minScore: minScore ? Number(minScore) : undefined,
       cursor,
       limit: PAGE_SIZE,
-    })
+    }, controller.signal)
       .then((res) => {
-        if (seq !== requestSeqRef.current) return;
+        if (controller.signal.aborted || seq !== requestSeqRef.current || activeFilterKeyRef.current !== filterKey) return;
         dispatch({ type: "moreOk", res });
       })
       .catch(() => {
-        if (seq !== requestSeqRef.current) return;
+        if (controller.signal.aborted || seq !== requestSeqRef.current || activeFilterKeyRef.current !== filterKey) return;
         autoLoadPausedRef.current = true;
         dispatch({ type: "moreError" });
+      })
+      .finally(() => {
+        if (moreControllerRef.current === controller) moreControllerRef.current = null;
       });
-  }, [list, locale, view, category, query, source, minScore]);
+  }, [list, locale, view, category, query, source, minScore, filterKey]);
 
   useEffect(() => {
     const sentinel = sentinelRef.current;
@@ -264,14 +284,9 @@ function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null
 
   return (
     <div>
-      {/* 今日要闻（仅精选视图顶部） */}
-      {view === "selected" && !query && (
-        <CurrentsHighlights locale={locale} sourceMap={sourceMap} />
-      )}
-
       <CurrentsFilters
         view={view}
-        onViewChange={(v) => syncUrl({ view: v === "selected" ? null : v, category: null })}
+        onViewChange={(v) => syncUrl({ view: v === "selected" ? null : v, category: null }, "push")}
         category={category}
         onCategoryChange={(c) => syncUrl({ category: c === "all" ? null : c })}
         query={query}
@@ -285,6 +300,11 @@ function CurrentsClientInner({ initial }: { initial?: CurrentsInitialData | null
         onMinScoreChange={(v) => syncUrl({ minScore: v || null })}
         density={density}
       />
+
+      {/* 今日要闻（仅精选视图，位于视图控件之后） */}
+      {view === "selected" && !query && (
+        <CurrentsHighlights locale={locale} sourceMap={sourceMap} />
+      )}
 
       <div className="py-8">
         {list.status === "loading" && (

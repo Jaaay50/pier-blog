@@ -8,5 +8,7 @@ export default defineConfig({
   test: {
     include: ["src/**/*.test.ts", "src/**/*.test.tsx"],
     environment: "node",
+    // Let jsdom own Web Storage instead of Node's experimental global.
+    execArgv: ["--no-experimental-webstorage"],
   },
 });

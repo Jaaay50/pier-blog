@@ -12,12 +12,17 @@ export function useWebGLQuality(): WebGLQuality | null {
   const [quality, setQuality] = useState<WebGLQuality | null>(null);
 
   useEffect(() => {
-    const compute = () => setQuality(getWebGLQuality());
+    const compute = () => {
+      const next = getWebGLQuality();
+      setQuality((previous) => previous && Object.keys(next).every((key) => previous[key as keyof WebGLQuality] === next[key as keyof WebGLQuality]) ? previous : next);
+    };
     compute();
 
     const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
-    mq.addEventListener('change', compute);
-    return () => mq.removeEventListener('change', compute);
+    const pointer = window.matchMedia('(pointer: coarse)');
+    mq.addEventListener('change', compute); pointer.addEventListener('change', compute);
+    window.addEventListener('resize', compute);
+    return () => { mq.removeEventListener('change', compute); pointer.removeEventListener('change', compute); window.removeEventListener('resize', compute); };
   }, []);
 
   return quality;
