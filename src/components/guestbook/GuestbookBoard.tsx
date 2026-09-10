@@ -63,6 +63,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   // 高亮与「读卡是否打开」必须分开：方向键浏览只移动高亮，焦点留在画布上，
   // 否则每按一次方向键焦点就跳进读卡，键盘就再也回不到画布。
   const [cardOpen, setCardOpen] = useState(false);
+  const [hover, setHover] = useState<{ id: string; x: number; y: number } | null>(null);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const submittingRef = useRef(false);
@@ -144,6 +145,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
 
   const pickedIndex = entries.findIndex((entry) => entry.id === pickedId);
   const picked = pickedIndex >= 0 ? entries[pickedIndex] : null;
+  const hovered = hover ? (entries.find((entry) => entry.id === hover.id) ?? null) : null;
 
   /** 读卡里的上一则 / 下一则，省得每读一条都要退回去再戳一只瓶子 */
   const stepCard = (delta: number) => {
@@ -259,9 +261,25 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
               selectedId={pickedId}
               onSelect={focusBottle}
               onActivate={(id) => openBottle(id, "canvas")}
+              onHover={setHover}
               canvasLabel={t("canvasLabel")}
               className="absolute inset-0"
             />
+          )}
+
+          {/* 悬停预览：读卡开着时就不再叠一层，信息重复还挡视线 */}
+          {hover && hovered && !cardOpen && (
+            <div
+              className="pointer-events-none absolute z-20 -translate-x-1/2 -translate-y-[calc(100%+14px)] rounded-xl border border-[var(--border)] bg-[var(--bg-primary)]/95 px-3 py-2 shadow-[var(--shadow-card-hover)] backdrop-blur-md"
+              style={{ left: hover.x, top: hover.y }}
+              data-testid="guestbook-hover-preview"
+              aria-hidden="true"
+            >
+              <p className="text-xs font-medium text-[var(--text-secondary)]">{hovered.nickname}</p>
+              <p className="mt-0.5 max-w-[16rem] truncate text-xs text-[var(--text-primary)]">
+                {hovered.message}
+              </p>
+            </div>
           )}
 
           {/* 水雾：给标题一块可读的底，同时让水面有个远景 */}

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { useTheme } from "next-themes";
+import dynamic from "next/dynamic";
+import { useEffect, useRef, useState } from "react";
 import type { GuestbookEntry } from "@/lib/guestbook";
+import { useWebGLQuality } from "@/lib/webgl";
 import {
   hitTest,
   nextBottleInDirection,
@@ -13,6 +14,12 @@ import {
   type TideWorld,
 } from "@/lib/guestbook-tide";
 import { observeRenderGate } from "@/lib/webgl";
+
+// 架构决策：ogl 不进主 chunk，WebGL 组件必须 next/dynamic 懒加载
+const TideWater = dynamic(() => import("@/components/guestbook/TideWater"), {
+  ssr: false,
+  loading: () => null,
+});
 
 interface TidePalette {
   sky: string;
@@ -41,6 +48,8 @@ interface GuestbookTideProps {
   onSelect: (id: string | null) => void;
   /** 高亮并打开读卡（点击、Enter） */
   onActivate: (id: string | null) => void;
+  /** 鼠标悬停到某只瓶子上；坐标是相对画布的 CSS 像素。触屏不触发 */
+  onHover?: (hover: { id: string; x: number; y: number } | null) => void;
   canvasLabel: string;
   /** 由调用方决定水面怎么占位；默认是独立的圆角卡片。 */
   className?: string;
@@ -298,6 +307,7 @@ export function GuestbookTide({
   selectedId,
   onSelect,
   onActivate,
+  onHover,
   canvasLabel,
   className = "guestbook-hero relative overflow-hidden rounded-3xl border border-[var(--border)]",
 }: GuestbookTideProps) {
@@ -310,9 +320,45 @@ export function GuestbookTide({
   const hoverRef = useRef<string | null>(null);
   const onSelectRef = useRef(onSelect);
   const onActivateRef = useRef(onActivate);
+  const onHoverRef = useRef(onHover);
   // 调色板只在主题切换时重读，避免每帧 getComputedStyle 触发样式重算。
   const paletteDirtyRef = useRef(true);
-  const { resolvedTheme } = useTheme();
+  const quality = useWebGLQuality();
+
+  // shader 水面就绪后，2D 层只画瓶子；未就绪/不支持时 2D 层继续画回退水面
+  const [waterReady, setWaterReady] = useState(false);
+  const waterReadyRef = useRef(false);
+  useEffect(() => {
+    waterReadyRef.current = waterReady;
+  }, [waterReady]);
+
+  // 传给 shader 的颜色跟 2D 回退取自同一份调色板，两层不会跳色。
+  //
+  // 不能用 next-themes 的 resolvedTheme 当触发器：它的 effect 晚于本组件，
+  // 拿到新值时根节点的 class 还没换，readPalette 会读到上一个主题的颜色。
+  // 2D 层因为「标脏 + 下一帧再读」侥幸避开了，shader 层直接读就会读错。
+  // 改成监听根节点 class，主题真正落地的那一刻才读，不依赖执行顺序。
+  const [shaderColors, setShaderColors] = useState<TidePalette | null>(null);
+  useEffect(() => {
+    const read = () => {
+      if (!frameRef.current) return;
+      const next = readPalette(frameRef.current);
+      paletteDirtyRef.current = true;
+      setShaderColors((prev) =>
+        prev &&
+        prev.sky === next.sky &&
+        prev.mid === next.mid &&
+        prev.deep === next.deep &&
+        prev.glassRim === next.glassRim
+          ? prev
+          : next,
+      );
+    };
+    read();
+    const observer = new MutationObserver(read);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
+    return () => observer.disconnect();
+  }, []);
 
   // 同步最新值到 ref（不重建 RAF 循环）
   useEffect(() => {
@@ -320,11 +366,8 @@ export function GuestbookTide({
     selectedRef.current = selectedId;
     onSelectRef.current = onSelect;
     onActivateRef.current = onActivate;
-  }, [entries, selectedId, onSelect, onActivate]);
-
-  useEffect(() => {
-    paletteDirtyRef.current = true;
-  }, [resolvedTheme]);
+    onHoverRef.current = onHover;
+  }, [entries, selectedId, onSelect, onActivate, onHover]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -379,7 +422,11 @@ export function GuestbookTide({
           paletteDirtyRef.current = false;
         }
         try {
-          drawTide(ctx, world, time, palette);
+          if (waterReadyRef.current) {
+            ctx.clearRect(0, 0, world.width, world.height);
+          } else {
+            drawTide(ctx, world, time, palette);
+          }
           if (glasses) {
             for (const bottle of bottlesRef.current) {
               drawBottle(
@@ -414,8 +461,26 @@ export function GuestbookTide({
       const point = pointOnCanvas(event);
       if (!point) return;
       const hit = hitTest(bottlesRef.current, point.x, point.y, reachFor(event));
-      hoverRef.current = hit?.id ?? null;
+      const nextId = hit?.id ?? null;
+      const changed = nextId !== hoverRef.current;
+      hoverRef.current = nextId;
       canvas.style.cursor = hit ? "pointer" : "default";
+      // 只在悬停对象变化时通知，别把 pointermove 的频率透给 React。
+      // 触屏没有真正的悬停，跟着手指闪一下反而碍事。
+      if (!changed || event.pointerType === "touch") return;
+      if (!hit) {
+        onHoverRef.current?.(null);
+        return;
+      }
+      const rect = canvas.getBoundingClientRect();
+      const x = Math.min(Math.max(event.clientX - rect.left, 90), Math.max(90, rect.width - 90));
+      onHoverRef.current?.({ id: hit.id, x, y: event.clientY - rect.top });
+    };
+
+    const onLeave = () => {
+      hoverRef.current = null;
+      canvas.style.cursor = "default";
+      onHoverRef.current?.(null);
     };
 
     const onClick = (event: PointerEvent) => {
@@ -449,6 +514,7 @@ export function GuestbookTide({
       visible = active;
     });
     canvas.addEventListener("pointermove", onMove);
+    canvas.addEventListener("pointerleave", onLeave);
     canvas.addEventListener("pointerdown", onClick);
     canvas.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", fit);
@@ -460,6 +526,7 @@ export function GuestbookTide({
       resize.disconnect();
       ungate();
       canvas.removeEventListener("pointermove", onMove);
+      canvas.removeEventListener("pointerleave", onLeave);
       canvas.removeEventListener("pointerdown", onClick);
       canvas.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", fit);
@@ -473,9 +540,20 @@ export function GuestbookTide({
 
   return (
     <div ref={frameRef} className={className} data-testid="guestbook-tide">
+      {quality?.enabled && shaderColors && (
+        <TideWater
+          sky={shaderColors.sky}
+          mid={shaderColors.mid}
+          deep={shaderColors.deep}
+          crest={shaderColors.glassRim}
+          crestAlpha={0.3}
+          dpr={quality.dpr}
+          onReadyChange={setWaterReady}
+        />
+      )}
       <canvas
         ref={canvasRef}
-        className="block h-full w-full focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--accent)]"
+        className="relative block h-full w-full focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--accent)]"
         data-testid="guestbook-canvas"
         role="img"
         tabIndex={0}

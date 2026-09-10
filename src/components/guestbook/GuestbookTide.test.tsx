@@ -5,6 +5,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GuestbookTide } from "./GuestbookTide";
 
 beforeEach(() => {
+  // useWebGLQuality 会查询 matchMedia；jsdom 没有实现
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
   vi.stubGlobal(
     "ResizeObserver",
     class {
