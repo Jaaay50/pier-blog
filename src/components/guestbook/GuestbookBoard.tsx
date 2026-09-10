@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import { GuestbookTide } from "@/components/guestbook/GuestbookTide";
@@ -64,6 +64,8 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const submittingRef = useRef(false);
   const turnstileRef = useRef<TurnstileWidgetHandle>(null);
   const listRef = useRef<HTMLUListElement>(null);
+  const readCardRef = useRef<HTMLElement>(null);
+  const pickButtonRef = useRef<HTMLButtonElement>(null);
   const tideEnabled = useTideMotion();
 
   const rateLimited = state === "error-rate-limit" && retryAfterSeconds !== null && retryAfterSeconds > 0;
@@ -82,12 +84,24 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
     return () => window.clearInterval(timer);
   }, [rateLimited, retryAfterSeconds]);
 
+  // 潮水模式下画布是纯指针交互，读卡是唯一的无障碍出口：
+  // 打开时把焦点移进去（读屏才会念出这条留言），Esc 关闭并把焦点还回按钮。
+  useEffect(() => {
+    if (!tideEnabled || pickedId === null) return;
+    readCardRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setPickedId(null);
+      pickButtonRef.current?.focus();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [tideEnabled, pickedId]);
+
   const resetTurnstile = () => {
     setTurnstileToken("");
     turnstileRef.current?.reset();
   };
-
-  const visibleCount = useMemo(() => entries.length, [entries]);
 
   const pickOne = () => {
     if (entries.length === 0) return;
@@ -164,36 +178,36 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   };
 
   const list = (
-        <ul
-          ref={listRef}
-          className={tideEnabled ? "sr-only" : "mt-10 space-y-4"}
-          aria-label={t("listLabel")}
-          data-testid="guestbook-list"
-        >
-          {entries.map((entry) => {
-            const active = entry.id === pickedId;
-            return (
-              <li
-                key={entry.id}
-                data-entry-id={entry.id}
-                data-testid={`guestbook-entry-${entry.id}`}
-                className={`rounded-2xl border px-5 py-4 transition-colors ${
-                  active
-                    ? "border-[var(--accent)] bg-[var(--accent-soft)]"
-                    : "border-[var(--border)] bg-[var(--bg-card)]"
-                }`}
-              >
-                <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
-                  <span className="font-medium text-[var(--text-secondary)]">{entry.nickname}</span>
-                  <time dateTime={entry.createdAt}>{fmtDateTime(entry.createdAt, normalizedLocale)}</time>
-                </p>
-                <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
-                  {entry.message}
-                </p>
-              </li>
-            );
-          })}
-        </ul>
+    <ul
+      ref={listRef}
+      className={tideEnabled ? "sr-only" : "mt-10 space-y-4"}
+      aria-label={t("listLabel")}
+      data-testid="guestbook-list"
+    >
+      {entries.map((entry) => {
+        const active = entry.id === pickedId;
+        return (
+          <li
+            key={entry.id}
+            data-entry-id={entry.id}
+            data-testid={`guestbook-entry-${entry.id}`}
+            className={`rounded-2xl border px-5 py-4 transition-colors ${
+              active
+                ? "border-[var(--accent)] bg-[var(--accent-soft)]"
+                : "border-[var(--border)] bg-[var(--bg-card)]"
+            }`}
+          >
+            <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
+              <span className="font-medium text-[var(--text-secondary)]">{entry.nickname}</span>
+              <time dateTime={entry.createdAt}>{fmtDateTime(entry.createdAt, normalizedLocale)}</time>
+            </p>
+            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
+              {entry.message}
+            </p>
+          </li>
+        );
+      })}
+    </ul>
   );
 
   return (
@@ -201,6 +215,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
       <div className="flex flex-wrap items-center gap-3">
         <button
           type="button"
+          ref={pickButtonRef}
           onClick={pickOne}
           disabled={entries.length === 0}
           data-testid="guestbook-pick"
@@ -209,7 +224,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
           {t("pick")}
         </button>
         <p className="text-sm text-[var(--text-muted)]" data-testid="guestbook-count">
-          {t("count", { count: visibleCount })}
+          {t("count", { count: entries.length })}
         </p>
       </div>
 
@@ -330,9 +345,11 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
           />
           {picked && (
             <aside
-              className="absolute inset-x-4 bottom-4 z-10 max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md sm:inset-x-auto sm:left-6"
+              ref={readCardRef}
+              tabIndex={-1}
+              className="absolute inset-x-4 bottom-4 z-10 max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:inset-x-auto sm:left-6"
               data-testid="guestbook-read-card"
-              role="dialog"
+              role="region"
               aria-labelledby="guestbook-read-title"
             >
               <p id="guestbook-read-title" className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
@@ -348,7 +365,10 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
               <button
                 type="button"
                 className="mt-4 text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
-                onClick={() => setPickedId(null)}
+                onClick={() => {
+                  setPickedId(null);
+                  pickButtonRef.current?.focus();
+                }}
               >
                 {t("closeCard")}
               </button>

@@ -82,8 +82,13 @@ export function guestbookMessageError(message: string): "required" | "tooLong" |
   return null;
 }
 
+/**
+ * 列表读取。浏览器侧（重新加载按钮）要最新数据，走 no-store；
+ * 服务端首屏必须传 revalidate，否则 no-store 会把整个路由拖成动态渲染，
+ * 每次访问都实时打后端，并且共用一个服务器 IP 的限流桶。
+ */
 export async function fetchGuestbookEntries(
-  opts: { limit?: number; cursor?: string | null; signal?: AbortSignal } = {},
+  opts: { limit?: number; cursor?: string | null; signal?: AbortSignal; revalidate?: number } = {},
 ): Promise<GuestbookListResponse> {
   const params = new URLSearchParams({ limit: String(opts.limit ?? 20) });
   if (opts.cursor) params.set("cursor", opts.cursor);
@@ -94,7 +99,9 @@ export async function fetchGuestbookEntries(
     res = await fetch(`${clientApiBase()}/v1/guestbook?${params.toString()}`, {
       signal,
       headers: { Accept: "application/json" },
-      cache: "no-store",
+      ...(typeof opts.revalidate === "number"
+        ? { next: { revalidate: opts.revalidate } }
+        : { cache: "no-store" as const }),
     });
   } catch {
     throw new CurrentsApiError("network-error", null);

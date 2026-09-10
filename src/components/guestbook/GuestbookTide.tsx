@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { useTheme } from "next-themes";
 import type { GuestbookEntry } from "@/lib/guestbook";
 import {
   hitTest,
@@ -151,10 +152,20 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
   const selectedRef = useRef(selectedId);
   const hoverRef = useRef<string | null>(null);
   const onSelectRef = useRef(onSelect);
+  // 调色板只在主题切换时重读，避免每帧 getComputedStyle 触发样式重算。
+  const paletteDirtyRef = useRef(true);
+  const { resolvedTheme } = useTheme();
 
-  entriesRef.current = entries;
-  selectedRef.current = selectedId;
-  onSelectRef.current = onSelect;
+  // 同步最新值到 ref（不重建 RAF 循环）
+  useEffect(() => {
+    entriesRef.current = entries;
+    selectedRef.current = selectedId;
+    onSelectRef.current = onSelect;
+  }, [entries, selectedId, onSelect]);
+
+  useEffect(() => {
+    paletteDirtyRef.current = true;
+  }, [resolvedTheme]);
 
   useEffect(() => {
     const frame = frameRef.current;
@@ -200,9 +211,12 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
       if (visible && ctx) {
         time += dt;
         const world = worldRef.current;
-        bottlesRef.current = syncBottles(bottlesRef.current, entriesRef.current, world);
+        // syncBottles 由 fit() 与 entries effect 负责，这里不必每帧重算。
         bottlesRef.current = stepBottles(bottlesRef.current, world, dt, time);
-        palette = readPalette(frame);
+        if (paletteDirtyRef.current) {
+          palette = readPalette(frame);
+          paletteDirtyRef.current = false;
+        }
         try {
           drawTide(ctx, world, time, palette);
           for (const bottle of bottlesRef.current) {

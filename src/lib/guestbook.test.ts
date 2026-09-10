@@ -58,6 +58,20 @@ describe("guestbook HTTP", () => {
     expect(init.cache).toBe("no-store");
   });
 
+  it("传 revalidate 时走 ISR，不带 no-store（否则整个路由会被拖成动态渲染）", async () => {
+    const fetchMock = vi.fn(() =>
+      jsonResponse(200, { schemaVersion: 1, entries: [], nextCursor: null }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await fetchGuestbookEntries({ limit: 50, revalidate: 15 });
+    const [, init] = fetchMock.mock.calls[0] as unknown as [
+      string,
+      RequestInit & { next?: { revalidate?: number } },
+    ];
+    expect(init.next).toEqual({ revalidate: 15 });
+    expect(init.cache).toBeUndefined();
+  });
+
   it("POST 成功返回 entry；429 保留 retryAfterSeconds", async () => {
     const fetchMock = vi.fn(() =>
       jsonResponse(200, {

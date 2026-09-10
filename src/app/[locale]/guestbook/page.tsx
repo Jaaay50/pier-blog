@@ -9,6 +9,8 @@ import { fetchGuestbookEntries, type GuestbookEntry } from "@/lib/guestbook";
 import { pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 15;
+/** 首屏列表条数。超出部分由画布/列表之外的分页承担（见 GuestbookBoard 的 count 文案）。 */
+const INITIAL_LIMIT = 50;
 
 export function generateStaticParams() {
   return locales.map((locale) => ({ locale }));
@@ -40,7 +42,7 @@ export default async function GuestbookPage({
   let initialEntries: GuestbookEntry[] = [];
   let initialError = false;
   try {
-    const result = await fetchGuestbookEntries({ limit: 50 });
+    const result = await fetchGuestbookEntries({ limit: INITIAL_LIMIT, revalidate });
     initialEntries = result.entries;
   } catch {
     initialError = true;
