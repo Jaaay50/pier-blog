@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
+import { ThemedGradientText } from "@/components/ThemedGradientText";
 import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import { GuestbookTide } from "@/components/guestbook/GuestbookTide";
 import { CurrentsApiError } from "@/lib/currents/api";
@@ -115,6 +116,8 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   };
 
   const picked = entries.find((entry) => entry.id === pickedId) ?? null;
+  // 潮水模式下列表是 sr-only，水面之下只剩加载失败提示，不该再撑出一段空白
+  const showBelowWater = loadError || !tideEnabled;
 
   const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
@@ -180,7 +183,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const list = (
     <ul
       ref={listRef}
-      className={tideEnabled ? "sr-only" : "mt-10 space-y-4"}
+      className={tideEnabled ? "sr-only" : "space-y-4"}
       aria-label={t("listLabel")}
       data-testid="guestbook-list"
     >
@@ -211,28 +214,102 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   );
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          ref={pickButtonRef}
-          onClick={pickOne}
-          disabled={entries.length === 0}
-          data-testid="guestbook-pick"
-          className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-4 text-sm text-[var(--text-primary)] transition-colors hover:border-[var(--border-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {t("pick")}
-        </button>
-        <p className="text-sm text-[var(--text-muted)]" data-testid="guestbook-count">
-          {t("count", { count: entries.length })}
-        </p>
-      </div>
+    <div>
+      <div className="relative">
+        <section className="guestbook-hero relative overflow-hidden border-y border-[var(--border)]">
+          {tideEnabled && (
+            <GuestbookTide
+              entries={entries}
+              selectedId={pickedId}
+              onSelect={setPickedId}
+              canvasLabel={t("canvasLabel")}
+              className="absolute inset-0"
+            />
+          )}
 
-      <form
-        onSubmit={handleSubmit}
-        className="relative mt-8 max-w-3xl space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
-        data-testid="guestbook-form"
-      >
+          {/* 水雾：给标题一块可读的底，同时让水面有个远景 */}
+          {tideEnabled && (
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-[5] h-96 bg-gradient-to-b from-[var(--bg-primary)] via-[var(--bg-primary)]/60 to-transparent md:h-64" />
+          )}
+
+          {/* 标题浮在水面上；空白处的点击穿透到画布，只有控件可点 */}
+          <div className="pointer-events-none relative z-10 flex h-full flex-col justify-between py-10 md:py-14">
+            <div className="site-content w-full">
+              <p className="text-sm font-medium text-[var(--text-muted)]">{t("label")}</p>
+              <h1 className="mt-2 text-4xl font-bold tracking-tight md:text-5xl">
+                <ThemedGradientText>{t("title")}</ThemedGradientText>
+              </h1>
+              <p className="mt-4 max-w-xl text-sm leading-relaxed text-[var(--text-secondary)]">
+                {t("subtitle")}
+              </p>
+            </div>
+
+            <div className="site-content mt-8 w-full">
+              <div className="pointer-events-auto flex flex-wrap items-center gap-3">
+                <button
+                  type="button"
+                  ref={pickButtonRef}
+                  onClick={pickOne}
+                  disabled={entries.length === 0}
+                  data-testid="guestbook-pick"
+                  className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] bg-[var(--bg-primary)]/70 px-4 text-sm text-[var(--text-primary)] backdrop-blur-sm transition-colors hover:border-[var(--border-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {t("pick")}
+                </button>
+                <p className="text-sm text-[var(--text-muted)]" data-testid="guestbook-count">
+                  {t("count", { count: entries.length })}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {picked && tideEnabled && (
+            <aside
+              ref={readCardRef}
+              tabIndex={-1}
+              className="absolute inset-x-4 bottom-4 z-20 max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:inset-x-auto sm:left-6"
+              data-testid="guestbook-read-card"
+              role="region"
+              aria-labelledby="guestbook-read-title"
+            >
+              <p id="guestbook-read-title" className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+                {t("letterTitle")}
+              </p>
+              <p className="mt-3 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
+                <span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span>
+                <time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time>
+              </p>
+              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
+                {picked.message}
+              </p>
+              <button
+                type="button"
+                className="mt-4 text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                onClick={() => {
+                  setPickedId(null);
+                  pickButtonRef.current?.focus();
+                }}
+              >
+                {t("closeCard")}
+              </button>
+            </aside>
+          )}
+
+          {tideEnabled && entries.length === 0 && !loadError && (
+            <p className="pointer-events-none absolute inset-x-0 bottom-24 z-10 px-6 text-center text-sm text-[var(--text-muted)]">
+              {t("empty")}
+            </p>
+          )}
+        </section>
+
+        {/* 表单：桌面浮在水面右下角并与内容列对齐，窄屏落回水面下方 */}
+        <div className="motion-safe:lg:pointer-events-none motion-safe:lg:absolute motion-safe:lg:inset-0 motion-safe:lg:z-30 motion-safe:lg:flex motion-safe:lg:items-end">
+          <div className="site-content w-full motion-safe:lg:pb-8">
+            <form
+              onSubmit={handleSubmit}
+              className="pointer-events-auto relative mt-8 max-w-3xl space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5 motion-safe:lg:ml-auto motion-safe:lg:mt-0 motion-safe:lg:w-[24rem] motion-safe:lg:bg-[var(--bg-card)]/90 motion-safe:lg:shadow-[var(--shadow-card-hover)] motion-safe:lg:backdrop-blur-md"
+              data-testid="guestbook-form"
+            >
         <label htmlFor="guestbook-message" className="block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
           {t("messageLabel")}
         </label>
@@ -319,76 +396,35 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
                     : t("errorGeneric")}
             </span>
           )}
+              </div>
+            </form>
+          </div>
         </div>
-      </form>
+      </div>
 
-      {loadError && (
-        <div className="mt-8 rounded-xl border border-[var(--border)] px-5 py-4 text-sm" role="alert">
-          <p>{t("loadError")}</p>
-          <button
-            type="button"
-            onClick={() => void reload()}
-            className="mt-2 text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
-          >
-            {t("retry")}
-          </button>
-        </div>
-      )}
-
-      {tideEnabled && (
-        <div className="relative mt-10">
-          <GuestbookTide
-            entries={entries}
-            selectedId={pickedId}
-            onSelect={setPickedId}
-            canvasLabel={t("canvasLabel")}
-          />
-          {picked && (
-            <aside
-              ref={readCardRef}
-              tabIndex={-1}
-              className="absolute inset-x-4 bottom-4 z-10 max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:inset-x-auto sm:left-6"
-              data-testid="guestbook-read-card"
-              role="region"
-              aria-labelledby="guestbook-read-title"
+      {/* 水面之下：潮水模式时列表是 sr-only，这里不该再撑出一段空白 */}
+      <div className={showBelowWater ? "site-content pb-16 pt-10" : "site-content"}>
+        {loadError && (
+          <div className="mb-8 rounded-xl border border-[var(--border)] px-5 py-4 text-sm" role="alert">
+            <p>{t("loadError")}</p>
+            <button
+              type="button"
+              onClick={() => void reload()}
+              className="mt-2 text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
             >
-              <p id="guestbook-read-title" className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
-                {t("letterTitle")}
-              </p>
-              <p className="mt-3 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
-                <span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span>
-                <time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time>
-              </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
-                {picked.message}
-              </p>
-              <button
-                type="button"
-                className="mt-4 text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
-                onClick={() => {
-                  setPickedId(null);
-                  pickButtonRef.current?.focus();
-                }}
-              >
-                {t("closeCard")}
-              </button>
-            </aside>
-          )}
-          {entries.length === 0 && !loadError && (
-            <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-[var(--text-muted)]">
-              {t("empty")}
-            </p>
-          )}
-        </div>
-      )}
+              {t("retry")}
+            </button>
+          </div>
+        )}
 
-      {entries.length === 0 && !loadError && !tideEnabled ? (
-        <p className="mt-10 text-sm text-[var(--text-muted)]" data-testid="guestbook-empty">
-          {t("empty")}
-        </p>
-      ) : (
-        entries.length > 0 && list
-      )}
+        {entries.length === 0 && !loadError && !tideEnabled ? (
+          <p className="text-sm text-[var(--text-muted)]" data-testid="guestbook-empty">
+            {t("empty")}
+          </p>
+        ) : (
+          entries.length > 0 && list
+        )}
+      </div>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
-import { PageHero } from "@/components/PageHero";
 import { SiteFooter } from "@/components/SiteFooter";
 import { GuestbookBoard } from "@/components/guestbook/GuestbookBoard";
 import { locales } from "@/i18n/config";
@@ -37,7 +36,6 @@ export default async function GuestbookPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
-  const t = await getTranslations("guestbook");
 
   let initialEntries: GuestbookEntry[] = [];
   let initialError = false;
@@ -51,13 +49,8 @@ export default async function GuestbookPage({
   return (
     <main className="relative min-h-screen">
       <Navbar />
-      <PageHero label={t("label")} title={t("title")} description={t("subtitle")} />
-      <div className="site-content pb-16 pt-10 md:pt-16">
-        <p className="mx-auto mb-10 max-w-3xl text-sm leading-relaxed text-[var(--text-secondary)]">
-          {t("subtitle")}
-        </p>
-        <GuestbookBoard locale={locale} initialEntries={initialEntries} initialError={initialError} />
-      </div>
+      {/* 这页不用 PageHero：潮水本身就是英雄区，标题浮在水面上（见 GuestbookBoard） */}
+      <GuestbookBoard locale={locale} initialEntries={initialEntries} initialError={initialError} />
       <SiteFooter />
     </main>
   );

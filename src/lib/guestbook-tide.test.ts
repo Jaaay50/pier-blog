@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { GuestbookEntry } from "./guestbook";
 import {
+  BOTTLE_VARIANTS,
   bottleAge,
   createBottle,
   hash32,
@@ -79,6 +80,26 @@ describe("guestbook tide physics", () => {
     const scaled = scaleBottles([bottle], world, { width: 400, height: 240 });
     expect(scaled[0].x).toBeCloseTo(200, 5);
     expect(scaled[0].y).toBeCloseTo(120, 5);
+  });
+
+  it("瓶型由 id 派生：同一条留言永远同一种，与位置和尺寸无关", () => {
+    const a = createBottle(entry("same-id"), 0, 5, world, 0);
+    const b = createBottle(entry("same-id"), 3, 9, { width: 400, height: 300 }, 999);
+    expect(a.variant).toBe(b.variant);
+    expect(a.variant).toBeGreaterThanOrEqual(0);
+    expect(a.variant).toBeLessThan(BOTTLE_VARIANTS);
+  });
+
+  it("瓶型在留言之间会分散，不会全是同一种", () => {
+    const ids = Array.from({ length: 60 }, (_, i) => `bottle-id-${i}`);
+    const seen = new Set(ids.map((id, i) => createBottle(entry(id), i, ids.length, world, 0).variant));
+    expect(seen.size).toBe(BOTTLE_VARIANTS);
+  });
+
+  it("syncBottles 保留已有瓶子的瓶型", () => {
+    const first = createBottle(entry("keep"), 0, 1, world, 0);
+    const synced = syncBottles([first], [entry("keep"), entry("new")], world, 0);
+    expect(synced[0].variant).toBe(first.variant);
   });
 
   it("newer bottles are treated as younger", () => {

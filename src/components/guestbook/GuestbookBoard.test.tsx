@@ -70,6 +70,21 @@ afterEach(() => {
 });
 
 describe("GuestbookBoard", () => {
+  it("英雄区标题与副标题由本组件渲染，各只出现一次", () => {
+    renderBoard();
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toContain(zh.guestbook.title);
+    expect(screen.getAllByText(zh.guestbook.subtitle)).toHaveLength(1);
+    expect(screen.getByText(zh.guestbook.label)).toBeTruthy();
+  });
+
+  it("reduced-motion：不挂画布，列表可见且不是 sr-only", () => {
+    renderBoard();
+    expect(screen.queryByTestId("guestbook-tide")).toBeNull();
+    const list = screen.getByTestId("guestbook-list");
+    expect(list.className).not.toContain("sr-only");
+    expect(screen.getByTestId(`guestbook-entry-${sample.id}`)).toBeTruthy();
+  });
+
   it("拾取一条会高亮已有留言", () => {
     renderBoard();
     fireEvent.click(screen.getByTestId("guestbook-pick"));

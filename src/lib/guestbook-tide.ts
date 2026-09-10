@@ -16,7 +16,12 @@ export interface TideBottle {
   phase: number;
   drift: number;
   age: number;
+  /** 瓶型编号，由 id 派生：同一条留言永远是同一只瓶子 */
+  variant: number;
 }
+
+/** 可用瓶型数量，与 GuestbookTide 里的 BOTTLE_SHAPES 对应 */
+export const BOTTLE_VARIANTS = 3;
 
 const GOLDEN_ANGLE = Math.PI * (3 - Math.sqrt(5));
 const PADDING = 56;
@@ -70,6 +75,7 @@ export function createBottle(
     phase: unit(seed, 13) * Math.PI * 2,
     drift: 0.55 + unit(seed, 19) * 0.7,
     age,
+    variant: seed % BOTTLE_VARIANTS,
   };
 }
 

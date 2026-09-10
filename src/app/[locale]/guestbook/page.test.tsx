@@ -19,7 +19,6 @@ vi.mock("next-intl/server", () => ({
 }));
 vi.mock("@/components/Navbar", () => ({ Navbar: () => <nav /> }));
 vi.mock("@/components/SiteFooter", () => ({ SiteFooter: () => <footer /> }));
-vi.mock("@/components/webgl/FluidBackground", () => ({ FluidBackground: () => null }));
 vi.mock("@/lib/guestbook", () => ({
   fetchGuestbookEntries: async () => ({
     schemaVersion: 1,
@@ -36,10 +35,18 @@ vi.mock("@/lib/guestbook", () => ({
 }));
 vi.mock("@/components/guestbook/GuestbookBoard", () => ({
   GuestbookBoard: ({
+    locale,
     initialEntries,
+    initialError,
   }: {
+    locale: string;
     initialEntries: Array<{ message: string }>;
-  }) => <div data-testid="guestbook-board">{initialEntries[0]?.message}</div>,
+    initialError?: boolean;
+  }) => (
+    <div data-testid="guestbook-board" data-locale={locale} data-error={String(initialError ?? false)}>
+      {initialEntries[0]?.message}
+    </div>
+  ),
 }));
 
 beforeEach(() => {
@@ -48,12 +55,15 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("GuestbookPage", () => {
-  it.each(["zh", "en"] as const)("renders %s hero copy and hydrates the board with fetched entries", async (locale) => {
+  it.each(["zh", "en"] as const)("%s：把首屏数据交给潮水面板，页面自身不再渲染 PageHero", async (locale) => {
     mocks.locale = locale;
-    const messages = locale === "zh" ? zh : en;
     render(await GuestbookPage({ params: Promise.resolve({ locale }) }));
-    expect(screen.getByText(messages.guestbook.title)).toBeTruthy();
-    expect(screen.getByText(messages.guestbook.subtitle)).toBeTruthy();
-    expect(screen.getByTestId("guestbook-board").textContent).toBe("tide mark");
+    const board = screen.getByTestId("guestbook-board");
+    expect(board.textContent).toBe("tide mark");
+    expect(board.getAttribute("data-locale")).toBe(locale);
+    expect(board.getAttribute("data-error")).toBe("false");
+    // 标题/副标题现在由 GuestbookBoard 浮在水面上渲染，页面不应再出现第二份
+    const messages = locale === "zh" ? zh : en;
+    expect(screen.queryByText(messages.guestbook.subtitle)).toBeNull();
   });
 });

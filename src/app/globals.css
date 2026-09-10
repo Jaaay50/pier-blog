@@ -452,10 +452,19 @@ html.custom-cursor-on body {
   }
 }
 
-/* 留言潮水画布：高度跟视口走，窄屏也不低于一屏阅读区 */
-.guestbook-tide {
-  min-height: 28rem;
-  height: min(70vh, 40rem);
+/* 留言潮水英雄区：水面即首屏主体，高度跟视口走，窄屏也不低于一屏阅读区。
+   用纯 CSS 而非 JS 决定高度，SSR 首帧就是最终尺寸，画布挂载不产生跳动。 */
+.guestbook-hero {
+  min-height: 30rem;
+  height: min(78vh, 44rem);
+}
+
+/* 减弱动效时不渲染画布，英雄区退回自然高度，不留一屏空白 */
+@media (prefers-reduced-motion: reduce) {
+  .guestbook-hero {
+    min-height: 0;
+    height: auto;
+  }
 }
 
 .reading-column-no-px {
