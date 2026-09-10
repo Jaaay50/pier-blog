@@ -184,17 +184,67 @@ export function stepBottles(
   return next;
 }
 
-export function hitTest(bottles: TideBottle[], x: number, y: number): TideBottle | null {
+/**
+ * 命中测试。minReach 用于触屏：瓶子半径只有 18–30px，远低于 44px 的
+ * 可触控最小建议，手指点不准，所以触屏时把命中半径抬到一个下限。
+ */
+export function hitTest(
+  bottles: TideBottle[],
+  x: number,
+  y: number,
+  minReach = 0,
+): TideBottle | null {
   let best: TideBottle | null = null;
   let bestDist = Infinity;
   for (const bottle of bottles) {
     const dx = x - bottle.x;
     const dy = y - bottle.y;
-    const reach = bottle.radius * 1.35;
+    const reach = Math.max(bottle.radius * 1.35, minReach);
     const dist = dx * dx + dy * dy;
     if (dist <= reach * reach && dist < bestDist) {
       best = bottle;
       bestDist = dist;
+    }
+  }
+  return best;
+}
+
+/**
+ * 方向键在瓶子之间移动。
+ *
+ * 候选必须落在该方向约 56° 的锥形内（across <= along * 1.5）——只用「投影为正
+ * 加偏离惩罚」不够：一只几乎正右方、只低 10px 的瓶子，按下键时投影虽小但依然
+ * 可能胜出，人会觉得光标乱跳。锥形先把「其实是旁边不是下面」的排除掉，
+ * 再在锥内按前进距离加偏离惩罚取最近。
+ *
+ * 该方向上没有瓶子时返回 null，调用方保持原选中，不做环绕——环绕会让人失去方位感。
+ */
+export function nextBottleInDirection(
+  bottles: TideBottle[],
+  fromId: string | null,
+  dx: number,
+  dy: number,
+): TideBottle | null {
+  if (bottles.length === 0) return null;
+  const current = fromId ? (bottles.find((b) => b.id === fromId) ?? null) : null;
+  // 还没有选中时给一个稳定的入口：最靠左上的那只
+  if (!current) {
+    return bottles.reduce((best, b) => (b.x + b.y < best.x + best.y ? b : best));
+  }
+  let best: TideBottle | null = null;
+  let bestScore = Infinity;
+  for (const bottle of bottles) {
+    if (bottle.id === current.id) continue;
+    const vx = bottle.x - current.x;
+    const vy = bottle.y - current.y;
+    const along = vx * dx + vy * dy;
+    if (along <= 1) continue;
+    const across = Math.abs(vx * -dy + vy * dx);
+    if (across > along * 1.5) continue;
+    const score = along + across * 2;
+    if (score < bestScore) {
+      bestScore = score;
+      best = bottle;
     }
   }
   return best;

@@ -52,6 +52,33 @@ function renderBoard() {
   );
 }
 
+/** 默认 beforeEach 走的是 reduced-motion（无画布）；这个切到潮水模式 */
+function enterTideMode() {
+  vi.stubGlobal(
+    "matchMedia",
+    vi.fn(() => ({
+      matches: false,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    })),
+  );
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
+}
+
 beforeEach(() => {
   submitMock.mockReset();
   turnstileResetMock.mockReset();
@@ -118,34 +145,49 @@ describe("GuestbookBoard", () => {
   });
 
   it("潮水模式下拾取会打开岸边来信", () => {
-    vi.stubGlobal(
-      "matchMedia",
-      vi.fn(() => ({
-        matches: false,
-        addEventListener: vi.fn(),
-        removeEventListener: vi.fn(),
-      })),
-    );
-    vi.stubGlobal(
-      "ResizeObserver",
-      class {
-        observe() {}
-        disconnect() {}
-      },
-    );
-    vi.stubGlobal(
-      "IntersectionObserver",
-      class {
-        observe() {}
-        disconnect() {}
-      },
-    );
-    HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
+    enterTideMode();
     renderBoard();
     fireEvent.click(screen.getByTestId("guestbook-pick"));
     expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
     expect(screen.getByTestId("guestbook-read-card").textContent).toContain(sample.message);
     expect(screen.getByTestId("guestbook-list").className).toContain("sr-only");
+  });
+
+  it("潮水模式：方向键只移动高亮，Enter 才打开读卡，Esc 关掉后焦点回画布", () => {
+    enterTideMode();
+    const rect = {
+      width: 800,
+      height: 480,
+      top: 0,
+      left: 0,
+      right: 800,
+      bottom: 480,
+      x: 0,
+      y: 0,
+      toJSON: () => ({}),
+    } as DOMRect;
+    const rectSpy = vi.spyOn(Element.prototype, "getBoundingClientRect").mockReturnValue(rect);
+    renderBoard();
+
+    const canvas = screen.getByTestId("guestbook-canvas");
+    expect(canvas.getAttribute("tabindex")).toBe("0");
+
+    // 方向键：进入画布后先落到入口瓶，但不该弹出读卡
+    fireEvent.keyDown(canvas, { key: "ArrowRight" });
+    expect(screen.queryByTestId("guestbook-read-card")).toBeNull();
+    // 高亮的那条要能被读屏播报
+    expect(screen.getByRole("status").textContent).toContain(sample.message);
+
+    fireEvent.keyDown(canvas, { key: "Enter" });
+    const card = screen.getByTestId("guestbook-read-card");
+    expect(card.textContent).toContain(sample.message);
+    expect(document.activeElement).toBe(card);
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(screen.queryByTestId("guestbook-read-card")).toBeNull();
+    expect(document.activeElement).toBe(canvas);
+
+    rectSpy.mockRestore();
   });
 
   it("429 显示限流提示", async () => {

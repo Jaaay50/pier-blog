@@ -5,6 +5,7 @@ import { useTheme } from "next-themes";
 import type { GuestbookEntry } from "@/lib/guestbook";
 import {
   hitTest,
+  nextBottleInDirection,
   scaleBottles,
   stepBottles,
   syncBottles,
@@ -36,11 +37,24 @@ interface TidePalette {
 interface GuestbookTideProps {
   entries: GuestbookEntry[];
   selectedId: string | null;
+  /** 只移动高亮（方向键浏览），不打开读卡 */
   onSelect: (id: string | null) => void;
+  /** 高亮并打开读卡（点击、Enter） */
+  onActivate: (id: string | null) => void;
   canvasLabel: string;
   /** 由调用方决定水面怎么占位；默认是独立的圆角卡片。 */
   className?: string;
 }
+
+/** 触屏最小命中半径：瓶子半径 18–30px 远低于 44px 可触控建议 */
+const TOUCH_MIN_REACH = 26;
+
+const ARROW_DIRECTIONS: Record<string, readonly [number, number]> = {
+  ArrowRight: [1, 0],
+  ArrowLeft: [-1, 0],
+  ArrowDown: [0, 1],
+  ArrowUp: [0, -1],
+};
 
 function readPalette(node: HTMLElement): TidePalette {
   const styles = getComputedStyle(node);
@@ -283,6 +297,7 @@ export function GuestbookTide({
   entries,
   selectedId,
   onSelect,
+  onActivate,
   canvasLabel,
   className = "guestbook-hero relative overflow-hidden rounded-3xl border border-[var(--border)]",
 }: GuestbookTideProps) {
@@ -294,6 +309,7 @@ export function GuestbookTide({
   const selectedRef = useRef(selectedId);
   const hoverRef = useRef<string | null>(null);
   const onSelectRef = useRef(onSelect);
+  const onActivateRef = useRef(onActivate);
   // 调色板只在主题切换时重读，避免每帧 getComputedStyle 触发样式重算。
   const paletteDirtyRef = useRef(true);
   const { resolvedTheme } = useTheme();
@@ -303,7 +319,8 @@ export function GuestbookTide({
     entriesRef.current = entries;
     selectedRef.current = selectedId;
     onSelectRef.current = onSelect;
-  }, [entries, selectedId, onSelect]);
+    onActivateRef.current = onActivate;
+  }, [entries, selectedId, onSelect, onActivate]);
 
   useEffect(() => {
     paletteDirtyRef.current = true;
@@ -391,10 +408,12 @@ export function GuestbookTide({
       };
     };
 
+    const reachFor = (event: PointerEvent) => (event.pointerType === "touch" ? TOUCH_MIN_REACH : 0);
+
     const onMove = (event: PointerEvent) => {
       const point = pointOnCanvas(event);
       if (!point) return;
-      const hit = hitTest(bottlesRef.current, point.x, point.y);
+      const hit = hitTest(bottlesRef.current, point.x, point.y, reachFor(event));
       hoverRef.current = hit?.id ?? null;
       canvas.style.cursor = hit ? "pointer" : "default";
     };
@@ -402,8 +421,25 @@ export function GuestbookTide({
     const onClick = (event: PointerEvent) => {
       const point = pointOnCanvas(event);
       if (!point) return;
-      const hit = hitTest(bottlesRef.current, point.x, point.y);
-      onSelectRef.current(hit?.id ?? null);
+      const hit = hitTest(bottlesRef.current, point.x, point.y, reachFor(event));
+      onActivateRef.current(hit?.id ?? null);
+    };
+
+    // 键盘：方向键在瓶子之间移动高亮，Enter/空格 打开读卡。
+    // 潮水开着时列表是 sr-only，没有这段，只用键盘的人读不到任何一条留言。
+    const onKeyDown = (event: KeyboardEvent) => {
+      const dir = ARROW_DIRECTIONS[event.key];
+      if (dir) {
+        event.preventDefault();
+        const next = nextBottleInDirection(bottlesRef.current, selectedRef.current, dir[0], dir[1]);
+        if (next) onSelectRef.current(next.id);
+        return;
+      }
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        const target = selectedRef.current ?? bottlesRef.current[0]?.id ?? null;
+        if (target) onActivateRef.current(target);
+      }
     };
 
     fit();
@@ -414,6 +450,7 @@ export function GuestbookTide({
     });
     canvas.addEventListener("pointermove", onMove);
     canvas.addEventListener("pointerdown", onClick);
+    canvas.addEventListener("keydown", onKeyDown);
     window.addEventListener("resize", fit);
     raf = window.requestAnimationFrame(paint);
 
@@ -424,6 +461,7 @@ export function GuestbookTide({
       ungate();
       canvas.removeEventListener("pointermove", onMove);
       canvas.removeEventListener("pointerdown", onClick);
+      canvas.removeEventListener("keydown", onKeyDown);
       window.removeEventListener("resize", fit);
     };
   }, []);
@@ -437,9 +475,10 @@ export function GuestbookTide({
     <div ref={frameRef} className={className} data-testid="guestbook-tide">
       <canvas
         ref={canvasRef}
-        className="block h-full w-full"
+        className="block h-full w-full focus-visible:outline-2 focus-visible:-outline-offset-4 focus-visible:outline-[var(--accent)]"
         data-testid="guestbook-canvas"
         role="img"
+        tabIndex={0}
         aria-label={canvasLabel}
       />
     </div>

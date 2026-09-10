@@ -41,6 +41,7 @@ describe("GuestbookTide", () => {
         ]}
         selectedId={null}
         onSelect={() => {}}
+        onActivate={() => {}}
         canvasLabel="tide canvas"
       />,
     );

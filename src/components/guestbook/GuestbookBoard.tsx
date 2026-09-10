@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { ThemedGradientText } from "@/components/ThemedGradientText";
 import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
@@ -60,6 +60,9 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const [validationError, setValidationError] = useState<"required" | "tooLong" | null>(null);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [pickedId, setPickedId] = useState<string | null>(null);
+  // 高亮与「读卡是否打开」必须分开：方向键浏览只移动高亮，焦点留在画布上，
+  // 否则每按一次方向键焦点就跳进读卡，键盘就再也回不到画布。
+  const [cardOpen, setCardOpen] = useState(false);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
   const honeypotRef = useRef<HTMLInputElement>(null);
   const submittingRef = useRef(false);
@@ -67,6 +70,9 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const listRef = useRef<HTMLUListElement>(null);
   const readCardRef = useRef<HTMLElement>(null);
   const pickButtonRef = useRef<HTMLButtonElement>(null);
+  const heroRef = useRef<HTMLElement>(null);
+  /** 读卡是从画布打开还是从「拾取」按钮打开，决定关闭时焦点还回哪里 */
+  const openedFromRef = useRef<"canvas" | "button">("button");
   const tideEnabled = useTideMotion();
 
   const rateLimited = state === "error-rate-limit" && retryAfterSeconds !== null && retryAfterSeconds > 0;
@@ -85,29 +91,50 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
     return () => window.clearInterval(timer);
   }, [rateLimited, retryAfterSeconds]);
 
-  // 潮水模式下画布是纯指针交互，读卡是唯一的无障碍出口：
-  // 打开时把焦点移进去（读屏才会念出这条留言），Esc 关闭并把焦点还回按钮。
-  useEffect(() => {
-    if (!tideEnabled || pickedId === null) return;
-    readCardRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      setPickedId(null);
-      pickButtonRef.current?.focus();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [tideEnabled, pickedId]);
-
   const resetTurnstile = () => {
     setTurnstileToken("");
     turnstileRef.current?.reset();
   };
 
+  const canvasElement = () =>
+    heroRef.current?.querySelector<HTMLCanvasElement>('[data-testid="guestbook-canvas"]') ?? null;
+
+  const closeCard = useCallback(() => {
+    setCardOpen(false);
+    const back = openedFromRef.current === "canvas" ? canvasElement() : pickButtonRef.current;
+    back?.focus();
+  }, []);
+
+  // 读卡打开时把焦点移进去（读屏才会念出这条留言），Esc 关闭并把焦点还回打开它的地方。
+  useEffect(() => {
+    if (!tideEnabled || !cardOpen) return;
+    readCardRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      closeCard();
+    };
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [tideEnabled, cardOpen, closeCard]);
+
+  /** 方向键浏览：只移动高亮，焦点留在画布上 */
+  const focusBottle = (id: string | null) => setPickedId(id);
+
+  /** 点击 / Enter / 拾取按钮：高亮并打开读卡 */
+  const openBottle = (id: string | null, from: "canvas" | "button") => {
+    setPickedId(id);
+    if (id === null) {
+      setCardOpen(false);
+      return;
+    }
+    openedFromRef.current = from;
+    setCardOpen(true);
+  };
+
   const pickOne = () => {
     if (entries.length === 0) return;
     const next = entries[Math.floor(Math.random() * entries.length)];
-    setPickedId(next.id);
+    openBottle(next.id, "button");
     if (tideEnabled) return;
     const node = listRef.current?.querySelector(`[data-entry-id="${next.id}"]`);
     if (node && "scrollIntoView" in node && typeof node.scrollIntoView === "function") {
@@ -115,7 +142,16 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
     }
   };
 
-  const picked = entries.find((entry) => entry.id === pickedId) ?? null;
+  const pickedIndex = entries.findIndex((entry) => entry.id === pickedId);
+  const picked = pickedIndex >= 0 ? entries[pickedIndex] : null;
+
+  /** 读卡里的上一则 / 下一则，省得每读一条都要退回去再戳一只瓶子 */
+  const stepCard = (delta: number) => {
+    if (entries.length === 0 || pickedIndex < 0) return;
+    const next = entries[(pickedIndex + delta + entries.length) % entries.length];
+    setPickedId(next.id);
+    readCardRef.current?.focus();
+  };
   // 潮水模式下列表是 sr-only，水面之下只剩加载失败提示，不该再撑出一段空白
   const showBelowWater = loadError || !tideEnabled;
 
@@ -216,12 +252,13 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   return (
     <div>
       <div className="relative">
-        <section className="guestbook-hero relative overflow-hidden border-y border-[var(--border)]">
+        <section ref={heroRef} className="guestbook-hero relative overflow-hidden border-y border-[var(--border)]">
           {tideEnabled && (
             <GuestbookTide
               entries={entries}
               selectedId={pickedId}
-              onSelect={setPickedId}
+              onSelect={focusBottle}
+              onActivate={(id) => openBottle(id, "canvas")}
               canvasLabel={t("canvasLabel")}
               className="absolute inset-0"
             />
@@ -263,7 +300,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
             </div>
           </div>
 
-          {picked && tideEnabled && (
+          {picked && tideEnabled && cardOpen && (
             <aside
               ref={readCardRef}
               tabIndex={-1}
@@ -282,18 +319,38 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
               <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
                 {picked.message}
               </p>
-              <button
-                type="button"
-                className="mt-4 text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
-                onClick={() => {
-                  setPickedId(null);
-                  pickButtonRef.current?.focus();
-                }}
-              >
-                {t("closeCard")}
-              </button>
+              <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+                <button
+                  type="button"
+                  data-testid="guestbook-prev"
+                  className="text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                  onClick={() => stepCard(-1)}
+                >
+                  {t("prevBottle")}
+                </button>
+                <button
+                  type="button"
+                  data-testid="guestbook-next"
+                  className="text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                  onClick={() => stepCard(1)}
+                >
+                  {t("nextBottle")}
+                </button>
+                <button
+                  type="button"
+                  className="ml-auto text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                  onClick={closeCard}
+                >
+                  {t("closeCard")}
+                </button>
+              </div>
             </aside>
           )}
+
+          {/* 方向键浏览时读出当前高亮的瓶子；读卡打开后由读卡本身接管播报 */}
+          <p className="sr-only" role="status" aria-live="polite">
+            {tideEnabled && picked && !cardOpen ? `${picked.nickname}：${picked.message}` : ""}
+          </p>
 
           {tideEnabled && entries.length === 0 && !loadError && (
             <p className="pointer-events-none absolute inset-x-0 bottom-24 z-10 px-6 text-center text-sm text-[var(--text-muted)]">

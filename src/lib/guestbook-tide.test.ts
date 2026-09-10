@@ -6,6 +6,7 @@ import {
   createBottle,
   hash32,
   hitTest,
+  nextBottleInDirection,
   scaleBottles,
   stepBottles,
   syncBottles,
@@ -100,6 +101,55 @@ describe("guestbook tide physics", () => {
     const first = createBottle(entry("keep"), 0, 1, world, 0);
     const synced = syncBottles([first], [entry("keep"), entry("new")], world, 0);
     expect(synced[0].variant).toBe(first.variant);
+  });
+
+  it("方向键取该方向最近的瓶子，偏离轴线的会被惩罚", () => {
+    const make = (id: string, x: number, y: number) => {
+      const b = createBottle(entry(id), 0, 1, world, 0);
+      b.x = x;
+      b.y = y;
+      return b;
+    };
+    const origin = make("origin", 400, 240);
+    const right = make("right", 500, 250);
+    const rightFar = make("right-far", 520, 460);
+    const left = make("left", 300, 240);
+    const bottles = [origin, right, rightFar, left];
+
+    expect(nextBottleInDirection(bottles, "origin", 1, 0)?.id).toBe("right");
+    expect(nextBottleInDirection(bottles, "origin", -1, 0)?.id).toBe("left");
+    expect(nextBottleInDirection(bottles, "origin", 0, 1)?.id).toBe("right-far");
+  });
+
+  it("方向上没有瓶子时返回 null，不做环绕", () => {
+    const only = createBottle(entry("only"), 0, 1, world, 0);
+    only.x = 400;
+    only.y = 240;
+    const other = createBottle(entry("other"), 0, 1, world, 0);
+    other.x = 300;
+    other.y = 240;
+    expect(nextBottleInDirection([only, other], "only", 1, 0)).toBeNull();
+  });
+
+  it("还没选中时给一个稳定的入口瓶", () => {
+    const a = createBottle(entry("a"), 0, 1, world, 0);
+    a.x = 600;
+    a.y = 400;
+    const b = createBottle(entry("b"), 0, 1, world, 0);
+    b.x = 100;
+    b.y = 90;
+    expect(nextBottleInDirection([a, b], null, 1, 0)?.id).toBe("b");
+    expect(nextBottleInDirection([], null, 1, 0)).toBeNull();
+  });
+
+  it("触屏用的最小命中半径能兜住手指误差", () => {
+    const bottle = createBottle(entry("touch"), 0, 1, world, 0);
+    bottle.x = 200;
+    bottle.y = 160;
+    bottle.radius = 18;
+    // 距离 30px：超出指针命中范围（18*1.35≈24.3），但在触屏下限 40 之内
+    expect(hitTest([bottle], 230, 160)).toBeNull();
+    expect(hitTest([bottle], 230, 160, 40)?.id).toBe("touch");
   });
 
   it("newer bottles are treated as younger", () => {
