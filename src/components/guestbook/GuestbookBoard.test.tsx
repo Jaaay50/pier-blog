@@ -136,7 +136,62 @@ describe("GuestbookBoard", () => {
     fireEvent.click(screen.getByTestId("guestbook-pick"));
     expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
     expect(screen.getByTestId("guestbook-read-card").textContent).toContain(sample.message);
-    expect(screen.getByTestId("guestbook-list").className).toContain("sr-only");
+    const list = screen.getByTestId("guestbook-list");
+    expect(list.className).toContain("guestbook-coastal-list");
+    expect(list.className).toContain("space-y-4");
+    expect(list.className).not.toContain("sr-only");
+    const form = screen.getByTestId("guestbook-form");
+    expect(form.className).not.toContain("-mt-28");
+    expect(form.className).not.toContain("z-20");
+  });
+
+  it("拾取从完整列表抽样，不限于最近三只", () => {
+    const older = {
+      id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
+      nickname: "Visitor_ef56",
+      message: "更早的瓶子",
+      createdAt: "2026-09-08T12:00:00.000Z",
+    };
+    const random = vi.spyOn(Math, "random").mockReturnValue(0.99);
+    renderBoard([
+      sample,
+      { ...sample, id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc", message: "第二" },
+      { ...sample, id: "dddddddd-dddd-4ddd-8ddd-dddddddddddd", message: "第三" },
+      older,
+    ]);
+    fireEvent.click(screen.getByTestId("guestbook-pick"));
+    expect(screen.getByTestId(`guestbook-entry-${older.id}`).className).toContain("border-[var(--accent)]");
+    random.mockRestore();
+  });
+
+  it("潮水空态只在水面上提示一次", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    vi.stubGlobal(
+      "ResizeObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    vi.stubGlobal(
+      "IntersectionObserver",
+      class {
+        observe() {}
+        disconnect() {}
+      },
+    );
+    HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
+    renderBoard([]);
+    expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
+    expect(screen.getByText(zh.guestbook.empty)).toBeTruthy();
+    expect(screen.queryByTestId("guestbook-empty")).toBeNull();
   });
 
   it("429 显示限流提示", async () => {
@@ -246,7 +301,7 @@ describe("GuestbookBoard", () => {
     const pick = screen.getByTestId("guestbook-pick");
     fireEvent.click(pick);
     const card = screen.getByTestId("guestbook-read-card");
-    expect(card.className).toContain("max-h-[min(calc(100%_-_2rem),calc(100dvh_-_2rem))]");
+    expect(card.className).toContain("max-h-[min(calc(100%_-_2.5rem),calc(100dvh_-_2rem))]");
     expect(card.className).toContain("flex-col");
     expect(card.className).toContain("overflow-hidden");
     expect(document.activeElement).toBe(card);

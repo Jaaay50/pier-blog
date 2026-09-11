@@ -8,6 +8,7 @@ import {
   scaleBottles,
   stepBottles,
   syncBottles,
+  visibleTideBottles,
 } from "./guestbook-tide";
 
 const world = { width: 800, height: 480 };
@@ -61,6 +62,22 @@ describe("guestbook tide physics", () => {
     const dx = bottles[0].x - bottles[1].x;
     const dy = bottles[0].y - bottles[1].y;
     expect(Math.hypot(dx, dy)).toBeGreaterThan(bottles[0].radius);
+  });
+
+  it("reveals one bottle on a dedicated slot clock and always keeps the selected bottle", () => {
+    const a = createBottle(entry("one"), 0, 2, world, 0);
+    const b = createBottle(entry("two"), 1, 2, world, 0);
+    a.phase = 6;
+    b.phase = 0.1;
+    expect(visibleTideBottles([a, b], 0, null)).toEqual([]);
+    expect(visibleTideBottles([a, b], 7.9, null)).toEqual([]);
+    expect(visibleTideBottles([a, b], 8, null).map((bottle) => bottle.id)).toEqual(["one"]);
+    expect(visibleTideBottles([a, b], 13.9, null).map((bottle) => bottle.id)).toEqual(["one"]);
+    expect(visibleTideBottles([a, b], 14, null)).toEqual([]);
+    expect(visibleTideBottles([a, b], 22, null).map((bottle) => bottle.id)).toEqual(["two"]);
+    expect(visibleTideBottles([a, b], 0, "two").map((bottle) => bottle.id)).toEqual(["two"]);
+    expect(visibleTideBottles([a, b], 8, "two").map((bottle) => bottle.id)).toEqual(["one", "two"]);
+    expect(visibleTideBottles([a, b], 8, "one").map((bottle) => bottle.id)).toEqual(["one"]);
   });
 
   it("hitTest returns the nearer bottle inside radius", () => {

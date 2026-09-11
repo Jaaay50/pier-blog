@@ -8,15 +8,13 @@ import {
   scaleBottles,
   stepBottles,
   syncBottles,
+  visibleTideBottles,
   type TideBottle,
   type TideWorld,
 } from "@/lib/guestbook-tide";
 import { observeRenderGate } from "@/lib/webgl";
 
 interface TidePalette {
-  sky: string;
-  mid: string;
-  deep: string;
   wave: string;
   glass: string;
   glassDark: string;
@@ -35,14 +33,9 @@ interface GuestbookTideProps {
 function readPalette(node: HTMLElement): TidePalette {
   const styles = getComputedStyle(node);
   const accent = styles.getPropertyValue("--accent").trim() || "#d97757";
-  const bg = styles.getPropertyValue("--bg-primary").trim() || "#faf9f5";
-  const card = styles.getPropertyValue("--bg-card").trim() || "#f0eee6";
   const dark = document.documentElement.classList.contains("dark");
   return {
-    sky: dark ? "#0c1a2e" : bg,
-    mid: dark ? "#16324f" : card,
-    deep: dark ? "#0a1220" : "#d7e4ea",
-    wave: dark ? "rgba(106,155,204,0.28)" : "rgba(217,119,87,0.22)",
+    wave: dark ? "rgba(220,238,246,0.26)" : "rgba(255,255,255,0.52)",
     glass: dark ? "rgba(138,180,221,0.28)" : "rgba(255,255,255,0.45)",
     glassDark: dark ? "rgba(42,72,104,0.85)" : "rgba(196,168,142,0.55)",
     cork: dark ? "#c4a484" : "#b08968",
@@ -53,22 +46,17 @@ function readPalette(node: HTMLElement): TidePalette {
 
 function drawTide(ctx: CanvasRenderingContext2D, world: TideWorld, time: number, palette: TidePalette) {
   const { width, height } = world;
-  const fill = ctx.createLinearGradient(0, 0, 0, height);
-  fill.addColorStop(0, palette.sky);
-  fill.addColorStop(0.42, palette.mid);
-  fill.addColorStop(1, palette.deep);
-  ctx.fillStyle = fill;
-  ctx.fillRect(0, 0, width, height);
+  ctx.clearRect(0, 0, width, height);
 
   ctx.strokeStyle = palette.wave;
   ctx.lineWidth = 1.25;
-  for (let band = 0; band < 4; band += 1) {
+  for (let band = 0; band < 2; band += 1) {
     ctx.beginPath();
-    const base = height * (0.22 + band * 0.16);
+    const base = height * (0.34 + band * 0.24);
     for (let x = 0; x <= width; x += 6) {
       const y =
         base +
-        Math.sin(x * 0.011 + time * (0.35 + band * 0.08) + band) * (7 + band * 2.5);
+        Math.sin(x * 0.011 + time * (0.28 + band * 0.06) + band) * (4 + band * 2);
       if (x === 0) ctx.moveTo(x, y);
       else ctx.lineTo(x, y);
     }
@@ -151,6 +139,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
   const entriesRef = useRef(entries);
   const selectedRef = useRef(selectedId);
   const hoverRef = useRef<string | null>(null);
+  const visibleRef = useRef<TideBottle[]>([]);
   const onSelectRef = useRef(onSelect);
   // 调色板只在主题切换时重读，避免每帧 getComputedStyle 触发样式重算。
   const paletteDirtyRef = useRef(true);
@@ -219,7 +208,9 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
         }
         try {
           drawTide(ctx, world, time, palette);
-          for (const bottle of bottlesRef.current) {
+          const drawn = visibleTideBottles(bottlesRef.current, time, selectedRef.current);
+          visibleRef.current = drawn;
+          for (const bottle of drawn) {
             drawBottle(
               ctx,
               bottle,
@@ -247,7 +238,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
     const onMove = (event: PointerEvent) => {
       const point = pointOnCanvas(event);
       if (!point) return;
-      const hit = hitTest(bottlesRef.current, point.x, point.y);
+      const hit = hitTest(visibleRef.current, point.x, point.y);
       hoverRef.current = hit?.id ?? null;
       canvas.style.cursor = hit ? "pointer" : "default";
     };
@@ -255,8 +246,8 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
     const onClick = (event: PointerEvent) => {
       const point = pointOnCanvas(event);
       if (!point) return;
-      const hit = hitTest(bottlesRef.current, point.x, point.y);
-      onSelectRef.current(hit?.id ?? null);
+      const hit = hitTest(visibleRef.current, point.x, point.y);
+      if (hit) onSelectRef.current(hit.id);
     };
 
     fit();
@@ -289,7 +280,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
   return (
     <div
       ref={frameRef}
-      className="guestbook-tide relative overflow-hidden rounded-3xl border border-[var(--border)]"
+      className="guestbook-tide relative overflow-hidden"
       data-testid="guestbook-tide"
     >
       <canvas
