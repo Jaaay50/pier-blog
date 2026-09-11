@@ -36,7 +36,15 @@ export function CoastalScene({ label, onPick }: CoastalSceneProps) {
   const [time, setTime] = useState<CoastalTime>(() => coastalTimeForDate());
   const [canMotion, setCanMotion] = useState(false);
   const [clip, setClip] = useState<string | null>(null);
+  const [clipPeriod, setClipPeriod] = useState<CoastalTime | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  if (typeof window !== "undefined" && clipPeriod !== time) {
+    const next = pickNextCoastClip(COAST_CLIPS[time], readLastClip(time));
+    writeLastClip(time, next);
+    setClipPeriod(time);
+    setClip(next);
+  }
 
   useEffect(() => {
     const update = () => setTime((current) => {
@@ -55,12 +63,6 @@ export function CoastalScene({ label, onPick }: CoastalSceneProps) {
     motion.addEventListener("change", apply);
     return () => motion.removeEventListener("change", apply);
   }, []);
-
-  useEffect(() => {
-    const next = pickNextCoastClip(COAST_CLIPS[time], readLastClip(time));
-    writeLastClip(time, next);
-    setClip(next);
-  }, [time]);
 
   useEffect(() => {
     if (!canMotion || !clip) return;
