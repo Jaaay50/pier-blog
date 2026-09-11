@@ -67,6 +67,15 @@ describe("light homepage atmosphere", () => {
   });
 });
 
+describe("hero particle title first-frame gate", () => {
+  it("hides the SSR title when ParticleGate marks particles as available", () => {
+    expect(css).toMatch(
+      /html\[data-particles-ready\]\s+\.hero-title-ssr\s*\{\s*opacity:\s*0;/,
+    );
+    expect(css).not.toMatch(/hero-gate-reveal/);
+  });
+});
+
 describe("hero CJK title punctuation", () => {
   it("halves the fullwidth comma box so the mark sits between neighboring glyphs", () => {
     expect(css).toMatch(

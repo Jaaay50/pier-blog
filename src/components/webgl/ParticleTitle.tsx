@@ -7,7 +7,7 @@ import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
 /**
  * Phase 9.1 — Hero 粒子重组标题
  *
- * 管线：DOM 标题仅作 SSR 可见层与采样锚点（实际绘制成功后隐藏）→
+ * 管线：DOM 标题作采样锚点；ParticleGate 在粒子可用时从首帧藏字 →
  * 字体就绪后逐字采样 → 粒子直接从混沌四散（碎裂态）聚合成字，
  * 无完整字形停留 → 待机呼吸 + 鼠标斥力 + 滚动吹散。
  * 采样/context 失败时调用 onFail，由父组件回退 DOM 标题。
@@ -260,8 +260,9 @@ export default function ParticleTitle({
       if (readyRef.current === ready) return;
       // Canvas visibility and the parent's title handoff occur in the same task.
       host.style.visibility = ready ? "visible" : "hidden";
-      // React may batch the callback; keep both visual layers atomic before paint.
-      anchor.style.opacity = ready ? "0" : "1";
+      // 仅在真正画出粒子时藏实体字。重建/卸载撤就绪时不要把实体字
+      // 强制 opacity:1，否则会盖过 ParticleGate 的首帧隐藏。
+      if (ready) anchor.style.opacity = "0";
       readyRef.current = ready;
       onReadyRef.current?.(ready);
     };
@@ -299,6 +300,8 @@ export default function ParticleTitle({
     const fail = () => {
       if (disposed) return;
       dispose();
+      // 失败路径：同一任务内露出实体标题，避免等 React 重绘的空白帧。
+      anchor.style.opacity = "1";
       onFailRef.current();
     };
 

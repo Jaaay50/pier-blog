@@ -1613,6 +1613,20 @@ html:not(.dark) [data-theme='dark'] {
 }
 .lab-slider::-moz-range-thumb:hover { transform: scale(1.2); }
 
+/* ============================================
+   Hero 标题首帧门控（ParticleGate）
+   <head> 阻塞脚本在首帧绘制前打 html[data-particles-ready]：
+   WebGL 粒子可用时，SSR 标题从第一帧起就不绘制，
+   消除「实体字短暂可见 → 消失 → 粒子聚合」的闪现。
+   文字仍在 HTML 中（布局 / 采样 / SEO 不受影响）。
+   不用延时 animation 把实体字淡回来：锚点在水合后仍是同一节点，
+   延时 forwards 会盖在已成形的粒子上。无 JS 走 <noscript>，
+   水合失败由脚本 8s 撤标兜底。
+   ============================================ */
+html[data-particles-ready] .hero-title-ssr {
+  opacity: 0;
+}
+
 /* Hero 方案 D：只标「全栈的栈 / 栈桥的栈」里作为双关落点的两个「栈」 */
 .hero-stack-glyph {
   font-weight: 650;

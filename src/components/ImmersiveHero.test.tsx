@@ -270,10 +270,15 @@ describe("ImmersiveHero readable title handoff", () => {
   };
   const anchor = (container: HTMLElement) => container.querySelector<HTMLSpanElement>(".hero-title-ssr")!;
 
+  afterEach(() => {
+    document.documentElement.removeAttribute("data-particles-ready");
+  });
+
   it("renders visible static title glyphs and subtitle in SSR without hidden or blurred entry styles", () => {
     const container = document.createElement("div");
     container.innerHTML = renderToString(<ImmersiveHero subtitle="全栈工程师" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("");
+    expect(anchor(container).getAttribute("data-hero-solid")).toBe("visible");
     expect(anchor(container).textContent).toBe("全栈的栈，也是栈桥的栈");
     expect(anchor(container).querySelector("[style]")).toBeNull();
     expect(container.querySelector(".hero-subtitle")?.getAttribute("initial")).toBeNull();
@@ -281,7 +286,15 @@ describe("ImmersiveHero readable title handoff", () => {
     expect(container.querySelector("[data-particles]")).toBeNull();
   });
 
-  it("retains the same visible anchor through hydration and capability discovery", async () => {
+  it("does not force inline opacity on the SSR anchor so ParticleGate CSS can hide it", () => {
+    document.documentElement.setAttribute("data-particles-ready", "pending");
+    const container = document.createElement("div");
+    container.innerHTML = renderToString(<ImmersiveHero subtitle="全栈工程师" />);
+    expect(anchor(container).getAttribute("style")).toBeNull();
+    expect(anchor(container).className).toContain("hero-title-ssr");
+  });
+
+  it("retains the same anchor through hydration and hides glyphs once particles are expected", async () => {
     const element = <ImmersiveHero subtitle="全栈工程师" />;
     const container = document.createElement("div");
     container.innerHTML = renderToString(element);
@@ -291,11 +304,13 @@ describe("ImmersiveHero readable title handoff", () => {
     let root: ReturnType<typeof hydrateRoot> | undefined;
     try {
       await act(async () => { root = hydrateRoot(container, element, { onRecoverableError }); });
+      expect(anchor(container).style.opacity).toBe("");
       mocks.quality.mockReturnValue(quality);
       await act(async () => { root?.render(<ImmersiveHero subtitle="全栈工程师" />); });
       expect(onRecoverableError).not.toHaveBeenCalled();
       expect(anchor(container)).toBe(originalAnchor);
-      expect(anchor(container).style.opacity).toBe("1");
+      expect(anchor(container).style.opacity).toBe("0");
+      expect(anchor(container).getAttribute("data-hero-solid")).toBe("hidden");
       expect(container.querySelector("[data-particles]")).not.toBeNull();
       expect(mocks.particles.mock.lastCall![0].anchorRef.current).toBe(originalAnchor);
     } finally {
@@ -304,16 +319,16 @@ describe("ImmersiveHero readable title handoff", () => {
     }
   });
 
-  it("hides the title only after a drawn-frame signal and restores it immediately when readiness is revoked", () => {
+  it("keeps the title hidden while particles are expected, including when readiness is revoked", () => {
     mocks.quality.mockReturnValue(quality);
     const { container } = render(<ImmersiveHero subtitle="全栈工程师" />);
     const originalAnchor = anchor(container);
-    expect(originalAnchor.style.opacity).toBe("1");
+    expect(originalAnchor.style.opacity).toBe("0");
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
     expect(anchor(container).style.opacity).toBe("0");
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(false));
     expect(anchor(container)).toBe(originalAnchor);
-    expect(originalAnchor.style.opacity).toBe("1");
+    expect(originalAnchor.style.opacity).toBe("0");
     expect(originalAnchor.querySelector("[style]")).toBeNull();
   });
 
@@ -323,10 +338,11 @@ describe("ImmersiveHero readable title handoff", () => {
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
     act(() => mocks.particles.mock.lastCall![0].onFail());
     expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).getAttribute("data-hero-solid")).toBe("visible");
     expect(container.querySelector("[data-particles]")).toBeNull();
   });
 
-  it("keeps the title visible when WebGL is disabled and requires another frame when re-enabled", () => {
+  it("keeps the title visible when WebGL is disabled and hides it again when re-enabled", () => {
     mocks.quality.mockReturnValue(quality);
     const { container, rerender } = render(<ImmersiveHero subtitle="全栈工程师" />);
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
@@ -336,8 +352,23 @@ describe("ImmersiveHero readable title handoff", () => {
     expect(container.querySelector("[data-particles]")).toBeNull();
     mocks.quality.mockReturnValue(quality);
     rerender(<ImmersiveHero subtitle="全栈工程师" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("[data-particles]")).not.toBeNull();
+  });
+
+  it("arms ParticleGate on mount and clears it on fallback", () => {
+    document.documentElement.setAttribute("data-particles-ready", "pending");
+    mocks.quality.mockReturnValue(quality);
+    const { rerender } = render(<ImmersiveHero subtitle="全栈工程师" />);
+    expect(document.documentElement.getAttribute("data-particles-ready")).toBe("armed");
+    act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
+    expect(document.documentElement.getAttribute("data-particles-ready")).toBe("live");
+    act(() => mocks.particles.mock.lastCall![0].onFail());
+    expect(document.documentElement.hasAttribute("data-particles-ready")).toBe(false);
+    mocks.quality.mockReturnValue({ ...quality, enabled: false });
+    document.documentElement.setAttribute("data-particles-ready", "pending");
+    rerender(<ImmersiveHero subtitle="全栈工程师" />);
+    expect(document.documentElement.hasAttribute("data-particles-ready")).toBe(false);
   });
 
   it("does not apply the previous title's readiness or delayed callbacks to a new locale", () => {
@@ -347,22 +378,22 @@ describe("ImmersiveHero readable title handoff", () => {
     act(() => staleCallbacks.onReadyChange(true));
     mocks.locale.mockReturnValue("en");
     rerender(<ImmersiveHero subtitle="Full-Stack Engineer" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("h1")?.getAttribute("aria-label")).toBe("A pier has to hold at both ends");
     act(() => { staleCallbacks.onReadyChange(true); staleCallbacks.onFail(); });
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("[data-particles]")).not.toBeNull();
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
     expect(anchor(container).style.opacity).toBe("0");
   });
 
-  it("retries a failed title on locale change while keeping the new title readable", () => {
+  it("retries a failed title on locale change while keeping the new title hidden until particles draw", () => {
     mocks.quality.mockReturnValue(quality);
     const { container, rerender } = render(<ImmersiveHero subtitle="全栈工程师" />);
     act(() => mocks.particles.mock.lastCall![0].onFail());
     mocks.locale.mockReturnValue("en");
     rerender(<ImmersiveHero subtitle="Full-Stack Engineer" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("[data-particles]")).not.toBeNull();
   });
 

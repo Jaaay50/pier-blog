@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useLocale } from "next-intl";
@@ -101,7 +101,7 @@ function TitleGlyphs({ title, isZh }: { title: string; isZh: boolean }) {
  * 全屏沉浸式 Hero
  * - 深色：Galaxy 星空 + 粒子重组标题
  * - 浅色：Aurora 暖极光 + 粒子重组标题
- * - 降级：静态 DOM 标题始终可读，首帧绘制成功后才交给粒子
+ * - 降级：ParticleGate 判定不可用 / 采样失败时回退静态 DOM 标题
  */
 export function ImmersiveHero({
   title,
@@ -133,6 +133,12 @@ export function ImmersiveHero({
   }
   const particleMode = !!canUseParticles && !particleState.failed;
   const particleReady = particleMode && particleState.ready;
+  const hideSolidTitle = particleMode;
+  const solidTitleStyle = hideSolidTitle
+    ? { opacity: 0 }
+    : particleState.failed || (mounted && quality && !quality.enabled)
+      ? { opacity: 1 }
+      : undefined;
   const updateParticles = (update: { ready: boolean; failed?: boolean }) => {
     setParticleState((current) =>
       current.title === resolvedTitle && current.quality === quality
@@ -140,6 +146,17 @@ export function ImmersiveHero({
         : current,
     );
   };
+
+  // 取消 ParticleGate 的 8s 撤标兜底；失败/降级时撤标让 CSS 不再藏字。
+  useLayoutEffect(() => {
+    const root = document.documentElement;
+    if (!root.hasAttribute("data-particles-ready")) return;
+    if (particleState.failed || (quality && !quality.enabled)) {
+      root.removeAttribute("data-particles-ready");
+      return;
+    }
+    root.setAttribute("data-particles-ready", particleReady ? "live" : "armed");
+  }, [particleReady, particleState.failed, quality]);
 
   return (
     <section className="hero-immersive relative h-screen w-full">
@@ -191,14 +208,16 @@ export function ImmersiveHero({
           aria-label={resolvedTitle}
           className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]"
         >
-          {/* SSR、水合和降级共用同一锚点；仅成功绘制信号可以隐藏它。 */}
+          {/* SSR、水合和降级共用同一锚点。粒子可用时由 ParticleGate CSS
+              首帧藏字；行内 opacity 只在客户端确认路径后写入，避免水合把
+              实体字强制画出来。 */}
           <span
             ref={anchorRef}
             aria-hidden="true"
             tabIndex={-1}
-            data-particles-ready={particleReady}
+            data-hero-solid={hideSolidTitle ? "hidden" : "visible"}
             className="hero-title-ssr flex flex-wrap justify-center"
-            style={{ opacity: particleReady ? 0 : 1 }}
+            style={solidTitleStyle}
           >
             <TitleGlyphs title={resolvedTitle} isZh={isZh} />
           </span>
