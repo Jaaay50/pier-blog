@@ -7,9 +7,9 @@ export function coastalTimeFromHour(hour: number): CoastalTime {
   return "night";
 }
 
-export function getBeijingHour(date: Date = new Date()): number {
-  const formatter = new Intl.DateTimeFormat("zh-CN", {
-    timeZone: "Asia/Shanghai",
+export function getHongKongHour(date: Date = new Date()): number {
+  const formatter = new Intl.DateTimeFormat("zh-HK", {
+    timeZone: "Asia/Hong_Kong",
     hour: "2-digit",
     hour12: false,
   });
@@ -18,5 +18,5 @@ export function getBeijingHour(date: Date = new Date()): number {
 }
 
 export function coastalTimeForDate(date: Date = new Date()): CoastalTime {
-  return coastalTimeFromHour(getBeijingHour(date));
+  return coastalTimeFromHour(getHongKongHour(date));
 }
