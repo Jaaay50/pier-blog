@@ -131,6 +131,52 @@ describe("GuestbookBoard", () => {
     expect(screen.getByText("已送到岸边。")).toBeTruthy();
   });
 
+  it("拾取和关闭读卡都不滚动页面", () => {
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    const focus = vi.spyOn(HTMLElement.prototype, "focus");
+    try {
+      renderBoard();
+      const pick = screen.getByTestId("guestbook-pick");
+      fireEvent.click(pick);
+      expect(screen.getByTestId("guestbook-read-card")).toBeTruthy();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      expect(
+        focus.mock.calls.some(([options]) => (options as FocusOptions | undefined)?.preventScroll === true),
+      ).toBe(true);
+
+      fireEvent.click(within(screen.getByTestId("guestbook-read-card")).getByRole("button", { name: zh.guestbook.closeCard }));
+      expect(screen.queryByTestId("guestbook-read-card")).toBeNull();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(pick);
+      expect(
+        focus.mock.calls.filter(([options]) => (options as FocusOptions | undefined)?.preventScroll === true).length,
+      ).toBeGreaterThanOrEqual(2);
+    } finally {
+      focus.mockRestore();
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
+  it("点击遮罩关闭读卡也不滚动页面", () => {
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    const scrollIntoView = vi.fn();
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    try {
+      renderBoard();
+      fireEvent.click(screen.getByTestId("guestbook-coastal-scene"));
+      const backdrop = document.querySelector(".guestbook-letter-backdrop");
+      expect(backdrop).toBeTruthy();
+      fireEvent.click(backdrop!);
+      expect(screen.queryByTestId("guestbook-read-card")).toBeNull();
+      expect(scrollIntoView).not.toHaveBeenCalled();
+      expect(document.activeElement).toBe(screen.getByTestId("guestbook-pick"));
+    } finally {
+      HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    }
+  });
+
   it("点击海岸画板会打开岸边来信", () => {
     vi.stubGlobal(
       "matchMedia",
