@@ -1,6 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import {
+  COAST_CLIPS,
+  COAST_STILL,
+  lastClipStorageKey,
+  pickNextCoastClip,
+} from "@/lib/guestbook-coast-clips";
 import { coastalTimeForDate, type CoastalTime } from "./coastal-time";
 
 const PERIODS: CoastalTime[] = ["dawn", "day", "dusk", "night"];
@@ -10,14 +16,27 @@ interface CoastalSceneProps {
   onPick?: () => void;
 }
 
-function videoSrc(period: CoastalTime): string {
-  return `/guestbook/coast-${period}.webm`;
+function readLastClip(period: CoastalTime): string | null {
+  try {
+    return window.localStorage.getItem(lastClipStorageKey(period));
+  } catch {
+    return null;
+  }
+}
+
+function writeLastClip(period: CoastalTime, clip: string): void {
+  try {
+    window.localStorage.setItem(lastClipStorageKey(period), clip);
+  } catch {
+    /* private mode */
+  }
 }
 
 export function CoastalScene({ label, onPick }: CoastalSceneProps) {
   const [time, setTime] = useState<CoastalTime>(() => coastalTimeForDate());
   const [canMotion, setCanMotion] = useState(false);
-  const videoRefs = useRef<Partial<Record<CoastalTime, HTMLVideoElement | null>>>({});
+  const [clip, setClip] = useState<string | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
 
   useEffect(() => {
     const update = () => setTime((current) => {
@@ -38,24 +57,25 @@ export function CoastalScene({ label, onPick }: CoastalSceneProps) {
   }, []);
 
   useEffect(() => {
-    if (!canMotion) return;
-    for (const key of PERIODS) {
-      const node = videoRefs.current[key];
-      if (!node) continue;
-      if (key === time) {
-        const play = node.play();
-        if (play) void play.catch(() => {});
-      } else {
-        node.pause();
-      }
-    }
-  }, [canMotion, time]);
+    const next = pickNextCoastClip(COAST_CLIPS[time], readLastClip(time));
+    writeLastClip(time, next);
+    setClip(next);
+  }, [time]);
+
+  useEffect(() => {
+    if (!canMotion || !clip) return;
+    const node = videoRef.current;
+    if (!node) return;
+    const play = node.play();
+    if (play) void play.catch(() => {});
+  }, [canMotion, clip]);
 
   return (
     <section
       className={`guestbook-coastal-scene${onPick ? " is-pickable" : ""}`}
       data-testid="guestbook-coastal-scene"
       data-coastal-time={time}
+      data-coastal-clip={clip ?? undefined}
       aria-label={label}
       onClick={onPick}
     >
@@ -66,21 +86,20 @@ export function CoastalScene({ label, onPick }: CoastalSceneProps) {
             className={`guestbook-coastal-layer guestbook-coastal-layer-${key}${key === time ? " is-active" : ""}`}
           />
         ))}
-        {canMotion && PERIODS.map((key) => (
+        {canMotion && clip && (
           <video
-            key={`video-${key}`}
-            ref={(node) => {
-              videoRefs.current[key] = node;
-            }}
-            className={`guestbook-coastal-video${key === time ? " is-active" : ""}`}
-            src={videoSrc(key)}
+            key={clip}
+            ref={videoRef}
+            className="guestbook-coastal-video is-active"
+            src={clip}
+            poster={COAST_STILL[time]}
             muted
             loop
             playsInline
-            preload={key === time ? "auto" : "none"}
-            data-testid={key === time ? "guestbook-coastal-video" : undefined}
+            preload="auto"
+            data-testid="guestbook-coastal-video"
           />
-        ))}
+        )}
       </div>
     </section>
   );
