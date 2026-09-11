@@ -44,24 +44,8 @@ function readPalette(node: HTMLElement): TidePalette {
   };
 }
 
-function drawTide(ctx: CanvasRenderingContext2D, world: TideWorld, time: number, palette: TidePalette) {
-  const { width, height } = world;
-  ctx.clearRect(0, 0, width, height);
-
-  ctx.strokeStyle = palette.wave;
-  ctx.lineWidth = 1.25;
-  for (let band = 0; band < 2; band += 1) {
-    ctx.beginPath();
-    const base = height * (0.34 + band * 0.24);
-    for (let x = 0; x <= width; x += 6) {
-      const y =
-        base +
-        Math.sin(x * 0.011 + time * (0.28 + band * 0.06) + band) * (4 + band * 2);
-      if (x === 0) ctx.moveTo(x, y);
-      else ctx.lineTo(x, y);
-    }
-    ctx.stroke();
-  }
+function drawTide(ctx: CanvasRenderingContext2D, world: TideWorld) {
+  ctx.clearRect(0, 0, world.width, world.height);
 }
 
 function drawBottle(
@@ -88,17 +72,19 @@ function drawBottle(
   }
 
   ctx.beginPath();
-  ctx.ellipse(0, body * 0.15, body * 0.72, body * 1.05, 0, 0, Math.PI * 2);
+  ctx.moveTo(-body * 0.28, -body * 0.55);
+  ctx.quadraticCurveTo(-body * 0.55, body * 0.15, -body * 0.32, body * 0.95);
+  ctx.quadraticCurveTo(0, body * 1.18, body * 0.32, body * 0.95);
+  ctx.quadraticCurveTo(body * 0.55, body * 0.15, body * 0.28, -body * 0.55);
+  ctx.closePath();
   ctx.fillStyle = palette.glassDark;
   ctx.fill();
-  ctx.strokeStyle = palette.accent;
-  ctx.globalAlpha = 0.45;
-  ctx.lineWidth = 1.2;
+  ctx.strokeStyle = "rgba(255,255,255,0.55)";
+  ctx.lineWidth = 1.4;
   ctx.stroke();
-  ctx.globalAlpha = 1;
 
   ctx.beginPath();
-  ctx.rect(-body * 0.22, -body * 1.15, body * 0.44, body * 0.42);
+  ctx.rect(-body * 0.16, -body * 1.05, body * 0.32, body * 0.52);
   ctx.fillStyle = palette.glassDark;
   ctx.fill();
 
@@ -207,7 +193,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
           paletteDirtyRef.current = false;
         }
         try {
-          drawTide(ctx, world, time, palette);
+          drawTide(ctx, world);
           const drawn = visibleTideBottles(bottlesRef.current, time, selectedRef.current);
           visibleRef.current = drawn;
           for (const bottle of drawn) {

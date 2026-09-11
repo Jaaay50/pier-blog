@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { coastalTimeForDate, type CoastalTime } from "./coastal-time";
 
 const PERIODS: CoastalTime[] = ["dawn", "day", "dusk", "night"];
 
 interface CoastalSceneProps {
   label: string;
+  children?: ReactNode;
 }
 
 function videoSrc(period: CoastalTime): string {
   return `/guestbook/coast-${period}.webm`;
 }
 
-export function CoastalScene({ label }: CoastalSceneProps) {
+export function CoastalScene({ label, children }: CoastalSceneProps) {
   const [time, setTime] = useState<CoastalTime>(() => coastalTimeForDate());
   const [canMotion, setCanMotion] = useState(false);
   const videoRefs = useRef<Partial<Record<CoastalTime, HTMLVideoElement | null>>>({});
@@ -75,6 +76,7 @@ export function CoastalScene({ label }: CoastalSceneProps) {
           />
         ))}
       </div>
+      {children}
     </section>
   );
 }

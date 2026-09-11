@@ -68,6 +68,21 @@ beforeEach(() => {
       removeEventListener: vi.fn(),
     })),
   );
+  vi.stubGlobal(
+    "ResizeObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  vi.stubGlobal(
+    "IntersectionObserver",
+    class {
+      observe() {}
+      disconnect() {}
+    },
+  );
+  HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
 });
 afterEach(() => {
   cleanup();
@@ -134,12 +149,11 @@ describe("GuestbookBoard", () => {
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
     renderBoard();
     fireEvent.click(screen.getByTestId("guestbook-pick"));
-    expect(screen.queryByTestId("guestbook-tide")).toBeNull();
+    expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
     expect(screen.getByTestId("guestbook-read-card").textContent).toContain(sample.message);
     const list = screen.getByTestId("guestbook-list");
     expect(list.className).toContain("guestbook-coastal-list");
-    expect(list.className).toContain("space-y-4");
-    expect(list.className).not.toContain("sr-only");
+    expect(list.className).toContain("sr-only");
     const form = screen.getByTestId("guestbook-form");
     expect(form.className).not.toContain("-mt-28");
     expect(form.className).not.toContain("z-20");
@@ -189,7 +203,6 @@ describe("GuestbookBoard", () => {
     );
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
     renderBoard([]);
-    expect(screen.queryByTestId("guestbook-tide")).toBeNull();
     expect(screen.getByTestId("guestbook-empty").textContent).toBe(zh.guestbook.empty);
   });
 
@@ -300,6 +313,7 @@ describe("GuestbookBoard", () => {
     const pick = screen.getByTestId("guestbook-pick");
     fireEvent.click(pick);
     const card = screen.getByTestId("guestbook-read-card");
+    expect(card.className).toContain("guestbook-letter-modal");
     expect(card.className).toContain("max-h-[min(28rem,70dvh)]");
     expect(card.className).toContain("flex-col");
     expect(card.className).toContain("overflow-hidden");
