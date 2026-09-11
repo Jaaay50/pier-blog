@@ -1,7 +1,7 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, useScroll, useTransform } from "motion/react";
 import { useLocale } from "next-intl";
@@ -133,6 +133,15 @@ export function ImmersiveHero({
   }
   const particleMode = !!canUseParticles && !particleState.failed;
   const particleReady = particleMode && particleState.ready;
+  // Bound chunk/font/GPU startup; timed-out attempts stay on readable text.
+  useEffect(() => {
+    if (!particleMode || particleReady) return;
+    const timer = window.setTimeout(() => {
+      setParticleState((current) => current.title === resolvedTitle && current.quality === quality
+        ? { ...current, ready: false, failed: true } : current);
+    }, 8000);
+    return () => window.clearTimeout(timer);
+  }, [particleMode, particleReady, resolvedTitle, quality]);
   const updateParticles = (update: { ready: boolean; failed?: boolean }) => {
     setParticleState((current) =>
       current.title === resolvedTitle && current.quality === quality
@@ -191,14 +200,15 @@ export function ImmersiveHero({
           aria-label={resolvedTitle}
           className="font-display relative mb-10 flex flex-wrap justify-center text-[clamp(2.75rem,8.5vw,8rem)] leading-[1.05] tracking-tight text-[var(--text-primary)]"
         >
-          {/* SSR、水合和降级共用同一锚点；仅成功绘制信号可以隐藏它。 */}
+          {/* 保留采样尺寸；普通字形只在明确降级后显示。 */}
           <span
             ref={anchorRef}
             aria-hidden="true"
             tabIndex={-1}
             data-particles-ready={particleReady}
+            data-title-state={!mounted ? "pending" : particleMode ? "particles" : "fallback"}
             className="hero-title-ssr flex flex-wrap justify-center"
-            style={{ opacity: particleReady ? 0 : 1 }}
+            style={{ opacity: !mounted ? undefined : particleMode ? 0 : 1 }}
           >
             <TitleGlyphs title={resolvedTitle} isZh={isZh} />
           </span>

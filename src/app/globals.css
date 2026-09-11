@@ -2147,3 +2147,11 @@ html[data-density="comfortable"] {
     transition: none;
   }
 }
+/* Restore readable SSR text if application JavaScript never starts. */
+html[data-particles-ready] .hero-title-ssr[data-title-state="pending"] {
+  opacity: 0;
+  animation: hero-startup-fallback 0s 8s forwards;
+}
+@keyframes hero-startup-fallback {
+  to { opacity: 1; }
+}

@@ -273,7 +273,8 @@ describe("ImmersiveHero readable title handoff", () => {
   it("renders visible static title glyphs and subtitle in SSR without hidden or blurred entry styles", () => {
     const container = document.createElement("div");
     container.innerHTML = renderToString(<ImmersiveHero subtitle="全栈工程师" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("");
+    expect(anchor(container).dataset.titleState).toBe("pending");
     expect(anchor(container).textContent).toBe("全栈的栈，也是栈桥的栈");
     expect(anchor(container).querySelector("[style]")).toBeNull();
     expect(container.querySelector(".hero-subtitle")?.getAttribute("initial")).toBeNull();
@@ -295,7 +296,7 @@ describe("ImmersiveHero readable title handoff", () => {
       await act(async () => { root?.render(<ImmersiveHero subtitle="全栈工程师" />); });
       expect(onRecoverableError).not.toHaveBeenCalled();
       expect(anchor(container)).toBe(originalAnchor);
-      expect(anchor(container).style.opacity).toBe("1");
+      expect(anchor(container).style.opacity).toBe("0");
       expect(container.querySelector("[data-particles]")).not.toBeNull();
       expect(mocks.particles.mock.lastCall![0].anchorRef.current).toBe(originalAnchor);
     } finally {
@@ -308,12 +309,12 @@ describe("ImmersiveHero readable title handoff", () => {
     mocks.quality.mockReturnValue(quality);
     const { container } = render(<ImmersiveHero subtitle="全栈工程师" />);
     const originalAnchor = anchor(container);
-    expect(originalAnchor.style.opacity).toBe("1");
+    expect(originalAnchor.style.opacity).toBe("0");
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
     expect(anchor(container).style.opacity).toBe("0");
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(false));
     expect(anchor(container)).toBe(originalAnchor);
-    expect(originalAnchor.style.opacity).toBe("1");
+    expect(originalAnchor.style.opacity).toBe("0");
     expect(originalAnchor.querySelector("[style]")).toBeNull();
   });
 
@@ -336,7 +337,7 @@ describe("ImmersiveHero readable title handoff", () => {
     expect(container.querySelector("[data-particles]")).toBeNull();
     mocks.quality.mockReturnValue(quality);
     rerender(<ImmersiveHero subtitle="全栈工程师" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("[data-particles]")).not.toBeNull();
   });
 
@@ -347,10 +348,10 @@ describe("ImmersiveHero readable title handoff", () => {
     act(() => staleCallbacks.onReadyChange(true));
     mocks.locale.mockReturnValue("en");
     rerender(<ImmersiveHero subtitle="Full-Stack Engineer" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("h1")?.getAttribute("aria-label")).toBe("A pier has to hold at both ends");
     act(() => { staleCallbacks.onReadyChange(true); staleCallbacks.onFail(); });
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("[data-particles]")).not.toBeNull();
     act(() => mocks.particles.mock.lastCall![0].onReadyChange(true));
     expect(anchor(container).style.opacity).toBe("0");
@@ -362,7 +363,7 @@ describe("ImmersiveHero readable title handoff", () => {
     act(() => mocks.particles.mock.lastCall![0].onFail());
     mocks.locale.mockReturnValue("en");
     rerender(<ImmersiveHero subtitle="Full-Stack Engineer" />);
-    expect(anchor(container).style.opacity).toBe("1");
+    expect(anchor(container).style.opacity).toBe("0");
     expect(container.querySelector("[data-particles]")).not.toBeNull();
   });
 
