@@ -138,6 +138,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
   const entriesRef = useRef(entries);
   const selectedRef = useRef(selectedId);
   const hoverRef = useRef<string | null>(null);
+  const visibleRef = useRef<TideBottle[]>([]);
   const onSelectRef = useRef(onSelect);
   // 调色板只在主题切换时重读，避免每帧 getComputedStyle 触发样式重算。
   const paletteDirtyRef = useRef(true);
@@ -206,9 +207,13 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
         }
         try {
           drawTide(ctx, world, time, palette);
-          for (const bottle of bottlesRef.current) {
-            const reveal = (time + bottle.phase * 2.4) % 18;
-            if (reveal > 11 && bottle.id !== selectedRef.current) continue;
+          const allBottles = bottlesRef.current;
+          const activeIndex = allBottles.length > 0 ? Math.floor(time / 14) % allBottles.length : -1;
+          const active = activeIndex >= 0 ? allBottles[activeIndex] : null;
+          const reveal = active ? (time + active.phase * 1.7) % 14 : 99;
+          const visible = active && (reveal > 8 || active.id === selectedRef.current) ? [active] : [];
+          visibleRef.current = visible;
+          for (const bottle of visible) {
             drawBottle(
               ctx,
               bottle,
@@ -236,7 +241,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
     const onMove = (event: PointerEvent) => {
       const point = pointOnCanvas(event);
       if (!point) return;
-      const hit = hitTest(bottlesRef.current, point.x, point.y);
+      const hit = hitTest(visibleRef.current, point.x, point.y);
       hoverRef.current = hit?.id ?? null;
       canvas.style.cursor = hit ? "pointer" : "default";
     };
@@ -244,7 +249,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
     const onClick = (event: PointerEvent) => {
       const point = pointOnCanvas(event);
       if (!point) return;
-      const hit = hitTest(bottlesRef.current, point.x, point.y);
+      const hit = hitTest(visibleRef.current, point.x, point.y);
       onSelectRef.current(hit?.id ?? null);
     };
 
