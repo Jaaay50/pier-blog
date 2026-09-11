@@ -3,12 +3,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { coastalTimeForDate, type CoastalTime } from "./coastal-time";
 
-const ASSET_PATHS: Record<CoastalTime, string> = {
-  dawn: "/guestbook/coast-dawn.webp",
-  day: "/guestbook/coast-day.webp",
-  dusk: "/guestbook/coast-dusk.webp",
-  night: "/guestbook/coast-night.webp",
-};
+const PERIODS: CoastalTime[] = ["dawn", "day", "dusk", "night"];
 
 interface CoastalSceneProps {
   children: ReactNode;
@@ -32,8 +27,11 @@ export function CoastalScene({ children, label, title, description, timeLabel }:
   return (
     <section className="guestbook-coastal-scene" data-testid="guestbook-coastal-scene" data-coastal-time={time} aria-label={label}>
       <div className="guestbook-coastal-background" aria-hidden="true">
-        {(Object.keys(ASSET_PATHS) as CoastalTime[]).map((key) => (
-          <div key={key} className={`guestbook-coastal-layer guestbook-coastal-layer-${key} ${key === time ? "is-active" : ""}`} style={{ backgroundImage: `url(${ASSET_PATHS[key]})` }} />
+        {PERIODS.map((key) => (
+          <div
+            key={key}
+            className={`guestbook-coastal-layer guestbook-coastal-layer-${key}${key === time ? " is-active" : ""}`}
+          />
         ))}
       </div>
       <div className="guestbook-coastal-ambient" aria-hidden="true"><span className="coastal-cloud" /><span className="coastal-sparkles" /><span className="coastal-grass" /></div>

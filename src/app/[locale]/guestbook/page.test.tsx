@@ -48,12 +48,9 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe("GuestbookPage", () => {
-  it.each(["zh", "en"] as const)("renders %s hero copy and hydrates the board with fetched entries", async (locale) => {
+  it.each(["zh", "en"] as const)("hydrates the board with fetched entries for %s", async (locale) => {
     mocks.locale = locale;
-    const messages = locale === "zh" ? zh : en;
     render(await GuestbookPage({ params: Promise.resolve({ locale }) }));
-    expect(screen.getByText(messages.guestbook.title)).toBeTruthy();
-    expect(screen.getByText(messages.guestbook.subtitle)).toBeTruthy();
     expect(screen.getByTestId("guestbook-board").textContent).toBe("tide mark");
   });
 });

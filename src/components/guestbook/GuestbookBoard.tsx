@@ -32,9 +32,18 @@ type SubmitState =
   | "error-verification-unavailable"
   | "error-generic";
 
+const TIDE_BOTTLE_LIMIT = 3;
+
 function formatRetry(seconds: number, locale: string): string {
   const minutes = Math.max(1, Math.ceil(seconds / 60));
   return locale === "zh" ? `${minutes} 分钟` : `${minutes} min`;
+}
+
+function canvasEntries(entries: GuestbookEntry[], selectedId: string | null): GuestbookEntry[] {
+  const limited = entries.slice(0, TIDE_BOTTLE_LIMIT);
+  if (!selectedId || limited.some((entry) => entry.id === selectedId)) return limited;
+  const selected = entries.find((entry) => entry.id === selectedId);
+  return selected ? [...limited, selected] : limited;
 }
 
 function useTideMotion(): boolean {
@@ -68,8 +77,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const readCardRef = useRef<HTMLElement>(null);
   const pickButtonRef = useRef<HTMLButtonElement>(null);
   const tideEnabled = useTideMotion();
-  // 画面只保留最近三只瓶子，完整数据仍在可读列表中保存。
-  const tideEntries = entries.slice(0, 3);
+  const tideEntries = canvasEntries(entries, pickedId);
 
   // 验证失败/重试可以改变提示状态，但不能提前解除服务端给出的提交冷却。
   const rateLimited = retryAfterSeconds !== null && retryAfterSeconds > 0;
@@ -109,8 +117,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
 
   const pickOne = () => {
     if (entries.length === 0) return;
-    const available = tideEntries.length > 0 ? tideEntries : entries;
-    const next = available[Math.floor(Math.random() * available.length)];
+    const next = entries[Math.floor(Math.random() * entries.length)];
     setPickedId(next.id);
     if (tideEnabled) return;
     const node = listRef.current?.querySelector(`[data-entry-id="${next.id}"]`);
@@ -185,7 +192,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const list = (
     <ul
       ref={listRef}
-      className={tideEnabled ? "guestbook-coastal-list sr-only" : "guestbook-coastal-list mt-10 space-y-4"}
+      className="guestbook-coastal-list mt-10 space-y-4"
       aria-label={t("listLabel")}
       data-testid="guestbook-list"
     >
@@ -234,7 +241,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         >
           {t("pick")}
         </button>
-        <p className="text-sm text-[var(--text-muted)]" data-testid="guestbook-count">
+        <p className="text-sm" data-testid="guestbook-count">
           {t("count", { count: entries.length })}
         </p>
       </div>
@@ -269,7 +276,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
 
       <form
         onSubmit={handleSubmit}
-        className="guestbook-coastal-form relative z-20 mx-auto -mt-28 max-w-3xl space-y-4 rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 backdrop-blur-md"
+        className="guestbook-coastal-form relative mx-auto mt-8 max-w-3xl space-y-4 rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 backdrop-blur-md"
         data-testid="guestbook-form"
       >
         <label htmlFor="guestbook-message" className="block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
@@ -383,7 +390,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         </div>
       )}
 
-      {entries.length === 0 && !loadError ? (
+      {entries.length === 0 && !loadError && !tideEnabled ? (
         <p className="mt-10 text-sm text-[var(--text-muted)]" data-testid="guestbook-empty">
           {t("empty")}
         </p>

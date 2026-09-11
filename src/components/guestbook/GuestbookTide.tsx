@@ -8,6 +8,7 @@ import {
   scaleBottles,
   stepBottles,
   syncBottles,
+  visibleTideBottles,
   type TideBottle,
   type TideWorld,
 } from "@/lib/guestbook-tide";
@@ -207,13 +208,9 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
         }
         try {
           drawTide(ctx, world, time, palette);
-          const allBottles = bottlesRef.current;
-          const activeIndex = allBottles.length > 0 ? Math.floor(time / 14) % allBottles.length : -1;
-          const active = activeIndex >= 0 ? allBottles[activeIndex] : null;
-          const reveal = active ? (time + active.phase * 1.7) % 14 : 99;
-          const visible = active && (reveal > 8 || active.id === selectedRef.current) ? [active] : [];
-          visibleRef.current = visible;
-          for (const bottle of visible) {
+          const drawn = visibleTideBottles(bottlesRef.current, time, selectedRef.current);
+          visibleRef.current = drawn;
+          for (const bottle of drawn) {
             drawBottle(
               ctx,
               bottle,
@@ -250,7 +247,7 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
       const point = pointOnCanvas(event);
       if (!point) return;
       const hit = hitTest(visibleRef.current, point.x, point.y);
-      onSelectRef.current(hit?.id ?? null);
+      if (hit) onSelectRef.current(hit.id);
     };
 
     fit();

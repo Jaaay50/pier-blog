@@ -15,7 +15,11 @@ describe("CoastalScene", () => {
     expect(screen.getByTestId("guestbook-coastal-scene").dataset.coastalTime).toBe("day");
     expect(screen.getByRole("region", { name: "coast" }).textContent).toContain("tide");
     expect(container.querySelectorAll(".guestbook-coastal-layer")).toHaveLength(4);
-    expect(container.innerHTML).toContain("/guestbook/coast-night.webp");
+    expect(container.querySelector(".guestbook-coastal-layer-dawn")).toBeTruthy();
+    expect(container.querySelector(".guestbook-coastal-layer-day")).toBeTruthy();
+    expect(container.querySelector(".guestbook-coastal-layer-dusk")).toBeTruthy();
+    expect(container.querySelector(".guestbook-coastal-layer-night")).toBeTruthy();
+    expect(container.querySelector("[style*='background-image']")).toBeNull();
   });
 
   it("changes only after crossing a period boundary", () => {

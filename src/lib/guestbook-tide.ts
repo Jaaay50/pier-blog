@@ -178,6 +178,28 @@ export function stepBottles(
   return next;
 }
 
+export const TIDE_REVEAL_SLOT_SECONDS = 14;
+export const TIDE_REVEAL_HIDDEN_SECONDS = 8;
+
+export function visibleTideBottles(
+  bottles: TideBottle[],
+  time: number,
+  selectedId: string | null,
+): TideBottle[] {
+  if (bottles.length === 0) return [];
+  const slot = TIDE_REVEAL_SLOT_SECONDS;
+  const elapsed = Number.isFinite(time) ? Math.max(0, time) : 0;
+  const slotTime = elapsed % slot;
+  const active = bottles[Math.floor(elapsed / slot) % bottles.length];
+  const visible: TideBottle[] = [];
+  if (slotTime >= TIDE_REVEAL_HIDDEN_SECONDS) visible.push(active);
+  if (selectedId) {
+    const selected = bottles.find((bottle) => bottle.id === selectedId);
+    if (selected && !visible.some((bottle) => bottle.id === selected.id)) visible.push(selected);
+  }
+  return visible;
+}
+
 export function hitTest(bottles: TideBottle[], x: number, y: number): TideBottle | null {
   let best: TideBottle | null = null;
   let bestDist = Infinity;
