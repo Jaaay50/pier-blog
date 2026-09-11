@@ -68,14 +68,15 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const pickButtonRef = useRef<HTMLButtonElement>(null);
   const tideEnabled = useTideMotion();
 
-  const rateLimited = state === "error-rate-limit" && retryAfterSeconds !== null && retryAfterSeconds > 0;
+  // 验证失败/重试可以改变提示状态，但不能提前解除服务端给出的提交冷却。
+  const rateLimited = retryAfterSeconds !== null && retryAfterSeconds > 0;
 
   useEffect(() => {
     if (!rateLimited || retryAfterSeconds === null) return;
     const timer = window.setInterval(() => {
       setRetryAfterSeconds((value) => {
         if (value === null || value <= 1) {
-          setState("idle");
+          setState((current) => current === "error-rate-limit" ? "idle" : current);
           return null;
         }
         return value - 1;
@@ -201,7 +202,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
               <span className="font-medium text-[var(--text-secondary)]">{entry.nickname}</span>
               <time dateTime={entry.createdAt}>{fmtDateTime(entry.createdAt, normalizedLocale)}</time>
             </p>
-            <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
+            <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)]">
               {entry.message}
             </p>
           </li>
@@ -285,6 +286,15 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
           }}
         />
         <div className="flex flex-wrap items-center gap-3">
+          {state === "error-verification-unavailable" && (
+            <button
+              type="button"
+              onClick={() => { setState("idle"); resetTurnstile(); }}
+              className="rounded-sm text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              {t("retry")}
+            </button>
+          )}
           <button
             type="submit"
             data-testid="guestbook-submit"
@@ -298,7 +308,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
               {state === "success-duplicate" ? t("successDuplicate") : t("success")}
             </span>
           )}
-          {state === "error-rate-limit" && (
+          {rateLimited && (
             <span role="status" className="text-sm text-[var(--text-secondary)]" data-testid="guestbook-rate-limit">
               {t("errorRateLimit", {
                 wait: formatRetry(retryAfterSeconds ?? 600, normalizedLocale),
@@ -347,24 +357,28 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
             <aside
               ref={readCardRef}
               tabIndex={-1}
-              className="absolute inset-x-4 bottom-4 z-10 max-w-md rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:inset-x-auto sm:left-6"
+              className="absolute inset-x-4 bottom-4 z-10 flex max-h-[min(calc(100%_-_2rem),calc(100dvh_-_2rem))] max-w-md flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:inset-x-auto sm:left-6"
               data-testid="guestbook-read-card"
               role="region"
               aria-labelledby="guestbook-read-title"
             >
-              <p id="guestbook-read-title" className="text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+              <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
                 {t("letterTitle")}
               </p>
-              <p className="mt-3 flex flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
+              <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
                 <span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span>
                 <time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time>
               </p>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-[var(--text-primary)]">
+              {/* 只滚动正文，保留标题与关闭按钮；键盘可聚焦正文后滚动长留言。 */}
+              <p
+                tabIndex={0}
+                className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              >
                 {picked.message}
               </p>
               <button
                 type="button"
-                className="mt-4 text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
+                className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
                 onClick={() => {
                   setPickedId(null);
                   pickButtonRef.current?.focus();
