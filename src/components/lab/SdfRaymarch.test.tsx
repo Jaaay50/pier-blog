@@ -2,7 +2,7 @@
 import {StrictMode} from 'react';
 import {act,cleanup,fireEvent,render,screen} from '@testing-library/react';
 import {afterEach,beforeEach,describe,expect,it,vi} from 'vitest';
-import SdfRaymarch from './SdfRaymarch';
+import SdfRaymarch,{SDF_FRAGMENT} from './SdfRaymarch';
 
 const mocks=vi.hoisted(()=>({gate:vi.fn()}));
 vi.mock('@/lib/webgl',()=>({observeRenderGate:mocks.gate}));
@@ -28,6 +28,16 @@ afterEach(()=>{cleanup();vi.restoreAllMocks();vi.unstubAllGlobals();});
 async function microtasks(){await act(async()=>{});}
 function frame(){const first=[...frames.entries()][0];expect(first).toBeDefined();const[id,callback]=first;frames.delete(id);act(()=>callback(100));}
 function visible(value=true,index=gates.length-1){act(()=>gates[index](value));}
+
+describe('SDF look',()=>{
+  it('uses a studio cyc and smooth union instead of a checkerboard tutorial look',()=>{
+    expect(SDF_FRAGMENT).not.toMatch(/mod\(floor\(p\.x\)\+floor\(p\.z\)/);
+    expect(SDF_FRAGMENT).toContain('smin');
+    expect(SDF_FRAGMENT).toContain('D_GGX');
+    expect(SDF_FRAGMENT).toContain('studio');
+    expect(SDF_FRAGMENT).toContain('film');
+  });
+});
 
 describe('SDF runtime lifecycle',()=>{
   it('survives StrictMode replay without losing the retained canvas context',()=>{

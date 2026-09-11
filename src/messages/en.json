@@ -546,7 +546,7 @@
         "desc": "Combine and subtract sphere, box and torus distance fields, then adjust shape, lighting and material to explore soft shadows and reflections.",
         "layer": "Distance functions, ray marching, normal estimation, soft shadows and a single reflection bounce are implemented directly in GLSL, without a 3D engine.",
         "tech": "WebGL2 · GLSL · SDF",
-        "stillAlt": "A union of sphere and box distance fields with shadows and reflections."
+        "stillAlt": "A smooth union of sphere and box in a studio cove, sitting on the floor with contact shadows and reflections."
       },
       "cloth": {
         "title": "Tearable Cloth",
