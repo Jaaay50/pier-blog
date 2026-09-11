@@ -68,6 +68,8 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const readCardRef = useRef<HTMLElement>(null);
   const pickButtonRef = useRef<HTMLButtonElement>(null);
   const tideEnabled = useTideMotion();
+  // 画面只保留最近三只瓶子，完整数据仍在可读列表中保存。
+  const tideEntries = entries.slice(0, 3);
 
   // 验证失败/重试可以改变提示状态，但不能提前解除服务端给出的提交冷却。
   const rateLimited = retryAfterSeconds !== null && retryAfterSeconds > 0;
@@ -107,7 +109,8 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
 
   const pickOne = () => {
     if (entries.length === 0) return;
-    const next = entries[Math.floor(Math.random() * entries.length)];
+    const available = tideEntries.length > 0 ? tideEntries : entries;
+    const next = available[Math.floor(Math.random() * available.length)];
     setPickedId(next.id);
     if (tideEnabled) return;
     const node = listRef.current?.querySelector(`[data-entry-id="${next.id}"]`);
@@ -182,7 +185,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const list = (
     <ul
       ref={listRef}
-      className="guestbook-coastal-list mt-10 space-y-4"
+      className={tideEnabled ? "guestbook-coastal-list sr-only" : "guestbook-coastal-list mt-10 space-y-4"}
       aria-label={t("listLabel")}
       data-testid="guestbook-list"
     >
@@ -239,7 +242,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
       {tideEnabled && (
         <div className="guestbook-coastal-water relative">
           <GuestbookTide
-            entries={entries}
+            entries={tideEntries}
             selectedId={pickedId}
             onSelect={setPickedId}
             canvasLabel={t("canvasLabel")}
@@ -266,7 +269,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
 
       <form
         onSubmit={handleSubmit}
-        className="guestbook-coastal-form relative mx-auto mt-8 max-w-3xl space-y-4 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-5"
+        className="guestbook-coastal-form relative z-20 mx-auto -mt-28 max-w-3xl space-y-4 rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 backdrop-blur-md"
         data-testid="guestbook-form"
       >
         <label htmlFor="guestbook-message" className="block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">

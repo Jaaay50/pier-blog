@@ -479,6 +479,7 @@ html.custom-cursor-on body {
 .guestbook-coastal-actions button { border-color: rgba(255,255,255,.6); color: #fffaf0; background: rgba(20,35,40,.16); }
 .guestbook-coastal-water { margin: 0 -1rem; }
 .guestbook-coastal-form { box-shadow: 0 12px 36px color-mix(in srgb, var(--text-primary) 8%, transparent); }
+.guestbook-coastal-form .text-right { color: var(--text-muted); }
 .guestbook-coastal-list { max-width: 48rem; margin-left: auto; margin-right: auto; }
 @keyframes coastal-cloud-drift { from { transform: translateX(0); } to { transform: translateX(150vw); } }
 @keyframes coastal-glint { 0%,100% { opacity: .3; transform: translateY(0); } 50% { opacity: .7; transform: translateY(-5px); } }

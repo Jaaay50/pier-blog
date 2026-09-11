@@ -207,6 +207,8 @@ export function GuestbookTide({ entries, selectedId, onSelect, canvasLabel }: Gu
         try {
           drawTide(ctx, world, time, palette);
           for (const bottle of bottlesRef.current) {
+            const reveal = (time + bottle.phase * 2.4) % 18;
+            if (reveal > 11 && bottle.id !== selectedRef.current) continue;
             drawBottle(
               ctx,
               bottle,
