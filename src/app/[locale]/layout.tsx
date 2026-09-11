@@ -116,6 +116,9 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         {/* 首帧粒子门控：在浏览器解析 body 前同步判断 WebGL 能力，
             可用时打 data-particles-ready 标记，CSS 直接让 SSR 标题第一帧就透明 */}
         <ParticleGateScript />
+        <noscript>
+          <style>{`html[data-particles-ready] .hero-title-ssr{opacity:1}`}</style>
+        </noscript>
         {/* Currents 列表密度：水合前同步恢复 <html data-density>，避免排版闪烁 */}
         <script
           dangerouslySetInnerHTML={{

@@ -418,9 +418,11 @@ describe("ParticleTitle draw readiness", () => {
     expect(onReadyChange).not.toHaveBeenCalledWith(true);
     await act(async () => resolveFonts());
     frame(0);
+    expect(view.container.querySelector("[data-ptchar]")?.parentElement?.style.opacity).toBe("0");
     onReadyChange.mockClear();
     view.rerender(<Fixture title={titles.zh} />);
     expect(onReadyChange).toHaveBeenLastCalledWith(false);
+    expect(view.container.querySelector("[data-ptchar]")?.parentElement?.style.opacity).toBe("0");
     await finishBoot();
     expect(onReadyChange).not.toHaveBeenCalledWith(true);
     frame(0);
