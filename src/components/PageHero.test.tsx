@@ -23,6 +23,7 @@ describe("PageHero", () => {
       [messages.portfolio.label, messages.portfolio.title, messages.portfolio.subtitle],
       [messages.lab.label, messages.lab.title, messages.lab.subtitle],
       [messages.about.label, messages.about.title, messages.about.intro],
+      [messages.guestbook.label, messages.guestbook.title, messages.guestbook.subtitle],
     ];
     it.each(entries)(`${locale}: renders %s with one readable server heading`, (label, title, description) => {
       const markup = renderToStaticMarkup(<PageHero label={label} title={title} description={description} />);

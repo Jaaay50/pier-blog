@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coastalTimeForDate, type CoastalTime } from "./coastal-time";
 
 const PERIODS: CoastalTime[] = ["dawn", "day", "dusk", "night"];
 
 interface CoastalSceneProps {
   label: string;
-  children?: ReactNode;
+  onPick?: () => void;
 }
 
 function videoSrc(period: CoastalTime): string {
   return `/guestbook/coast-${period}.webm`;
 }
 
-export function CoastalScene({ label, children }: CoastalSceneProps) {
+export function CoastalScene({ label, onPick }: CoastalSceneProps) {
   const [time, setTime] = useState<CoastalTime>(() => coastalTimeForDate());
   const [canMotion, setCanMotion] = useState(false);
   const videoRefs = useRef<Partial<Record<CoastalTime, HTMLVideoElement | null>>>({});
@@ -52,7 +52,13 @@ export function CoastalScene({ label, children }: CoastalSceneProps) {
   }, [canMotion, time]);
 
   return (
-    <section className="guestbook-coastal-scene" data-testid="guestbook-coastal-scene" data-coastal-time={time} aria-label={label}>
+    <section
+      className={`guestbook-coastal-scene${onPick ? " is-pickable" : ""}`}
+      data-testid="guestbook-coastal-scene"
+      data-coastal-time={time}
+      aria-label={label}
+      onClick={onPick}
+    >
       <div className="guestbook-coastal-background" aria-hidden="true">
         {PERIODS.map((key) => (
           <div
@@ -76,7 +82,6 @@ export function CoastalScene({ label, children }: CoastalSceneProps) {
           />
         ))}
       </div>
-      {children}
     </section>
   );
 }

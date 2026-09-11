@@ -1,6 +1,7 @@
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import type { Metadata } from "next";
 import { Navbar } from "@/components/Navbar";
+import { PageHero } from "@/components/PageHero";
 import { SiteFooter } from "@/components/SiteFooter";
 import { GuestbookBoard } from "@/components/guestbook/GuestbookBoard";
 import { locales } from "@/i18n/config";
@@ -8,7 +9,7 @@ import { fetchGuestbookEntries, type GuestbookEntry } from "@/lib/guestbook";
 import { pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 15;
-/** 首屏列表条数。超出部分由画布/列表之外的分页承担（见 GuestbookBoard 的 count 文案）。 */
+/** 首屏列表条数。超出部分由 GuestbookBoard 的 count 文案承担。 */
 const INITIAL_LIMIT = 50;
 
 export function generateStaticParams() {
@@ -36,6 +37,7 @@ export default async function GuestbookPage({
 }) {
   const { locale } = await params;
   setRequestLocale(locale);
+  const t = await getTranslations("guestbook");
 
   let initialEntries: GuestbookEntry[] = [];
   let initialError = false;
@@ -49,6 +51,7 @@ export default async function GuestbookPage({
   return (
     <main className="relative min-h-screen">
       <Navbar />
+      <PageHero label={t("label")} title={t("title")} description={t("subtitle")} />
       <GuestbookBoard locale={locale} initialEntries={initialEntries} initialError={initialError} />
       <SiteFooter />
     </main>

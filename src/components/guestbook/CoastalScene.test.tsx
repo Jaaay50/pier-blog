@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CoastalScene } from "./CoastalScene";
 
@@ -51,6 +51,14 @@ describe("CoastalScene", () => {
     expect(video.getAttribute("src")).toBe("/guestbook/coast-day.webm");
     expect(video.loop).toBe(true);
     expect(video.muted).toBe(true);
+  });
+
+  it("picks a bottle when the plate is clicked", () => {
+    const onPick = vi.fn();
+    render(<CoastalScene label="coast" onPick={onPick} />);
+    fireEvent.click(screen.getByTestId("guestbook-coastal-scene"));
+    expect(onPick).toHaveBeenCalledOnce();
+    expect(screen.getByTestId("guestbook-coastal-scene").className).toContain("is-pickable");
   });
 
   it("changes only after crossing a period boundary", () => {

@@ -452,27 +452,44 @@ html.custom-cursor-on body {
   }
 }
 
-.guestbook-tide {
+.guestbook-coastal-scene {
+  position: relative;
+  width: 100%;
+  max-width: 56rem;
+  margin-left: auto;
+  margin-right: auto;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: #7ec4c8;
+}
+.guestbook-coastal-scene.is-pickable { cursor: pointer; }
+.guestbook-coastal-background, .guestbook-coastal-layer { position: absolute; inset: 0; }
+.guestbook-coastal-layer {
+  background-position: center;
+  background-size: cover;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+}
+.guestbook-coastal-layer.is-active { opacity: 1; }
+.guestbook-coastal-video {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
-  min-height: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
+  object-fit: cover;
+  image-rendering: pixelated;
+  opacity: 0;
+  transition: opacity 1.8s ease;
+  pointer-events: none;
 }
-
-.guestbook-coastal-scene { position: relative; width: 100%; height: min(68vh, 42rem); min-height: 22rem; overflow: hidden; background: #9bb9c4; }
-@media (min-width: 1024px) { .guestbook-coastal-scene { height: min(74vh, 48rem); } }
-.guestbook-coastal-background, .guestbook-coastal-layer { position: absolute; inset: 0; }
-.guestbook-coastal-layer { background-position: center; background-size: cover; opacity: 0; transition: opacity 1.8s ease; }
-.guestbook-coastal-layer.is-active { opacity: 1; }
-.guestbook-coastal-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.8s ease; pointer-events: none; }
 .guestbook-coastal-video.is-active { opacity: 1; }
 .guestbook-coastal-layer-dawn { background-image: url('/guestbook/coast-dawn.webp'); }
 .guestbook-coastal-layer-day { background-image: url('/guestbook/coast-day.webp'); }
 .guestbook-coastal-layer-dusk { background-image: url('/guestbook/coast-dusk.webp'); }
 .guestbook-coastal-layer-night { background-image: url('/guestbook/coast-night.webp'); }
-.guestbook-coastal-water { position: absolute; inset: 36% 4% 10% 30%; z-index: 2; }
 .guestbook-letter-backdrop { position: fixed; inset: 0; z-index: 40; display: flex; align-items: center; justify-content: center; padding: 1.5rem; background: rgba(12, 22, 28, 0.46); }
 .guestbook-letter-modal { position: relative; }
 .guestbook-coastal-form { box-shadow: 0 12px 36px color-mix(in srgb, var(--text-primary) 8%, transparent); }

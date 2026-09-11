@@ -83,6 +83,14 @@ beforeEach(() => {
     },
   );
   HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
+  Object.defineProperty(HTMLVideoElement.prototype, "play", {
+    configurable: true,
+    value: vi.fn(() => Promise.resolve()),
+  });
+  Object.defineProperty(HTMLVideoElement.prototype, "pause", {
+    configurable: true,
+    value: vi.fn(),
+  });
 });
 afterEach(() => {
   cleanup();
@@ -123,6 +131,20 @@ describe("GuestbookBoard", () => {
     expect(screen.getByText("已送到岸边。")).toBeTruthy();
   });
 
+  it("点击海岸画板会打开岸边来信", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    renderBoard();
+    fireEvent.click(screen.getByTestId("guestbook-coastal-scene"));
+    expect(screen.getByTestId("guestbook-read-card").textContent).toContain(sample.message);
+  });
+
   it("潮水模式下拾取会打开岸边来信", () => {
     vi.stubGlobal(
       "matchMedia",
@@ -149,7 +171,7 @@ describe("GuestbookBoard", () => {
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
     renderBoard();
     fireEvent.click(screen.getByTestId("guestbook-pick"));
-    expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
+    expect(screen.getByTestId("guestbook-coastal-scene")).toBeTruthy();
     expect(screen.getByTestId("guestbook-read-card").textContent).toContain(sample.message);
     const list = screen.getByTestId("guestbook-list");
     expect(list.className).toContain("guestbook-coastal-list");

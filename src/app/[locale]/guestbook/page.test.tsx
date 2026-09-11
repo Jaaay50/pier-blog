@@ -52,5 +52,8 @@ describe("GuestbookPage", () => {
     mocks.locale = locale;
     render(await GuestbookPage({ params: Promise.resolve({ locale }) }));
     expect(screen.getByTestId("guestbook-board").textContent).toBe("tide mark");
+    expect(screen.getByRole("heading", { level: 1 }).textContent).toBe(
+      locale === "zh" ? zh.guestbook.title : en.guestbook.title,
+    );
   });
 });

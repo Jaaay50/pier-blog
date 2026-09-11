@@ -101,14 +101,17 @@ describe("article code block layout", () => {
 });
 
 describe("guestbook coastal scene", () => {
-  it("uses full-bleed landscape plates without overlay chrome", () => {
+  it("keeps the coast as a content-column pixel plate", () => {
     expect(css).toContain("url('/guestbook/coast-dawn.webp')");
     expect(css).toContain("url('/guestbook/coast-day.webp')");
     expect(css).toContain("url('/guestbook/coast-dusk.webp')");
     expect(css).toContain("url('/guestbook/coast-night.webp')");
     expect(css).toMatch(/\.guestbook-coastal-scene\s*\{[^}]*width:\s*100%;/);
-    expect(css).toMatch(/\.guestbook-coastal-video\s*\{[^}]*object-fit:\s*cover;/);
-    expect(css).not.toMatch(/coastal-grass/);
+    expect(css).toMatch(/\.guestbook-coastal-scene\s*\{[^}]*aspect-ratio:\s*16\s*\/\s*9;/);
+    expect(css).toMatch(/\.guestbook-coastal-scene\s*\{[^}]*border-radius:\s*1rem;/);
+    expect(css).toMatch(/\.guestbook-coastal-video\s*\{[^}]*image-rendering:\s*pixelated;/);
+    expect(css).not.toMatch(/guestbook-coastal-water/);
+    expect(css).not.toMatch(/\.guestbook-tide\s*\{/);
     expect(css).not.toMatch(/guestbook-coastal-intro/);
   });
 });
