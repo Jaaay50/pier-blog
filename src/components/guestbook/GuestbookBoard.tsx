@@ -3,8 +3,8 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
-import { GuestbookTide } from "@/components/guestbook/GuestbookTide";
 import { CoastalScene } from "@/components/guestbook/CoastalScene";
+import { coastalTimeForDate, type CoastalTime } from "@/components/guestbook/coastal-time";
 import { CurrentsApiError } from "@/lib/currents/api";
 import { fmtDateTime } from "@/lib/currents/format-time";
 import {
@@ -32,31 +32,9 @@ type SubmitState =
   | "error-verification-unavailable"
   | "error-generic";
 
-const TIDE_BOTTLE_LIMIT = 3;
-
 function formatRetry(seconds: number, locale: string): string {
   const minutes = Math.max(1, Math.ceil(seconds / 60));
   return locale === "zh" ? `${minutes} 分钟` : `${minutes} min`;
-}
-
-function canvasEntries(entries: GuestbookEntry[], selectedId: string | null): GuestbookEntry[] {
-  const limited = entries.slice(0, TIDE_BOTTLE_LIMIT);
-  if (!selectedId || limited.some((entry) => entry.id === selectedId)) return limited;
-  const selected = entries.find((entry) => entry.id === selectedId);
-  return selected ? [...limited, selected] : limited;
-}
-
-function useTideMotion(): boolean {
-  const [enabled, setEnabled] = useState(false);
-  useEffect(() => {
-    if (typeof window.matchMedia !== "function") return;
-    const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const apply = () => setEnabled(!motion.matches);
-    apply();
-    motion.addEventListener("change", apply);
-    return () => motion.removeEventListener("change", apply);
-  }, []);
-  return enabled;
 }
 
 export function GuestbookBoard({ locale, initialEntries, initialError = false }: GuestbookBoardProps) {
@@ -76,8 +54,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const listRef = useRef<HTMLUListElement>(null);
   const readCardRef = useRef<HTMLElement>(null);
   const pickButtonRef = useRef<HTMLButtonElement>(null);
-  const tideEnabled = useTideMotion();
-  const tideEntries = canvasEntries(entries, pickedId);
+  const [coastalTime, setCoastalTime] = useState<CoastalTime>(() => coastalTimeForDate());
 
   // 验证失败/重试可以改变提示状态，但不能提前解除服务端给出的提交冷却。
   const rateLimited = retryAfterSeconds !== null && retryAfterSeconds > 0;
@@ -96,10 +73,18 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
     return () => window.clearInterval(timer);
   }, [rateLimited, retryAfterSeconds]);
 
-  // 潮水模式下画布是纯指针交互，读卡是唯一的无障碍出口：
-  // 打开时把焦点移进去（读屏才会念出这条留言），Esc 关闭并把焦点还回按钮。
   useEffect(() => {
-    if (!tideEnabled || pickedId === null) return;
+    const update = () => setCoastalTime((current) => {
+      const next = coastalTimeForDate();
+      return current === next ? current : next;
+    });
+    const timer = window.setInterval(update, 60_000);
+    return () => window.clearInterval(timer);
+  }, []);
+
+  // 打开读卡时把焦点移进去；Esc 关闭并把焦点还回拾取按钮。
+  useEffect(() => {
+    if (pickedId === null) return;
     readCardRef.current?.focus();
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
@@ -108,7 +93,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
-  }, [tideEnabled, pickedId]);
+  }, [pickedId]);
 
   const resetTurnstile = () => {
     setTurnstileToken("");
@@ -119,7 +104,6 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
     if (entries.length === 0) return;
     const next = entries[Math.floor(Math.random() * entries.length)];
     setPickedId(next.id);
-    if (tideEnabled) return;
     const node = listRef.current?.querySelector(`[data-entry-id="${next.id}"]`);
     if (node && "scrollIntoView" in node && typeof node.scrollIntoView === "function") {
       node.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -223,56 +207,47 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   );
 
   return (
-    <div className="mx-auto max-w-6xl">
-      <CoastalScene
-        label={t("sceneLabel")}
-        title={t("title")}
-        description={t("subtitle")}
-        timeLabel={{ dawn: t("timeDawn"), day: t("timeDay"), dusk: t("timeDusk"), night: t("timeNight") }}
-      >
-      <div className="guestbook-coastal-actions flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          ref={pickButtonRef}
-          onClick={pickOne}
-          disabled={entries.length === 0}
-          data-testid="guestbook-pick"
-          className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-4 text-sm text-[var(--text-primary)] transition-colors hover:border-[var(--border-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {t("pick")}
-        </button>
-        <p className="text-sm" data-testid="guestbook-count">
-          {t("count", { count: entries.length })}
+    <div>
+      <CoastalScene label={t("sceneLabel")} />
+      <div className="site-content pb-16 pt-10">
+      <header className="mx-auto max-w-3xl">
+        <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
+          {t(coastalTime === "dawn" ? "timeDawn" : coastalTime === "day" ? "timeDay" : coastalTime === "dusk" ? "timeDusk" : "timeNight")}
         </p>
-      </div>
-
-      {tideEnabled && (
-        <div className="guestbook-coastal-water relative">
-          <GuestbookTide
-            entries={tideEntries}
-            selectedId={pickedId}
-            onSelect={setPickedId}
-            canvasLabel={t("canvasLabel")}
-          />
-          {picked && (
-            <aside
-              ref={readCardRef}
-              tabIndex={-1}
-              className="guestbook-coastal-letter absolute bottom-5 left-5 z-10 flex max-h-[min(calc(100%_-_2.5rem),calc(100dvh_-_2rem))] max-w-md flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-              data-testid="guestbook-read-card"
-              role="region"
-              aria-labelledby="guestbook-read-title"
-            >
-              <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">{t("letterTitle")}</p>
-              <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
-              <p tabIndex={0} className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{picked.message}</p>
-              <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={() => { setPickedId(null); pickButtonRef.current?.focus(); }}>{t("closeCard")}</button>
-            </aside>
-          )}
-          {entries.length === 0 && !loadError && <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-[var(--text-muted)]">{t("empty")}</p>}
+        <h1 className="mt-2 font-[family-name:var(--font-display,inherit)] text-4xl font-medium tracking-tight text-[var(--text-primary)] md:text-5xl">{t("title")}</h1>
+        <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] md:text-base">{t("subtitle")}</p>
+        <div className="mt-6 flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            ref={pickButtonRef}
+            onClick={pickOne}
+            disabled={entries.length === 0}
+            data-testid="guestbook-pick"
+            className="inline-flex min-h-11 items-center rounded-full border border-[var(--border)] px-4 text-sm text-[var(--text-primary)] transition-colors hover:border-[var(--border-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {t("pick")}
+          </button>
+          <p className="text-sm text-[var(--text-muted)]" data-testid="guestbook-count">
+            {t("count", { count: entries.length })}
+          </p>
         </div>
+      </header>
+
+      {picked && (
+        <aside
+          ref={readCardRef}
+          tabIndex={-1}
+          className="guestbook-coastal-letter mx-auto mt-8 flex max-h-[min(28rem,70dvh)] max-w-3xl flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-card-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          data-testid="guestbook-read-card"
+          role="region"
+          aria-labelledby="guestbook-read-title"
+        >
+          <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">{t("letterTitle")}</p>
+          <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
+          <p tabIndex={0} className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{picked.message}</p>
+          <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={() => { setPickedId(null); pickButtonRef.current?.focus(); }}>{t("closeCard")}</button>
+        </aside>
       )}
-      </CoastalScene>
 
       <form
         onSubmit={handleSubmit}
@@ -390,13 +365,14 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         </div>
       )}
 
-      {entries.length === 0 && !loadError && !tideEnabled ? (
+      {entries.length === 0 && !loadError ? (
         <p className="mt-10 text-sm text-[var(--text-muted)]" data-testid="guestbook-empty">
           {t("empty")}
         </p>
       ) : (
         entries.length > 0 && list
       )}
+      </div>
     </div>
   );
 }

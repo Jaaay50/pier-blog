@@ -14,14 +14,15 @@ describe("CoastalScene", () => {
   it("renders the four self-hosted backgrounds and content", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-11T00:00:00.000Z"));
-    const { container } = render(<CoastalScene label="coast" title="Bottles" description="Notes" timeLabel={{ dawn: "Dawn", day: "Day", dusk: "Dusk", night: "Night" }}><span>tide</span></CoastalScene>);
+    const { container } = render(<CoastalScene label="coast" />);
     expect(screen.getByTestId("guestbook-coastal-scene").dataset.coastalTime).toBe("day");
-    expect(screen.getByRole("region", { name: "coast" }).textContent).toContain("tide");
+    expect(screen.getByRole("region", { name: "coast" })).toBeTruthy();
     expect(container.querySelectorAll(".guestbook-coastal-layer")).toHaveLength(4);
     expect(container.querySelector(".guestbook-coastal-layer-dawn")).toBeTruthy();
     expect(container.querySelector(".guestbook-coastal-layer-day")).toBeTruthy();
     expect(container.querySelector(".guestbook-coastal-layer-dusk")).toBeTruthy();
     expect(container.querySelector(".guestbook-coastal-layer-night")).toBeTruthy();
+    expect(container.textContent).not.toContain("Bottles");
     expect(container.querySelector("[style*='background-image']")).toBeNull();
   });
 
@@ -44,7 +45,7 @@ describe("CoastalScene", () => {
     });
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-11T00:00:00.000Z"));
-    const { container } = render(<CoastalScene label="coast" title="Bottles" description="Notes" timeLabel={{ dawn: "Dawn", day: "Day", dusk: "Dusk", night: "Night" }}><span /></CoastalScene>);
+    const { container } = render(<CoastalScene label="coast" />);
     const video = container.querySelector('[data-testid="guestbook-coastal-video"]') as HTMLVideoElement;
     expect(video).toBeTruthy();
     expect(video.getAttribute("src")).toBe("/guestbook/coast-day.webm");
@@ -55,7 +56,7 @@ describe("CoastalScene", () => {
   it("changes only after crossing a period boundary", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-09-11T08:58:00.000Z"));
-    render(<CoastalScene label="coast" title="Bottles" description="Notes" timeLabel={{ dawn: "Dawn", day: "Day", dusk: "Dusk", night: "Night" }}><span /></CoastalScene>);
+    render(<CoastalScene label="coast" />);
     const scene = screen.getAllByTestId("guestbook-coastal-scene").at(-1)!;
     expect(scene.dataset.coastalTime).toBe("day");
     act(() => { vi.setSystemTime(new Date("2026-09-11T09:00:00.000Z")); vi.advanceTimersByTime(120_000); });

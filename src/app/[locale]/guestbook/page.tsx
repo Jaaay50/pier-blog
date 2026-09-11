@@ -49,9 +49,7 @@ export default async function GuestbookPage({
   return (
     <main className="relative min-h-screen">
       <Navbar />
-      <div className="site-content pb-16 pt-8 md:pt-12">
-        <GuestbookBoard locale={locale} initialEntries={initialEntries} initialError={initialError} />
-      </div>
+      <GuestbookBoard locale={locale} initialEntries={initialEntries} initialError={initialError} />
       <SiteFooter />
     </main>
   );

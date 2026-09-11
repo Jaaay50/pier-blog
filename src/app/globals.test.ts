@@ -92,22 +92,14 @@ describe("article code block layout", () => {
 });
 
 describe("guestbook coastal scene", () => {
-  it("loads desktop and mobile plates from CSS without !important", () => {
+  it("uses full-bleed landscape plates without overlay chrome", () => {
     expect(css).toContain("url('/guestbook/coast-dawn.webp')");
     expect(css).toContain("url('/guestbook/coast-day.webp')");
     expect(css).toContain("url('/guestbook/coast-dusk.webp')");
     expect(css).toContain("url('/guestbook/coast-night.webp')");
-    expect(css).toContain("url('/guestbook/coast-mobile-dawn.webp')");
-    expect(css).toContain("url('/guestbook/coast-mobile-day.webp')");
-    expect(css).toContain("url('/guestbook/coast-mobile-dusk.webp')");
-    expect(css).toContain("url('/guestbook/coast-mobile-night.webp')");
-    expect(css).not.toMatch(/coast-mobile-[a-z]+\.webp'\)\s*!important/);
+    expect(css).toMatch(/\.guestbook-coastal-scene\s*\{[^}]*width:\s*100%;/);
     expect(css).toMatch(/\.guestbook-coastal-video\s*\{[^}]*object-fit:\s*cover;/);
-  });
-
-  it("protects intro and action copy over pale plates", () => {
-    expect(css).toMatch(/\.guestbook-coastal-content::before\s*\{[^}]*linear-gradient/);
-    expect(css).toMatch(/\.guestbook-coastal-intro[^{]*\{[^}]*text-shadow:/);
-    expect(css).toMatch(/\.guestbook-coastal-actions[^{]*\{[^}]*color:\s*#fffaf0;/);
+    expect(css).not.toMatch(/coastal-grass/);
+    expect(css).not.toMatch(/guestbook-coastal-intro/);
   });
 });
