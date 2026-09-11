@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import { GuestbookTide } from "@/components/guestbook/GuestbookTide";
+import { CoastalScene } from "@/components/guestbook/CoastalScene";
 import { CurrentsApiError } from "@/lib/currents/api";
 import { fmtDateTime } from "@/lib/currents/format-time";
 import {
@@ -181,7 +182,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const list = (
     <ul
       ref={listRef}
-      className={tideEnabled ? "sr-only" : "mt-10 space-y-4"}
+      className="guestbook-coastal-list mt-10 space-y-4"
       aria-label={t("listLabel")}
       data-testid="guestbook-list"
     >
@@ -212,8 +213,14 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   );
 
   return (
-    <div className="mx-auto max-w-5xl">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="mx-auto max-w-6xl">
+      <CoastalScene
+        label={t("sceneLabel")}
+        title={t("title")}
+        description={t("subtitle")}
+        timeLabel={{ dawn: t("timeDawn"), day: t("timeDay"), dusk: t("timeDusk"), night: t("timeNight") }}
+      >
+      <div className="guestbook-coastal-actions flex flex-wrap items-center gap-3">
         <button
           type="button"
           ref={pickButtonRef}
@@ -229,9 +236,37 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         </p>
       </div>
 
+      {tideEnabled && (
+        <div className="guestbook-coastal-water relative">
+          <GuestbookTide
+            entries={entries}
+            selectedId={pickedId}
+            onSelect={setPickedId}
+            canvasLabel={t("canvasLabel")}
+          />
+          {picked && (
+            <aside
+              ref={readCardRef}
+              tabIndex={-1}
+              className="guestbook-coastal-letter absolute bottom-5 left-5 z-10 flex max-h-[min(calc(100%_-_2.5rem),calc(100dvh_-_2rem))] max-w-md flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              data-testid="guestbook-read-card"
+              role="region"
+              aria-labelledby="guestbook-read-title"
+            >
+              <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">{t("letterTitle")}</p>
+              <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
+              <p tabIndex={0} className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{picked.message}</p>
+              <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={() => { setPickedId(null); pickButtonRef.current?.focus(); }}>{t("closeCard")}</button>
+            </aside>
+          )}
+          {entries.length === 0 && !loadError && <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-[var(--text-muted)]">{t("empty")}</p>}
+        </div>
+      )}
+      </CoastalScene>
+
       <form
         onSubmit={handleSubmit}
-        className="relative mt-8 max-w-3xl space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5"
+        className="guestbook-coastal-form relative mx-auto mt-8 max-w-3xl space-y-4 rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-5"
         data-testid="guestbook-form"
       >
         <label htmlFor="guestbook-message" className="block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
@@ -345,58 +380,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         </div>
       )}
 
-      {tideEnabled && (
-        <div className="relative mt-10">
-          <GuestbookTide
-            entries={entries}
-            selectedId={pickedId}
-            onSelect={setPickedId}
-            canvasLabel={t("canvasLabel")}
-          />
-          {picked && (
-            <aside
-              ref={readCardRef}
-              tabIndex={-1}
-              className="absolute inset-x-4 bottom-4 z-10 flex max-h-[min(calc(100%_-_2rem),calc(100dvh_-_2rem))] max-w-md flex-col overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--bg-primary)]/95 p-5 shadow-[var(--shadow-card-hover)] backdrop-blur-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] sm:inset-x-auto sm:left-6"
-              data-testid="guestbook-read-card"
-              role="region"
-              aria-labelledby="guestbook-read-title"
-            >
-              <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
-                {t("letterTitle")}
-              </p>
-              <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]">
-                <span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span>
-                <time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time>
-              </p>
-              {/* 只滚动正文，保留标题与关闭按钮；键盘可聚焦正文后滚动长留言。 */}
-              <p
-                tabIndex={0}
-                className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-              >
-                {picked.message}
-              </p>
-              <button
-                type="button"
-                className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2"
-                onClick={() => {
-                  setPickedId(null);
-                  pickButtonRef.current?.focus();
-                }}
-              >
-                {t("closeCard")}
-              </button>
-            </aside>
-          )}
-          {entries.length === 0 && !loadError && (
-            <p className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-[var(--text-muted)]">
-              {t("empty")}
-            </p>
-          )}
-        </div>
-      )}
-
-      {entries.length === 0 && !loadError && !tideEnabled ? (
+      {entries.length === 0 && !loadError ? (
         <p className="mt-10 text-sm text-[var(--text-muted)]" data-testid="guestbook-empty">
           {t("empty")}
         </p>

@@ -136,7 +136,7 @@ describe("GuestbookBoard", () => {
     fireEvent.click(screen.getByTestId("guestbook-pick"));
     expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
     expect(screen.getByTestId("guestbook-read-card").textContent).toContain(sample.message);
-    expect(screen.getByTestId("guestbook-list").className).toContain("sr-only");
+    expect(screen.getByTestId("guestbook-list").className).toContain("guestbook-coastal-list");
   });
 
   it("429 显示限流提示", async () => {
@@ -246,7 +246,7 @@ describe("GuestbookBoard", () => {
     const pick = screen.getByTestId("guestbook-pick");
     fireEvent.click(pick);
     const card = screen.getByTestId("guestbook-read-card");
-    expect(card.className).toContain("max-h-[min(calc(100%_-_2rem),calc(100dvh_-_2rem))]");
+    expect(card.className).toContain("max-h-[min(calc(100%_-_2.5rem),calc(100dvh_-_2rem))]");
     expect(card.className).toContain("flex-col");
     expect(card.className).toContain("overflow-hidden");
     expect(document.activeElement).toBe(card);
