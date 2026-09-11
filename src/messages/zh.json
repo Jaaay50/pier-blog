@@ -19,7 +19,7 @@
   "guestbook": {
     "label": "渡口",
     "title": "漂瓶",
-    "subtitle": "路过的人可以把一句话装进瓶子，推到潮水里。不登录，不留邮箱；十分钟里最多三条。",
+    "subtitle": "路过的人可以把一句话装进瓶子，推到潮水里。",
     "metaDescription": "Ethan Pier 的公开留言墙：匿名漂瓶，拾取一条别人留下的话。",
     "messageLabel": "写下你的话",
     "messagePlaceholder": "潮水会把这句话送到岸边…",
