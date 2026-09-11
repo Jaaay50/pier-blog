@@ -19,7 +19,7 @@
   "guestbook": {
     "label": "The crossing",
     "title": "Bottles",
-    "subtitle": "Leave a sentence in a bottle and push it into the tide. No account, no email; three notes every ten minutes.",
+    "subtitle": "Leave a sentence in a bottle and push it into the tide.",
     "metaDescription": "Ethan Pier's public guestbook: anonymous bottles, and a way to pick one at random.",
     "messageLabel": "Your note",
     "messagePlaceholder": "The tide will carry this to shore…",
