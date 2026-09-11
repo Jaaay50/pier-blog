@@ -218,7 +218,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
           {t(coastalTime === "dawn" ? "timeDawn" : coastalTime === "day" ? "timeDay" : coastalTime === "dusk" ? "timeDusk" : "timeNight")}
         </p>
         <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[var(--text-secondary)] md:text-base">{t("subtitle")}</p>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
+        <div className="mt-6">
           <button
             type="button"
             ref={pickButtonRef}
@@ -229,9 +229,6 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
           >
             {t("pick")}
           </button>
-          <p className="text-sm text-[var(--text-muted)]" data-testid="guestbook-count">
-            {t("count", { count: entries.length })}
-          </p>
         </div>
       </header>
 

@@ -9,7 +9,7 @@ import { fetchGuestbookEntries, type GuestbookEntry } from "@/lib/guestbook";
 import { pageMetadata } from "@/lib/metadata";
 
 export const revalidate = 15;
-/** 首屏列表条数。超出部分由 GuestbookBoard 的 count 文案承担。 */
+/** 首屏列表条数。超出部分仍由 API 分页游标承担。 */
 const INITIAL_LIMIT = 50;
 
 export function generateStaticParams() {
