@@ -7,6 +7,7 @@ import { CoastalScene } from "./CoastalScene";
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  window.localStorage.clear();
 });
 
 describe("CoastalScene", () => {
@@ -49,8 +50,42 @@ describe("CoastalScene", () => {
     const video = container.querySelector('[data-testid="guestbook-coastal-video"]') as HTMLVideoElement;
     expect(video).toBeTruthy();
     expect(video.getAttribute("src")).toBe("/guestbook/coast-day.webm");
+    expect(video.getAttribute("poster")).toBe("/guestbook/coast-day.webp");
     expect(video.loop).toBe(true);
     expect(video.muted).toBe(true);
+    expect(container.querySelectorAll("video")).toHaveLength(1);
+  });
+
+  it("refreshing night picks a different clip than last time", () => {
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      })),
+    );
+    Object.defineProperty(HTMLVideoElement.prototype, "play", {
+      configurable: true,
+      value: vi.fn(() => Promise.resolve()),
+    });
+    Object.defineProperty(HTMLVideoElement.prototype, "pause", {
+      configurable: true,
+      value: vi.fn(),
+    });
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-09-11T12:00:00.000Z"));
+    window.localStorage.setItem("guestbook-coast-last:night", "/guestbook/coast-night-0.webm");
+    const first = render(<CoastalScene label="coast" />);
+    const firstSrc = first.container.querySelector("video")?.getAttribute("src");
+    expect(firstSrc).toBeTruthy();
+    expect(firstSrc).not.toBe("/guestbook/coast-night-0.webm");
+    first.unmount();
+    window.localStorage.setItem("guestbook-coast-last:night", firstSrc ?? "");
+    const second = render(<CoastalScene label="coast" />);
+    const secondSrc = second.container.querySelector("video")?.getAttribute("src");
+    expect(secondSrc).toBeTruthy();
+    expect(secondSrc).not.toBe(firstSrc);
   });
 
   it("picks a bottle when the plate is clicked", () => {
