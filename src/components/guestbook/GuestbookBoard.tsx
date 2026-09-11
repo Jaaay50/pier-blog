@@ -38,6 +38,10 @@ function formatRetry(seconds: number, locale: string): string {
   return locale === "zh" ? `${minutes} 分钟` : `${minutes} min`;
 }
 
+function focusWithoutScroll(node: HTMLElement | null) {
+  node?.focus({ preventScroll: true });
+}
+
 export function GuestbookBoard({ locale, initialEntries, initialError = false }: GuestbookBoardProps) {
   const t = useTranslations("guestbook");
   const normalizedLocale: "zh" | "en" = locale === "zh" ? "zh" : "en";
@@ -52,7 +56,6 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const honeypotRef = useRef<HTMLInputElement>(null);
   const submittingRef = useRef(false);
   const turnstileRef = useRef<TurnstileWidgetHandle>(null);
-  const listRef = useRef<HTMLUListElement>(null);
   const readCardRef = useRef<HTMLElement>(null);
   const pickButtonRef = useRef<HTMLButtonElement>(null);
   const [coastalTime, setCoastalTime] = useState<CoastalTime>(() => coastalTimeForDate());
@@ -84,13 +87,14 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   }, []);
 
   // 打开读卡时把焦点移进去；Esc 关闭并把焦点还回拾取按钮。
+  // 列表已是 sr-only，不得 scrollIntoView；focus 也要 preventScroll，否则页面会上下闪。
   useEffect(() => {
     if (pickedId === null) return;
-    readCardRef.current?.focus();
+    focusWithoutScroll(readCardRef.current);
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       setPickedId(null);
-      pickButtonRef.current?.focus();
+      focusWithoutScroll(pickButtonRef.current);
     };
     document.addEventListener("keydown", onKeyDown);
     return () => document.removeEventListener("keydown", onKeyDown);
@@ -101,14 +105,15 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
     turnstileRef.current?.reset();
   };
 
+  const closeLetter = () => {
+    setPickedId(null);
+    focusWithoutScroll(pickButtonRef.current);
+  };
+
   const pickOne = () => {
     if (entries.length === 0) return;
     const next = entries[Math.floor(Math.random() * entries.length)];
     setPickedId(next.id);
-    const node = listRef.current?.querySelector(`[data-entry-id="${next.id}"]`);
-    if (node && "scrollIntoView" in node && typeof node.scrollIntoView === "function") {
-      node.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
   };
 
   const picked = entries.find((entry) => entry.id === pickedId) ?? null;
@@ -180,7 +185,6 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
 
   const list = (
     <ul
-      ref={listRef}
       className="guestbook-coastal-list sr-only"
       aria-label={t("listLabel")}
       data-testid="guestbook-list"
@@ -240,7 +244,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
       </div>
 
       {picked && (
-        <div className="guestbook-letter-backdrop" onClick={() => setPickedId(null)}>
+        <div className="guestbook-letter-backdrop" onClick={closeLetter}>
           <aside
             ref={readCardRef}
             tabIndex={-1}
@@ -254,7 +258,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
             <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">{t("letterTitle")}</p>
             <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
             <p tabIndex={0} className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{picked.message}</p>
-            <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={() => { setPickedId(null); pickButtonRef.current?.focus(); }}>{t("closeCard")}</button>
+            <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={closeLetter}>{t("closeCard")}</button>
           </aside>
         </div>
       )}
