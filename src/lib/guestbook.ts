@@ -18,6 +18,7 @@ export interface GuestbookListResponse {
 
 export interface GuestbookCreateResponse {
   ok: true;
+  kept?: boolean;
   duplicate?: boolean;
   entry?: GuestbookEntry;
 }
@@ -157,11 +158,15 @@ export async function submitGuestbookEntry(
   if (body.duplicate !== undefined && typeof body.duplicate !== "boolean") {
     throw new CurrentsApiError("invalid-json", res.status);
   }
+  if (body.kept !== undefined && typeof body.kept !== "boolean") {
+    throw new CurrentsApiError("invalid-json", res.status);
+  }
   if (body.entry !== undefined && !isGuestbookEntry(body.entry)) {
     throw new CurrentsApiError("contract-error", res.status);
   }
   return {
     ok: true,
+    ...(body.kept === false ? { kept: false } : { kept: true }),
     ...(body.duplicate === true ? { duplicate: true } : {}),
     ...(isGuestbookEntry(body.entry) ? { entry: body.entry } : {}),
   };

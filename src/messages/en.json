@@ -29,6 +29,7 @@
     "submitting": "Sending…",
     "success": "It reached the shore.",
     "successDuplicate": "That note was already sent.",
+    "notMeaningful": "The tide did not take that sentence. Try writing something you actually want to leave.",
     "pick": "Pick a bottle",
     "count": "{count} recent {count, plural, one {bottle} other {bottles}}",
     "empty": "The shore is empty. You can leave the first note.",

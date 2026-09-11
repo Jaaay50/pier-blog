@@ -29,6 +29,7 @@
     "submitting": "正在送出…",
     "success": "已送到岸边。",
     "successDuplicate": "这条刚才已经送到过。",
+    "notMeaningful": "这句话没有被潮水接住。试试写一句真正想留下的。",
     "pick": "拾取一只瓶子",
     "count": "最近 {count} 只漂瓶",
     "empty": "岸边还没有瓶子。你可以写下第一句。",

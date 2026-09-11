@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useTranslations } from "next-intl";
 import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import { CoastalScene } from "@/components/guestbook/CoastalScene";
+import { GuestbookTide } from "@/components/guestbook/GuestbookTide";
 import { coastalTimeForDate, type CoastalTime } from "@/components/guestbook/coastal-time";
 import { CurrentsApiError } from "@/lib/currents/api";
 import { fmtDateTime } from "@/lib/currents/format-time";
@@ -30,6 +31,7 @@ type SubmitState =
   | "error-network"
   | "error-verification"
   | "error-verification-unavailable"
+  | "error-not-meaningful"
   | "error-generic";
 
 function formatRetry(seconds: number, locale: string): string {
@@ -132,8 +134,12 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         turnstileToken,
         ...(honeypot !== "" ? { website: honeypot } : {}),
       });
-      setMessage("");
       resetTurnstile();
+      if (result.kept === false) {
+        setState("error-not-meaningful");
+        return;
+      }
+      setMessage("");
       if (result.entry) {
         setEntries((current) =>
           current.some((entry) => entry.id === result.entry!.id)
@@ -176,7 +182,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const list = (
     <ul
       ref={listRef}
-      className="guestbook-coastal-list mt-10 space-y-4"
+      className="guestbook-coastal-list sr-only"
       aria-label={t("listLabel")}
       data-testid="guestbook-list"
     >
@@ -208,7 +214,35 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
 
   return (
     <div>
-      <CoastalScene label={t("sceneLabel")} />
+      <CoastalScene label={t("sceneLabel")}>
+        <div className="guestbook-coastal-water">
+          <GuestbookTide
+            entries={entries}
+            selectedId={pickedId}
+            onSelect={setPickedId}
+            canvasLabel={t("canvasLabel")}
+          />
+        </div>
+        {picked && (
+          <div className="guestbook-letter-backdrop" onClick={() => setPickedId(null)}>
+            <aside
+              ref={readCardRef}
+              tabIndex={-1}
+              className="guestbook-letter-modal flex max-h-[min(28rem,70dvh)] w-full max-w-md flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-card-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              data-testid="guestbook-read-card"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="guestbook-read-title"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">{t("letterTitle")}</p>
+              <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
+              <p tabIndex={0} className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{picked.message}</p>
+              <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={() => { setPickedId(null); pickButtonRef.current?.focus(); }}>{t("closeCard")}</button>
+            </aside>
+          </div>
+        )}
+      </CoastalScene>
       <div className="site-content pb-16 pt-10">
       <header className="mx-auto max-w-3xl">
         <p className="text-xs uppercase tracking-[0.16em] text-[var(--text-muted)]">
@@ -232,22 +266,6 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
           </p>
         </div>
       </header>
-
-      {picked && (
-        <aside
-          ref={readCardRef}
-          tabIndex={-1}
-          className="guestbook-coastal-letter mx-auto mt-8 flex max-h-[min(28rem,70dvh)] max-w-3xl flex-col overflow-hidden rounded-lg border border-[var(--border)] bg-[var(--bg-card)] p-5 shadow-[var(--shadow-card-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
-          data-testid="guestbook-read-card"
-          role="region"
-          aria-labelledby="guestbook-read-title"
-        >
-          <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">{t("letterTitle")}</p>
-          <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
-          <p tabIndex={0} className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{picked.message}</p>
-          <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={() => { setPickedId(null); pickButtonRef.current?.focus(); }}>{t("closeCard")}</button>
-        </aside>
-      )}
 
       <form
         onSubmit={handleSubmit}
@@ -338,6 +356,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
           {(state === "error-network" ||
             state === "error-verification" ||
             state === "error-verification-unavailable" ||
+            state === "error-not-meaningful" ||
             state === "error-generic") && (
             <span role="alert" className="text-sm text-[var(--text-secondary)]">
               {state === "error-network"
@@ -346,7 +365,9 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
                   ? t("errorVerification")
                   : state === "error-verification-unavailable"
                     ? t("errorVerificationUnavailable")
-                    : t("errorGeneric")}
+                    : state === "error-not-meaningful"
+                      ? t("notMeaningful")
+                      : t("errorGeneric")}
             </span>
           )}
         </div>
