@@ -1,26 +1,21 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { coastalTimeForDate, type CoastalTime } from "./coastal-time";
 
 const PERIODS: CoastalTime[] = ["dawn", "day", "dusk", "night"];
 
 interface CoastalSceneProps {
-  children: ReactNode;
   label: string;
-  title: string;
-  description: string;
-  timeLabel: Record<CoastalTime, string>;
 }
 
-function videoSrc(period: CoastalTime, mobile: boolean): string {
-  return mobile ? `/guestbook/coast-mobile-${period}.webm` : `/guestbook/coast-${period}.webm`;
+function videoSrc(period: CoastalTime): string {
+  return `/guestbook/coast-${period}.webm`;
 }
 
-export function CoastalScene({ children, label, title, description, timeLabel }: CoastalSceneProps) {
+export function CoastalScene({ label }: CoastalSceneProps) {
   const [time, setTime] = useState<CoastalTime>(() => coastalTimeForDate());
   const [canMotion, setCanMotion] = useState(false);
-  const [mobile, setMobile] = useState(false);
   const videoRefs = useRef<Partial<Record<CoastalTime, HTMLVideoElement | null>>>({});
 
   useEffect(() => {
@@ -35,18 +30,10 @@ export function CoastalScene({ children, label, title, description, timeLabel }:
   useEffect(() => {
     if (typeof window.matchMedia !== "function") return;
     const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const width = window.matchMedia("(max-width: 640px)");
-    const apply = () => {
-      setCanMotion(!motion.matches);
-      setMobile(width.matches);
-    };
+    const apply = () => setCanMotion(!motion.matches);
     apply();
     motion.addEventListener("change", apply);
-    width.addEventListener("change", apply);
-    return () => {
-      motion.removeEventListener("change", apply);
-      width.removeEventListener("change", apply);
-    };
+    return () => motion.removeEventListener("change", apply);
   }, []);
 
   useEffect(() => {
@@ -61,7 +48,7 @@ export function CoastalScene({ children, label, title, description, timeLabel }:
         node.pause();
       }
     }
-  }, [canMotion, mobile, time]);
+  }, [canMotion, time]);
 
   return (
     <section className="guestbook-coastal-scene" data-testid="guestbook-coastal-scene" data-coastal-time={time} aria-label={label}>
@@ -79,7 +66,7 @@ export function CoastalScene({ children, label, title, description, timeLabel }:
               videoRefs.current[key] = node;
             }}
             className={`guestbook-coastal-video${key === time ? " is-active" : ""}`}
-            src={videoSrc(key, mobile)}
+            src={videoSrc(key)}
             muted
             loop
             playsInline
@@ -87,15 +74,6 @@ export function CoastalScene({ children, label, title, description, timeLabel }:
             data-testid={key === time ? "guestbook-coastal-video" : undefined}
           />
         ))}
-      </div>
-      <div className="guestbook-coastal-ambient" aria-hidden="true"><span className="coastal-cloud" /><span className="coastal-sparkles" /><span className="coastal-grass" /></div>
-      <div className="guestbook-coastal-content">
-        <header className="guestbook-coastal-intro">
-          <p className="guestbook-coastal-label">{timeLabel[time]}</p>
-          <h1>{title}</h1>
-          <p>{description}</p>
-        </header>
-        {children}
       </div>
     </section>
   );

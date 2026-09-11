@@ -104,7 +104,7 @@ describe("GuestbookBoard", () => {
       locale: "zh",
       turnstileToken: "guestbook-token",
     });
-    expect(screen.getByText("新漂来的瓶子")).toBeTruthy();
+    expect(within(screen.getByTestId("guestbook-list")).getByText("新漂来的瓶子")).toBeTruthy();
     expect(screen.getByText("已送到岸边。")).toBeTruthy();
   });
 
@@ -134,7 +134,7 @@ describe("GuestbookBoard", () => {
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
     renderBoard();
     fireEvent.click(screen.getByTestId("guestbook-pick"));
-    expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
+    expect(screen.queryByTestId("guestbook-tide")).toBeNull();
     expect(screen.getByTestId("guestbook-read-card").textContent).toContain(sample.message);
     const list = screen.getByTestId("guestbook-list");
     expect(list.className).toContain("guestbook-coastal-list");
@@ -189,9 +189,8 @@ describe("GuestbookBoard", () => {
     );
     HTMLCanvasElement.prototype.getContext = vi.fn(() => null);
     renderBoard([]);
-    expect(screen.getByTestId("guestbook-tide")).toBeTruthy();
-    expect(screen.getByText(zh.guestbook.empty)).toBeTruthy();
-    expect(screen.queryByTestId("guestbook-empty")).toBeNull();
+    expect(screen.queryByTestId("guestbook-tide")).toBeNull();
+    expect(screen.getByTestId("guestbook-empty").textContent).toBe(zh.guestbook.empty);
   });
 
   it("429 显示限流提示", async () => {
@@ -301,7 +300,7 @@ describe("GuestbookBoard", () => {
     const pick = screen.getByTestId("guestbook-pick");
     fireEvent.click(pick);
     const card = screen.getByTestId("guestbook-read-card");
-    expect(card.className).toContain("max-h-[min(calc(100%_-_2.5rem),calc(100dvh_-_2rem))]");
+    expect(card.className).toContain("max-h-[min(28rem,70dvh)]");
     expect(card.className).toContain("flex-col");
     expect(card.className).toContain("overflow-hidden");
     expect(document.activeElement).toBe(card);
