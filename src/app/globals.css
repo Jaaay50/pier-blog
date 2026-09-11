@@ -466,6 +466,8 @@ html.custom-cursor-on body {
 .guestbook-coastal-background { z-index: -3; }
 .guestbook-coastal-layer { background-position: center; background-size: cover; opacity: 0; transition: opacity 1.8s ease; }
 .guestbook-coastal-layer.is-active { opacity: 1; }
+.guestbook-coastal-video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity 1.8s ease; pointer-events: none; }
+.guestbook-coastal-video.is-active { opacity: 1; }
 .guestbook-coastal-layer-dawn { background-image: url('/guestbook/coast-dawn.webp'); }
 .guestbook-coastal-layer-day { background-image: url('/guestbook/coast-day.webp'); }
 .guestbook-coastal-layer-dusk { background-image: url('/guestbook/coast-dusk.webp'); }
@@ -498,7 +500,7 @@ html.custom-cursor-on body {
   .guestbook-coastal-water { margin: 0 -.5rem; }
   .guestbook-coastal-intro { padding-top: 1rem; }
 }
-@media (prefers-reduced-motion: reduce) { .guestbook-coastal-layer { transition: none; } .coastal-cloud, .coastal-sparkles, .coastal-grass { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .guestbook-coastal-layer { transition: none; } .guestbook-coastal-video { display: none; } .coastal-cloud, .coastal-sparkles, .coastal-grass { animation: none; } }
 
 .reading-column-no-px {
   width: 100%;

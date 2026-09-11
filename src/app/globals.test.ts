@@ -102,6 +102,7 @@ describe("guestbook coastal scene", () => {
     expect(css).toContain("url('/guestbook/coast-mobile-dusk.webp')");
     expect(css).toContain("url('/guestbook/coast-mobile-night.webp')");
     expect(css).not.toMatch(/coast-mobile-[a-z]+\.webp'\)\s*!important/);
+    expect(css).toMatch(/\.guestbook-coastal-video\s*\{[^}]*object-fit:\s*cover;/);
   });
 
   it("protects intro and action copy over pale plates", () => {
