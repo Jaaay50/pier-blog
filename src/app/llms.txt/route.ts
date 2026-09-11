@@ -59,6 +59,7 @@ export function GET() {
     `- About: ${SITE}/en/about  |  ${SITE}/zh/about`,
     `- Portfolio: ${SITE}/en/portfolio  |  ${SITE}/zh/portfolio`,
     `- Lab: ${SITE}/en/lab  |  ${SITE}/zh/lab`,
+    `- Guestbook / Bottles: ${SITE}/en/guestbook  |  ${SITE}/zh/guestbook`,
     `- Feedback: ${SITE}/en/feedback`,
     "",
     "## Citation",
