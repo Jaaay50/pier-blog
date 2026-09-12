@@ -3,30 +3,10 @@ import type { CoastalTime } from "@/components/guestbook/coastal-time";
 export const COAST_LAST_CLIP_KEY = "guestbook-coast-last";
 
 export const COAST_CLIPS: Record<CoastalTime, readonly string[]> = {
-  dawn: [
-    "/guestbook/coast-dawn.webm",
-    "/guestbook/coast-dawn-1.webm",
-    "/guestbook/coast-dawn-2.webm",
-    "/guestbook/coast-dawn-3.webm",
-  ],
-  day: [
-    "/guestbook/coast-day.webm",
-    "/guestbook/coast-day-1.webm",
-    "/guestbook/coast-day-2.webm",
-    "/guestbook/coast-day-3.webm",
-  ],
-  dusk: [
-    "/guestbook/coast-dusk.webm",
-    "/guestbook/coast-dusk-1.webm",
-    "/guestbook/coast-dusk-2.webm",
-    "/guestbook/coast-dusk-3.webm",
-  ],
-  night: [
-    "/guestbook/coast-night-0.webm",
-    "/guestbook/coast-night-1.webm",
-    "/guestbook/coast-night-2.webm",
-    "/guestbook/coast-night-3.webm",
-  ],
+  dawn: ["/guestbook/coast-dawn.webm"],
+  day: ["/guestbook/coast-day.webm"],
+  dusk: ["/guestbook/coast-dusk.webm"],
+  night: ["/guestbook/coast-night.webm"],
 };
 
 export const COAST_STILL: Record<CoastalTime, string> = {
