@@ -464,6 +464,7 @@
     "changelog": "Changelog",
     "agent": "Agent Access",
     "guestbook": "Bottles",
+    "now": "Now",
     "feedback": "Feedback",
     "cloudborne": "Cloudborne",
     "opensInNewWindow": "opens in a new window"
@@ -494,7 +495,7 @@
     "label": "Experiments",
     "title": "Lab",
     "subtitle": "Interactive experiments built from first principles — WebGL shaders, physics engines, algorithm visualizations. All hand-written, zero dependencies.",
-    "metaDescription": "Twelve interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithm visualization, zero dependencies. Every demo keeps a readable still and description with 3D off.",
+    "metaDescription": "Sixteen interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithms, plus waiting, reading, sources, and what remains after effects are off.",
     "viewSource": "View Source",
     "reducedMotion": "Motion disabled per system preference",
     "webglUnavailable": "WebGL unavailable on this device, showing static preview",
@@ -582,8 +583,60 @@
         "layer": "Bowyer–Watson triangulation and equidistant half-plane clipping are implemented directly to generate the triangle mesh and bounded Voronoi regions.",
         "tech": "SVG · Bowyer–Watson · Half-plane clipping",
         "stillAlt": "Voronoi regions and a Delaunay triangulation of sample points."
+      },
+      "wait": {
+        "title": "Waiting",
+        "desc": "The same three-second wait: true progress, no feedback, unreliable progress. Marked as an experiment, not a real action.",
+        "layer": "The comparison is the feedback itself. Reduced motion finishes immediately; every panel is keyboard reachable.",
+        "tech": "DOM · timing · a11y",
+        "stillAlt": "Three waiting panels side by side: a smooth bar, an empty wait, and a jumpy bar."
+      },
+      "stream": {
+        "title": "Streaming reading",
+        "desc": "The same answer arrives a character, a sentence, or a paragraph at a time. Pause and reset; the words stay identical.",
+        "layer": "The reader is not forced to chase the animation. Switching modes keeps the same sentence.",
+        "tech": "DOM · timers · aria-live",
+        "stillAlt": "The same paragraph appearing glyph by glyph, sentence by sentence, and all at once."
+      },
+      "sources": {
+        "title": "Source independence",
+        "desc": "Four outlets retelling one another versus two independent primaries. Mention count is not evidence count.",
+        "layer": "The citation relationship is inspectable. Retellings are not counted as independent sources.",
+        "tech": "DOM · citation graph",
+        "stillAlt": "A clustered retelling graph on the left and two separate primary sources on the right."
+      },
+      "afteroff": {
+        "title": "After it's off",
+        "desc": "Turn off animation, the pointer deco, or the WebGL layer. The form in front still completes.",
+        "layer": "Focus is never trapped. Every degradation keeps a finishable primary path.",
+        "tech": "DOM · degradation toggles",
+        "stillAlt": "A usable form in the foreground with a dimmed shader canvas behind it."
       }
     }
+  },
+  "now": {
+    "label": "Present",
+    "title": "Now",
+    "subtitle": "Short, kept current. Not a resume.",
+    "metaDescription": "What Ethan Pier is doing now, what recently shipped, and what this site will not do.",
+    "updated": "Updated {date}",
+    "doingTitle": "Doing",
+    "shippedTitle": "Recently shipped",
+    "notTitle": "Deliberately not",
+    "doing": [
+      "Daily automatic updates for the Currents model leaderboard, still waiting on one controlled production run.",
+      "Making the six rooms of this site exact: the hero particles, the lab experiments, the bottle coast."
+    ],
+    "shipped": [
+      "Bottles: a pixel coast, Hong Kong time, four night loops.",
+      "Lab SDF lighting brought back to a studio product shot.",
+      "The hero particle title no longer flashes a solid serif first frame."
+    ],
+    "not": [
+      "Article comments.",
+      "A terminal as the homepage.",
+      "Another top-nav item."
+    ]
   },
   "notFound": {
     "title": "Page not found",

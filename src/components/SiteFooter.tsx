@@ -46,6 +46,7 @@ export function SiteFooter() {
                 { href: '/currents/agent', label: t('agent') },
                 { href: '/currents/changelog', label: t('changelog') },
                 { href: '/guestbook', label: t('guestbook') },
+                { href: '/now', label: t('now') },
                 { href: '/feedback', label: t('feedback') },
               ] as const).map(({ href, label }) => (
                 <li key={href}>

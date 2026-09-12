@@ -125,6 +125,14 @@ const GUESTBOOK_PAGE_KEYWORDS = [
   "访客",
 ];
 
+const NOW_PAGE_KEYWORDS = [
+  "现在",
+  "now",
+  "此刻",
+  "status",
+  "doing",
+];
+
 const FEATURE_PAGE_DEFS: Record<
   Locale,
   Array<{
@@ -200,6 +208,13 @@ const FEATURE_PAGE_DEFS: Record<
       href: "/guestbook",
     },
     {
+      id: "now",
+      title: "现在",
+      description: "此刻在做的事、最近落地的事，以及明确不做的事",
+      keywords: NOW_PAGE_KEYWORDS,
+      href: "/now",
+    },
+    {
       id: "feedback",
       title: "反馈",
       description: "提交问题反馈、bug 报告与产品建议",
@@ -270,6 +285,13 @@ const FEATURE_PAGE_DEFS: Record<
       description: "A public guestbook: leave a sentence in a bottle and push it into the tide",
       keywords: GUESTBOOK_PAGE_KEYWORDS,
       href: "/guestbook",
+    },
+    {
+      id: "now",
+      title: "Now",
+      description: "What is in progress, what recently shipped, and what this site will not do",
+      keywords: NOW_PAGE_KEYWORDS,
+      href: "/now",
     },
     {
       id: "feedback",

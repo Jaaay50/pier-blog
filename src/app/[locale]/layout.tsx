@@ -11,6 +11,7 @@ import { PerformanceMonitor } from "@/components/PerformanceMonitor";
 import { WebVitals } from "@/components/WebVitals";
 import { SpeculationRules } from "@/components/SpeculationRules";
 import { ParticleGateScript } from "@/components/ParticleGate";
+import { DENSITY_SCRIPT } from "@/lib/csp";
 import { locales, type Locale } from "@/i18n/config";
 import { localizedMetadata, SITE_URL } from "@/lib/site-metadata";
 import "../globals.css";
@@ -122,8 +123,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
         {/* Currents 列表密度：水合前同步恢复 <html data-density>，避免排版闪烁 */}
         <script
           dangerouslySetInnerHTML={{
-            __html:
-              "try{var d=localStorage.getItem('pier-currents-density-v1');if(d==='compact'||d==='comfortable')document.documentElement.setAttribute('data-density',d)}catch(e){}",
+            __html: DENSITY_SCRIPT,
           }}
         />
       </head>

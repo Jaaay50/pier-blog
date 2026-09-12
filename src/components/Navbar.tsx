@@ -108,7 +108,7 @@ export function Navbar() {
                     href={link.href}
                     title={link.title}
                     aria-label={`${link.label} — ${link.title}`}
-                    className={`inline-flex min-h-11 items-center px-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)] ${
+                    className={`inline-flex min-h-11 items-center whitespace-nowrap px-2 text-sm transition-colors focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--accent)] ${
                       isActive
                         ? "text-[var(--text-primary)]"
                         : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"

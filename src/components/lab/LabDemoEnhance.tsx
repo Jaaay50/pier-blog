@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { useLocale } from "next-intl";
 import dynamic from "next/dynamic";
 import { useWebGLQuality } from "@/lib/webgl";
-import type { LabDemoId } from "./lab-demos";
+import { EXPERIENCE_DEMO_IDS, type LabDemoId } from "./lab-demos";
 
 const ParticlePlayground = dynamic(() => import("./ParticlePlayground"), { ssr: false });
 const ShaderMixer = dynamic(() => import("./ShaderMixer"), { ssr: false });
@@ -20,6 +20,13 @@ const PathfindingLab = dynamic(() => import("./PathfindingLab"), { ssr: false })
 const RaftLab = dynamic(() => import("./RaftLab"), { ssr: false });
 const AudioSpectrum = dynamic(() => import("./AudioSpectrum"), { ssr: false });
 const GeometryLab = dynamic(() => import("./GeometryLab"), { ssr: false });
+const WaitFeedback = dynamic(() => import("./WaitFeedback"), { ssr: false });
+const StreamReading = dynamic(() => import("./StreamReading"), { ssr: false });
+const SourceIndependence = dynamic(() => import("./SourceIndependence"), { ssr: false });
+const AfterOff = dynamic(() => import("./AfterOff"), { ssr: false });
+
+const EXPERIENCE = new Set<string>(EXPERIENCE_DEMO_IDS);
+const WEBGL_DEMOS = new Set(["fluid", "particles", "shader", "morph", "sdf"]);
 
 class DemoBoundary extends Component<{ children: ReactNode; onError: () => void }, { failed: boolean }> {
   state = { failed: false };
@@ -61,7 +68,10 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
   }, []);
 
   const runToken = useRef(0);
-  const availability = !!quality && !quality.reducedMotion && (!["fluid", "particles", "shader", "morph", "sdf"].includes(id) || quality.enabled);
+  const availability =
+    !!quality &&
+    (EXPERIENCE.has(id) ||
+      (!quality.reducedMotion && (!WEBGL_DEMOS.has(id) || quality.enabled)));
   const availableRef = useRef(availability);
   useEffect(() => {
     availableRef.current = availability;
@@ -85,7 +95,7 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
   const isDark = resolvedTheme === "dark";
   const canRun = availability;
   const active = canRun && nearView && !failed;
-  const hasOwnReset = ["sdf", "cloth", "pathfinding", "raft", "audio", "geometry"].includes(id);
+  const hasOwnReset = ["sdf", "cloth", "pathfinding", "raft", "audio", "geometry", "wait", "stream", "sources", "afteroff"].includes(id);
   const showOverlayReset = canRun && nearView && (!hasOwnReset || !ready || failed);
   let content: ReactNode = null;
 
@@ -124,6 +134,10 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
     if (id === "raft") content = <RaftLab isDark={isDark} onReadyChange={onReadyChange} />;
     if (id === "audio") content = <AudioSpectrum isDark={isDark} onReadyChange={onReadyChange} />;
     if (id === "geometry") content = <GeometryLab isDark={isDark} onReadyChange={onReadyChange} />;
+    if (id === "wait") content = <WaitFeedback isDark={isDark} onReadyChange={onReadyChange} />;
+    if (id === "stream") content = <StreamReading isDark={isDark} onReadyChange={onReadyChange} />;
+    if (id === "sources") content = <SourceIndependence isDark={isDark} onReadyChange={onReadyChange} />;
+    if (id === "afteroff") content = <AfterOff isDark={isDark} onReadyChange={onReadyChange} />;
 
   }
 

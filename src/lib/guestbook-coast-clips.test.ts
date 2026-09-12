@@ -1,13 +1,26 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { COAST_CLIPS, pickNextCoastClip } from "./guestbook-coast-clips";
 
 describe("pickNextCoastClip", () => {
   const night = COAST_CLIPS.night;
 
-  it("returns the only clip when a period has one plate", () => {
-    expect(pickNextCoastClip(COAST_CLIPS.day, "/guestbook/coast-day.webm", () => 0.9)).toBe(
-      "/guestbook/coast-day.webm",
-    );
+  it("gives dawn, day, dusk and night four plates each, all on disk", () => {
+    expect(COAST_CLIPS.dawn).toHaveLength(4);
+    expect(COAST_CLIPS.day).toHaveLength(4);
+    expect(COAST_CLIPS.dusk).toHaveLength(4);
+    expect(COAST_CLIPS.night).toHaveLength(4);
+    for (const clips of Object.values(COAST_CLIPS)) {
+      for (const clip of clips) {
+        expect(existsSync(path.join(process.cwd(), "public", clip.replace(/^\//, ""))), clip).toBe(true);
+      }
+    }
+  });
+
+  it("never repeats the last day clip when others exist", () => {
+    const last = COAST_CLIPS.day[0] ?? "";
+    expect(pickNextCoastClip(COAST_CLIPS.day, last, () => 0.9)).not.toBe(last);
   });
 
   it("never repeats the last night clip when others exist", () => {

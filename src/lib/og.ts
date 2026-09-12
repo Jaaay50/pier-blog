@@ -140,10 +140,10 @@ export async function resolveOgData(request: OgRequest): Promise<OgCardData | nu
     case "lab": {
       const zh = request.locale === "zh";
       return {
-        title: zh ? "船塢" : "Lab",
+        title: zh ? "船坞" : "Lab",
         description: zh
-          ? "六个从零手写的交互实验：WebGL shader、物理模拟、流场与算法可视化，零依赖。"
-          : "Six interactive experiments written from scratch — WebGL shaders, physics, flow fields, zero dependencies.",
+          ? "十六个从零手写的交互实验：WebGL shader、物理模拟、流场、算法可视化，以及等待、阅读、来源与降级。"
+          : "Sixteen interactive experiments written from scratch — WebGL, physics, flow fields, plus waiting, reading, sources, and degradation.",
         tags: zh ? ["WebGL", "物理", "零依赖"] : ["WebGL", "Physics", "Zero-dep"],
         motif: "lab",
       };

@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderToString } from "react-dom/server";
 import { LabDemoEnhance } from "./LabDemoEnhance";
 import type { LabDemoId } from "./lab-demos";
-import { LAB_DEMO_IDS } from "./lab-demos";
+import { EXPERIENCE_DEMO_IDS, LAB_DEMO_IDS } from "./lab-demos";
 
 const state = vi.hoisted(() => ({ quality: { webglSupported: true, reducedMotion: false, tier: "high", dpr: 1.5, particleMultiplier: 1, mouseInteraction: true, enabled: true }, callbacks: [] as Array<(ready: boolean) => void>, constructors: 0 }));
 vi.mock("@/lib/webgl", () => ({ useWebGLQuality: () => state.quality }));
@@ -26,13 +26,21 @@ async function near() { await act(async () => visibility([{ isIntersecting: true
 async function ready(value: boolean, callback = state.callbacks.at(-1)!) { await act(async () => callback(value)); }
 
 describe("Lab progressive enhancement", () => {
-  it.each(LAB_DEMO_IDS)("keeps the %s poster readable with reduced motion and never starts its runtime", async (id) => {
+  it.each(LAB_DEMO_IDS.filter((id) => !(EXPERIENCE_DEMO_IDS as readonly string[]).includes(id)))(
+    "keeps the %s poster readable with reduced motion and never starts its runtime",
+    async (id) => {
     state.quality.reducedMotion = true;
     render(<LabDemoEnhance id={id} still={`/lab/${id}.webp`} alt={`${id} preview`} />);
     await near();
     expect(screen.getByRole("img", { name: `${id} preview` }).className).not.toContain("invisible");
     expect(screen.queryByTestId("runtime")).toBeNull();
     expect(state.constructors).toBe(0);
+  });
+  it.each(EXPERIENCE_DEMO_IDS)("still runs the %s experiment when motion is reduced", async (id) => {
+    state.quality.reducedMotion = true;
+    render(<LabDemoEnhance id={id} still={`/lab/${id}.webp`} alt={`${id} preview`} />);
+    await near();
+    expect(screen.getByTestId("runtime")).toBeTruthy();
   });
   it.each(["fluid", "particles", "shader", "morph", "sdf"] as const)("keeps the %s poster readable without WebGL", async (id) => {
     state.quality.enabled = false;
@@ -71,7 +79,7 @@ describe("Lab progressive enhancement", () => {
     fireEvent.click(screen.getByRole("button", { name: /重置演示/ }));
     expect(screen.getByTestId("runtime").parentElement!.hasAttribute("inert")).toBe(true);
   });
-  it.each(["sdf", "cloth", "pathfinding", "raft", "audio", "geometry"] as LabDemoId[])("keeps recovery but removes the duplicate ready overlay for %s", async (id) => {
+  it.each(["sdf", "cloth", "pathfinding", "raft", "audio", "geometry", "wait", "stream", "sources", "afteroff"] as LabDemoId[])("keeps recovery but removes the duplicate ready overlay for %s", async (id) => {
     render(<LabDemoEnhance id={id} still={`/lab/${id}.webp`} alt="演示海报" />); await near();
     expect(screen.getByRole("button", { name: /重置演示/ })).toBeTruthy();
     await ready(true); expect(screen.queryByRole("button", { name: /重置演示/ })).toBeNull();

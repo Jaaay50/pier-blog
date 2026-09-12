@@ -3,6 +3,7 @@
 import { RefObject, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Renderer, Program, Mesh, Geometry } from "ogl";
 import { observeRenderGate, type WebGLQuality } from "@/lib/webgl";
+import { glyphBelongsToTitle } from "@/lib/particle-sample";
 
 /**
  * Phase 9.1 — Hero 粒子重组标题
@@ -123,7 +124,8 @@ interface SampleResult {
 function sampleText(
   anchor: HTMLElement,
   host: HTMLElement,
-  targetCount: number
+  targetCount: number,
+  title: string,
 ): SampleResult | null {
   const hostRect = host.getBoundingClientRect();
   const spans = anchor.querySelectorAll<HTMLElement>("[data-ptchar]");
@@ -137,6 +139,8 @@ function sampleText(
   const ctx = cv.getContext("2d", { willReadFrequently: true });
   if (!ctx) return null;
 
+  ctx.clearRect(0, 0, w, h);
+
   const style = getComputedStyle(spans[0]);
   const fontSize = parseFloat(style.fontSize);
   ctx.font = `${style.fontStyle} ${style.fontWeight} ${fontSize}px ${style.fontFamily}`;
@@ -146,9 +150,11 @@ function sampleText(
   ctx.fillStyle = "#fff";
 
   spans.forEach((s) => {
+    const glyph = s.textContent || "";
+    if (!glyphBelongsToTitle(title, glyph)) return;
     const r = s.getBoundingClientRect();
     ctx.fillText(
-      s.textContent || "",
+      glyph,
       r.left - hostRect.left,
       r.top - hostRect.top + r.height / 2
     );
@@ -318,7 +324,7 @@ export default function ParticleTitle({
       if (fontTimer) clearTimeout(fontTimer);
       if (disposed) return;
 
-      const sample = sampleText(anchor, host, targetCount);
+      const sample = sampleText(anchor, host, targetCount, title);
       if (!sample) {
         fail(); // 采样失败：回退 DOM 标题
         return;
@@ -523,7 +529,8 @@ export default function ParticleTitle({
     <div
       ref={hostRef}
       aria-hidden
-      style={{ visibility: "hidden" }}
+      data-particle-host=""
+      style={{ visibility: "hidden", viewTransitionName: "none" }}
       className="pointer-events-none absolute -inset-x-10 -inset-y-16 z-20"
     />
   );

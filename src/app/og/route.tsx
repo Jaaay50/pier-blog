@@ -49,7 +49,7 @@ function tagAccent(tag: string): { main: string; soft: string } {
   return map[tag] ?? { main: "#6a9bcc", soft: "rgba(106,155,204,0.22)" };
 }
 
-/** 船塢 OG：用确定性点阵模拟粒子 demo 的静帧，而不是再写一句标题。 */
+/** 船坞 OG：用确定性点阵模拟粒子 demo 的静帧，而不是再写一句标题。 */
 function labParticleStill(accent: string) {
   const dots: { left: number; top: number; size: number; opacity: number }[] = [];
   for (let i = 0; i < 42; i++) {

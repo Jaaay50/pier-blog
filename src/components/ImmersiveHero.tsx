@@ -223,6 +223,7 @@ export function ImmersiveHero({
           </span>
           {particleMode && quality && (
             <ParticleTitle
+              key={resolvedTitle}
               title={resolvedTitle}
               anchorRef={anchorRef}
               isDark={isDark}

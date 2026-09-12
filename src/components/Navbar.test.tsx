@@ -54,6 +54,10 @@ describe("Navbar shared shell", () => {
     fireEvent.click(screen.getByRole("button", { name: messages.nav.menuOpen }));
     checkNames(2);
     expect(container.querySelectorAll("a[title][aria-label]")).toHaveLength(12);
+    const nowrap = [...container.querySelectorAll("a[title][aria-label]")].filter((link) =>
+      link.className.includes("whitespace-nowrap"),
+    );
+    expect(nowrap).toHaveLength(6);
   });
   it.each(["zh", "en"])("keeps the same shell across %s routes", (locale) => {
     const navbar = () => (

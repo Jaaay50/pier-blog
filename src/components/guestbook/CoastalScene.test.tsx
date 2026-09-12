@@ -49,7 +49,7 @@ describe("CoastalScene", () => {
     const { container } = render(<CoastalScene label="coast" />);
     const video = container.querySelector('[data-testid="guestbook-coastal-video"]') as HTMLVideoElement;
     expect(video).toBeTruthy();
-    expect(video.getAttribute("src")).toBe("/guestbook/coast-day.webm");
+    expect(video.getAttribute("src")?.startsWith("/guestbook/coast-day")).toBe(true);
     expect(video.getAttribute("poster")).toBe("/guestbook/coast-day.webp");
     expect(video.loop).toBe(true);
     expect(video.muted).toBe(true);

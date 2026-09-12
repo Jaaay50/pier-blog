@@ -4,6 +4,7 @@ import { PageHero } from "@/components/PageHero";
 import { Navbar } from "@/components/Navbar";
 import { SiteFooter } from "@/components/SiteFooter";
 import { LabGallery } from "@/components/lab/LabGallery";
+import { LabTerminal } from "@/components/lab/LabTerminal";
 import { locales } from "@/i18n/config";
 import { ogCardUrl, pageMetadata } from "@/lib/metadata";
 
@@ -42,6 +43,7 @@ export default async function LabPage({
       <div className="site-content pb-16 pt-10 md:pt-16">
         <LabGallery />
       </div>
+      <LabTerminal />
       <SiteFooter />
     </main>
   );

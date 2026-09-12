@@ -19,13 +19,13 @@ vi.mock("./LabDemoEnhance", () => ({
 afterEach(cleanup);
 
 describe("LabGallery", () => {
-  it.each(["zh", "en"] as const)("SSRs approved explanations and all twelve posters in %s without a runtime", async (language) => {
+  it.each(["zh", "en"] as const)("SSRs approved explanations and all sixteen posters in %s without a runtime", async (language) => {
     locale = language;
     render(await LabGallery());
     const figures = document.querySelectorAll("figure");
     const messages = language === "zh" ? zh.lab : en.lab;
-    expect(figures).toHaveLength(12);
-    expect(screen.getAllByRole("img")).toHaveLength(12);
+    expect(figures).toHaveLength(16);
+    expect(screen.getAllByRole("img")).toHaveLength(16);
     LAB_DEMOS.forEach((demo, index) => {
       const copy = messages.demos[demo.id];
       const figure = figures[index] as HTMLElement;
@@ -39,6 +39,6 @@ describe("LabGallery", () => {
       expect(within(figure).getByText(copy.layer).className).toContain("text-base font-medium");
       expect(figure.textContent).not.toContain(`demos.${demo.id}.`);
     });
-    expect(messages.metaDescription).toMatch(language === "zh" ? /^十二个/ : /^Twelve/);
+    expect(messages.metaDescription).toMatch(language === "zh" ? /^十六个/ : /^Sixteen/);
   });
 });

@@ -124,6 +124,7 @@ describe("static 分片", () => {
       "2026-08-11T00:00:00.000Z",
     );
     expect(entry("/guestbook")?.lastmod).toBe("2026-09-09T00:00:00.000Z");
+    expect(entry("/now")?.lastmod).toBe("2026-09-12T00:00:00.000Z");
     expect(entry("/feedback")?.lastmod).toBe("2026-08-11T00:00:00.000Z");
   });
 });
