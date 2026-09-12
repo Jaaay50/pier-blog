@@ -61,7 +61,7 @@ describe("pageJsonLd", () => {
       url: `${SITE_URL}/en/blog`,
       inLanguage: "en-US",
     });
-    expect(pageJsonLd("zh", "blog").name).toBe("潮聲 — Pier");
+    expect(pageJsonLd("zh", "blog").name).toBe("潮声 — Pier");
     expect(pageJsonLd("zh", "currents")).toMatchObject({
       "@type": "CollectionPage",
       name: "潮汐 — Pier",

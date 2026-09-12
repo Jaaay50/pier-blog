@@ -12,6 +12,7 @@ import { getAllSlugs, getPostsForLocale } from "@/lib/posts";
 import { locales } from "@/i18n/config";
 import { CURRENTS_API_BASE } from "@/lib/currents/api";
 import { CHANGELOG_LAST_UPDATED } from "@/lib/currents/changelog";
+import { NOW_UPDATED } from "@/lib/now";
 import { CURRENTS_TOPIC_IDS } from "@/lib/currents/topics";
 import { fetchDiscoverableModels } from "@/lib/currents/models-discovery";
 
@@ -167,6 +168,11 @@ export function buildStaticShardEntries(): SitemapUrlEntry[] {
     }),
     ...bilingualEntries("/guestbook", {
       lastmod: new Date(GUESTBOOK_LAST_UPDATED).toISOString(),
+      changefreq: "weekly",
+      priority: 0.6,
+    }),
+    ...bilingualEntries("/now", {
+      lastmod: new Date(NOW_UPDATED).toISOString(),
       changefreq: "weekly",
       priority: 0.6,
     }),

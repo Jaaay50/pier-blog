@@ -76,7 +76,7 @@ describe("resolveOgData：从可信来源解析内容", () => {
 
   it("lab / currents：按 locale 输出固定卡片，motif 区分静帧", async () => {
     await expect(resolveOgData({ type: "lab", locale: "zh" })).resolves.toMatchObject({
-      title: "船塢",
+      title: "船坞",
       motif: "lab",
     });
     await expect(resolveOgData({ type: "currents", locale: "en" })).resolves.toMatchObject({

@@ -33,7 +33,7 @@ const localeCopy = {
     portfolioTitle: "作品集",
     portfolioDescription:
       "Ethan Pier 的精选作品与开源工具，涵盖 AI 产品、全栈工程、数据管线与开发者工具。",
-    blogTitle: "潮聲",
+    blogTitle: "潮声",
     blogDescription:
       "一些关于工作、界面、等待和写作的观察。",
     currentsTitle: "潮汐",

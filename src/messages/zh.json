@@ -1,9 +1,9 @@
 {
   "nav": {
-    "blog": "潮聲",
-    "portfolio": "燈火",
+    "blog": "潮声",
+    "portfolio": "灯火",
     "about": "岸",
-    "lab": "船塢",
+    "lab": "船坞",
     "currents": "潮汐",
     "github": "GitHub",
     "menuOpen": "打开菜单",
@@ -373,11 +373,11 @@
     "currentsEnter": "进入潮汐",
     "currentsAgent": "查看 Agent 接入",
     "labTeaser": "这些效果全部零依赖手写——GLSL、物理模拟、算法可视化",
-    "enterLab": "进入船塢"
+    "enterLab": "进入船坞"
   },
   "blog": {
     "label": "全部文章",
-    "title": "潮聲",
+    "title": "潮声",
     "subtitle": "一些关于工作、界面、等待和写作的观察。",
     "back": "返回",
     "readMore": "阅读更多",
@@ -397,16 +397,16 @@
   },
   "portfolio": {
     "label": "作品集",
-    "title": "燈火",
+    "title": "灯火",
     "subtitle": "每一件作品是一盏泊在水面的灯，记录设计、工程与上线的完整航迹。",
-    "featured": "導燈",
-    "allProjects": "浮標",
+    "featured": "导灯",
+    "allProjects": "浮标",
     "viewProject": "查看项目",
     "viewCode": "源码",
     "currentsName": "潮汐 · Currents",
     "currentsDesc": "端到端自建的 AI 资讯产品：采集管线、评分系统、事件层与 Agent 接口",
     "currentsAgent": "了解 Agent 接入",
-    "techStack": "技術棧",
+    "techStack": "技术栈",
     "launched": "上線日期"
   },
   "about": {
@@ -464,6 +464,7 @@
     "changelog": "更新日志",
     "agent": "Agent 接入",
     "guestbook": "漂瓶",
+    "now": "现在",
     "feedback": "反馈",
     "cloudborne": "Cloudborne 独立站",
     "opensInNewWindow": "新窗口打开"
@@ -492,9 +493,9 @@
   },
   "lab": {
     "label": "实验室",
-    "title": "船塢",
+    "title": "船坞",
     "subtitle": "从第一性原理出发的交互实验——WebGL shader、物理引擎、算法可视化，全部零依赖手写。",
-    "metaDescription": "十二个从零手写的交互实验：WebGL shader、物理模拟、流场与算法可视化，零依赖。每个演示关掉三维之后，仍留有能读的静帧与说明。",
+    "metaDescription": "十六个从零手写的交互实验：WebGL shader、物理模拟、流场、算法可视化，以及等待、阅读、来源与降级。每个演示关掉三维之后，仍留有能读的静帧与说明。",
     "viewSource": "查看源码",
     "reducedMotion": "已按系统偏好停用动效",
     "webglUnavailable": "当前设备不支持 WebGL，展示静态预览",
@@ -582,8 +583,60 @@
         "layer": "Bowyer–Watson 三角剖分与等距半平面裁剪均直接实现，分别生成三角网和有界 Voronoi 区域。",
         "tech": "SVG · Bowyer–Watson · 半平面裁剪",
         "stillAlt": "采样点划分的 Voronoi 区域与 Delaunay 三角网。"
+      },
+      "wait": {
+        "title": "等待反馈",
+        "desc": "同样三秒等待：真实进度、无反馈、不可靠进度。标成实验，不是真实操作。",
+        "layer": "比较的是反馈本身。减弱动态时直接完成，键盘可以到达每一块。",
+        "tech": "DOM · 计时 · 无障碍",
+        "stillAlt": "三块并排的等待面板：平滑进度、空白等待、乱跳的进度条。"
+      },
+      "stream": {
+        "title": "流式阅读",
+        "desc": "同一段回答逐字、逐句或整段出现。内容一致，可暂停和重置。",
+        "layer": "不强迫追赶动画。三种模式切换时正文保持同一句话。",
+        "tech": "DOM · 定时器 · aria-live",
+        "stillAlt": "同一段文字以逐字、逐句和整段三种方式出现。"
+      },
+      "sources": {
+        "title": "来源独立性",
+        "desc": "左边四家互相转述；右边两份独立材料。转述数量不是独立证据数量。",
+        "layer": "关系可点开解释。不把转述次数当成独立来源数。",
+        "tech": "DOM · 引用图",
+        "stillAlt": "左侧成团的转述节点，右侧两份分开的一手来源。"
+      },
+      "afteroff": {
+        "title": "关掉之后",
+        "desc": "关掉动画、指针装饰或 WebGL 层，下面的表单仍然能完成。",
+        "layer": "焦点不锁住。每一种降级都保留可完成的主流程。",
+        "tech": "DOM · 降级开关",
+        "stillAlt": "前景是可用的表单，背景是已经关掉的着色器层。"
       }
     }
+  },
+  "now": {
+    "label": "此刻",
+    "title": "现在",
+    "subtitle": "短、常更新。不是履历。",
+    "metaDescription": "Ethan Pier 现在在做的事、最近落地的事，以及明确不做的事。",
+    "updated": "更新于 {date}",
+    "doingTitle": "正在做",
+    "shippedTitle": "最近落地",
+    "notTitle": "明确不做",
+    "doing": [
+      "潮汐模型榜的每日自动更新，还在等一次受控的生产定时跑通。",
+      "把这个站的六个房间做准：首页粒子、船坞实验、漂瓶海岸。"
+    ],
+    "shipped": [
+      "漂瓶留言墙：像素海岸、香港时间、夜间四条循环片。",
+      "船坞 SDF 收成影棚产品照。",
+      "首页粒子标题不再闪实体衬线字。"
+    ],
+    "not": [
+      "文章页评论。",
+      "把终端当首页。",
+      "再往顶栏塞入口。"
+    ]
   },
   "notFound": {
     "title": "页面不存在",

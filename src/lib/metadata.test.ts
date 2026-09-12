@@ -10,7 +10,7 @@ import {
 
 describe("formatPageTitle", () => {
   it("appends the Pier suffix once", () => {
-    expect(formatPageTitle("船塢")).toBe("船塢 — Pier");
+    expect(formatPageTitle("船坞")).toBe("船坞 — Pier");
     expect(formatPageTitle("Lab — Pier")).toBe("Lab — Pier");
     expect(formatPageTitle("Pier — Full-Stack Engineer · AI-Native Products")).toBe(
       "Pier — Full-Stack Engineer · AI-Native Products",
@@ -33,12 +33,12 @@ describe("buildMetadata", () => {
   it("emits a complete zh Open Graph / Twitter / canonical set for /lab", () => {
     const meta = buildMetadata({
       locale: "zh",
-      title: "船塢",
+      title: "船坞",
       description: "六个从零手写的交互实验。",
       path: "/lab",
     });
 
-    expect(meta.title).toBe("船塢 — Pier");
+    expect(meta.title).toBe("船坞 — Pier");
     expect(meta.description).toBe("六个从零手写的交互实验。");
     expect(meta.alternates).toEqual({
       canonical: `${SITE_URL}/zh/lab`,
@@ -51,7 +51,7 @@ describe("buildMetadata", () => {
     expect(meta.openGraph).toMatchObject({
       type: "website",
       url: `${SITE_URL}/zh/lab`,
-      title: "船塢 — Pier",
+      title: "船坞 — Pier",
       description: "六个从零手写的交互实验。",
       siteName: "Pier",
       locale: "zh_CN",
@@ -59,7 +59,7 @@ describe("buildMetadata", () => {
     });
     expect(meta.twitter).toMatchObject({
       card: "summary_large_image",
-      title: "船塢 — Pier",
+      title: "船坞 — Pier",
       description: "六个从零手写的交互实验。",
       images: [`${SITE_URL}/og?type=site`],
     });
@@ -134,11 +134,11 @@ describe("buildMetadata", () => {
 
     const lab = buildMetadata({
       locale: "zh",
-      title: "船塢",
+      title: "船坞",
       description: "x",
       path: "/lab",
     });
-    expect(lab.title).toBe("船塢 — Pier");
+    expect(lab.title).toBe("船坞 — Pier");
     expect(currentsTitleSuffix("en")).toBe("Currents");
   });
 });

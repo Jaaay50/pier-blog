@@ -34,7 +34,7 @@ export default async function AboutPage({
   const skills = [
     {
       category: t("skills.frontend"),
-      items: ["React", "Next.js", "TypeScript", "Tailwind CSS", "Three.js", "Framer Motion"],
+      items: ["React", "Next.js", "TypeScript", "Tailwind CSS", "ogl", "motion"],
     },
     {
       category: t("skills.backend"),

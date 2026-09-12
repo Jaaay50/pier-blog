@@ -2200,3 +2200,17 @@ html[data-density="comfortable"] {
     transition: none;
   }
 }
+
+@keyframes afteroff-glow {
+  50% { opacity: 0.18; }
+}
+
+.afteroff-glow {
+  animation: afteroff-glow 3s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .afteroff-glow {
+    animation: none;
+  }
+}

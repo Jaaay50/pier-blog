@@ -151,7 +151,7 @@ beforeEach(() => {
   });
   mocks.sample.mockReturnValue({ data: new Uint8ClampedArray(100 * 100 * 4).fill(255) });
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
-    fillText: vi.fn(), getImageData: mocks.sample,
+    fillText: vi.fn(), clearRect: vi.fn(), getImageData: mocks.sample,
   } as unknown as CanvasRenderingContext2D);
   Object.defineProperty(document, "fonts", {
     configurable: true, value: { ready: Promise.resolve() },

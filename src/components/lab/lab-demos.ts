@@ -11,7 +11,13 @@ export const LAB_DEMO_IDS = [
   "raft",
   "audio",
   "geometry",
+  "wait",
+  "stream",
+  "sources",
+  "afteroff",
 ] as const;
+
+export const EXPERIENCE_DEMO_IDS = ["wait", "stream", "sources", "afteroff"] as const;
 
 export type LabDemoId = (typeof LAB_DEMO_IDS)[number];
 
@@ -36,4 +42,8 @@ export const LAB_DEMOS: LabDemoMeta[] = [
   { id: "pathfinding", still: "/lab/pathfinding.webp", tall: true, full: true },
   { id: "raft", still: "/lab/raft.webp", tall: true, full: true },
   { id: "audio", still: "/lab/audio.webp", full: true },
+  { id: "wait", still: "/lab/wait.webp", full: true },
+  { id: "stream", still: "/lab/stream.webp", full: true },
+  { id: "sources", still: "/lab/sources.webp", full: true },
+  { id: "afteroff", still: "/lab/afteroff.webp", full: true },
 ];
