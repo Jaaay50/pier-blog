@@ -90,7 +90,7 @@
     "opentype.js": "^2.0.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vercel": "58.9.1",
+    "vercel": "58.11.0",
     "vitest": "^4.1.10"
   }
 }
