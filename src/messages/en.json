@@ -495,7 +495,7 @@
     "label": "Experiments",
     "title": "Lab",
     "subtitle": "Interactive experiments built from first principles — WebGL shaders, physics engines, algorithm visualizations. All hand-written, zero dependencies.",
-    "metaDescription": "Sixteen interactive experiments written from scratch — WebGL shaders, physics, flow fields, algorithms, plus waiting, reading, sources, and what remains after effects are off.",
+    "metaDescription": "Seventeen interactive experiments — WebGL shaders, physics, flow fields, algorithms, plus waiting, reading, sources, and what remains after effects are off.",
     "viewSource": "View Source",
     "reducedMotion": "Motion disabled per system preference",
     "webglUnavailable": "WebGL unavailable on this device, showing static preview",
@@ -541,6 +541,13 @@
         "layer": "The parametric surface and per-vertex morph are hand-written. No model files.",
         "tech": "WebGL · ogl · 0 deps",
         "stillAlt": "Blue-violet particles forming an undulating parametric surface."
+      },
+      "cloudsea": {
+        "title": "Cloud Sea Train",
+        "desc": "A steam train on a suspension bridge in a sunset sea of clouds. Layered height-field clouds and vector-rasterized train and bridge, with live controls for framing, speed, and cloud relief.",
+        "layer": "The fragment shader follows mdb's Up in the Cloud Sea and Tianxiu Zhou's WebGL port: blue-noise sampling, layered FBM height fields, and vector-to-raster train and bridge. Parameter binding and the page integration are local.",
+        "tech": "WebGL2 · GLSL · Blue noise",
+        "stillAlt": "A suspension bridge sits in the lower middle of stacked orange-red clouds, with steam rising from a locomotive."
       },
       "sdf": {
         "title": "SDF Raymarching",

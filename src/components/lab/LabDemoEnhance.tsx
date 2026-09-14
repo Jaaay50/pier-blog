@@ -15,6 +15,7 @@ const FlowField = dynamic(() => import("./FlowField"), { ssr: false });
 const Morph3D = dynamic(() => import("./Morph3D"), { ssr: false });
 
 const SdfRaymarch = dynamic(() => import("./SdfRaymarch"), { ssr: false });
+const CloudSeaTrain = dynamic(() => import("./CloudSeaTrain"), { ssr: false });
 const TearableCloth = dynamic(() => import("./TearableCloth"), { ssr: false });
 const PathfindingLab = dynamic(() => import("./PathfindingLab"), { ssr: false });
 const RaftLab = dynamic(() => import("./RaftLab"), { ssr: false });
@@ -26,7 +27,7 @@ const SourceIndependence = dynamic(() => import("./SourceIndependence"), { ssr: 
 const AfterOff = dynamic(() => import("./AfterOff"), { ssr: false });
 
 const EXPERIENCE = new Set<string>(EXPERIENCE_DEMO_IDS);
-const WEBGL_DEMOS = new Set(["fluid", "particles", "shader", "morph", "sdf"]);
+const WEBGL_DEMOS = new Set(["fluid", "particles", "shader", "morph", "sdf", "cloudsea"]);
 
 class DemoBoundary extends Component<{ children: ReactNode; onError: () => void }, { failed: boolean }> {
   state = { failed: false };
@@ -95,7 +96,7 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
   const isDark = resolvedTheme === "dark";
   const canRun = availability;
   const active = canRun && nearView && !failed;
-  const hasOwnReset = ["sdf", "cloth", "pathfinding", "raft", "audio", "geometry", "wait", "stream", "sources", "afteroff"].includes(id);
+  const hasOwnReset = ["sdf", "cloudsea", "cloth", "pathfinding", "raft", "audio", "geometry", "wait", "stream", "sources", "afteroff"].includes(id);
   const showOverlayReset = canRun && nearView && (!hasOwnReset || !ready || failed);
   let content: ReactNode = null;
 
@@ -129,6 +130,7 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
     );
     if (id === "shader") content = <ShaderMixer {...shared} labels={{ hue: zh ? "色相" : "Hue", flow: zh ? "流速" : "Flow Speed", turbulence: zh ? "湍流" : "Turbulence", zoom: zh ? "缩放" : "Zoom", randomize: zh ? "随机参数" : "Randomize" }} />;
     if (id === "sdf") content = <SdfRaymarch isDark={isDark} onReadyChange={onReadyChange} />;
+    if (id === "cloudsea") content = <CloudSeaTrain isDark={isDark} onReadyChange={onReadyChange} quality={quality} />;
     if (id === "cloth") content = <TearableCloth isDark={isDark} onReadyChange={onReadyChange} />;
     if (id === "pathfinding") content = <PathfindingLab isDark={isDark} onReadyChange={onReadyChange} />;
     if (id === "raft") content = <RaftLab isDark={isDark} onReadyChange={onReadyChange} />;

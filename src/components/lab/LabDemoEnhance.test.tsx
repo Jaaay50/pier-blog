@@ -42,7 +42,7 @@ describe("Lab progressive enhancement", () => {
     await near();
     expect(screen.getByTestId("runtime")).toBeTruthy();
   });
-  it.each(["fluid", "particles", "shader", "morph", "sdf"] as const)("keeps the %s poster readable without WebGL", async (id) => {
+  it.each(["fluid", "particles", "shader", "morph", "sdf", "cloudsea"] as const)("keeps the %s poster readable without WebGL", async (id) => {
     state.quality.enabled = false;
     render(<LabDemoEnhance id={id} still={`/lab/${id}.webp`} alt={`${id} preview`} />);
     await near();
@@ -79,7 +79,7 @@ describe("Lab progressive enhancement", () => {
     fireEvent.click(screen.getByRole("button", { name: /重置演示/ }));
     expect(screen.getByTestId("runtime").parentElement!.hasAttribute("inert")).toBe(true);
   });
-  it.each(["sdf", "cloth", "pathfinding", "raft", "audio", "geometry", "wait", "stream", "sources", "afteroff"] as LabDemoId[])("keeps recovery but removes the duplicate ready overlay for %s", async (id) => {
+  it.each(["sdf", "cloudsea", "cloth", "pathfinding", "raft", "audio", "geometry", "wait", "stream", "sources", "afteroff"] as LabDemoId[])("keeps recovery but removes the duplicate ready overlay for %s", async (id) => {
     render(<LabDemoEnhance id={id} still={`/lab/${id}.webp`} alt="演示海报" />); await near();
     expect(screen.getByRole("button", { name: /重置演示/ })).toBeTruthy();
     await ready(true); expect(screen.queryByRole("button", { name: /重置演示/ })).toBeNull();
