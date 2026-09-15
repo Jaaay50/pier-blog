@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { useLocale } from "next-intl";
 import { LabButton, LabToolbar } from "./LabControls";
 import type { NewDemoProps } from "./new-demo-types";
@@ -38,9 +38,10 @@ function Column({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
+  const detailPrefix = useId();
   const independent = nodes.filter((node) => node.independent).length;
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+    <div className="flex min-w-0 flex-col gap-3 p-4">
       <h4 className="text-sm font-medium text-[var(--text-primary)]">{title}</h4>
       <p className="text-xs text-[var(--text-secondary)]">
         {zh ? `转述 ${nodes.length} · 独立 ${independent}` : `${nodes.length} mentions · ${independent} independent`}
@@ -53,21 +54,24 @@ function Column({
             .filter(Boolean)
             .map((item) => (zh ? item!.labelZh : item!.labelEn))
             .join(zh ? "、" : ", ");
+          const expanded = selected === node.id;
+          const detailId = `${detailPrefix}-${node.id}`;
           return (
             <li key={node.id}>
               <button
                 type="button"
-                aria-pressed={selected === node.id}
+                aria-expanded={expanded}
+                aria-controls={detailId}
                 onClick={() => onSelect(node.id)}
-                className="w-full rounded-lg border border-[var(--border)] px-3 py-2 text-left text-sm text-[var(--text-primary)] hover:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)]"
+                className={`flex min-h-11 w-full items-center justify-between gap-3 rounded-lg border px-3 py-2 text-left text-sm text-[var(--text-primary)] hover:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-[var(--accent)] ${expanded ? "border-[var(--accent)] bg-[var(--accent-soft)]" : "border-[var(--border)]"}`}
               >
-                <span className="block">{label}</span>
-                <span className="mt-1 block text-xs text-[var(--text-secondary)]">
-                  {cited
-                    ? zh ? `转述自 ${cited}` : `Retells ${cited}`
-                    : zh ? "一手来源" : "Primary source"}
-                </span>
+                <span>{label}</span>
+                <span aria-hidden="true">{expanded ? "−" : "+"}</span>
               </button>
+              <div id={detailId} hidden={!expanded} className="px-3 pb-1 pt-3 text-xs leading-relaxed text-[var(--text-secondary)]">
+                <p>{cited ? (zh ? `转述自 ${cited}` : `Retells ${cited}`) : (zh ? "一手来源，无上游引用。" : "Primary source, with no upstream citation.")}</p>
+                <p className="mt-1">{node.independent ? (zh ? "独立材料计数：1" : "Independent evidence count: 1") : (zh ? "属于同一条循环转述链，不增加独立证据。" : "Part of the same retelling loop; adds no independent evidence.")}</p>
+              </div>
             </li>
           );
         })}
@@ -85,32 +89,27 @@ export default function SourceIndependence({ onReadyChange }: NewDemoProps) {
   }, [onReadyChange]);
 
   return (
-    <div className="flex h-full flex-col bg-[var(--bg-primary)]">
-      <p className="border-b border-[var(--border)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-        {zh
-          ? "实验：左边四家在互相转述同一句话；右边两份独立材料。转述数量不是独立证据数量。"
-          : "Experiment: four outlets retelling one another, versus two independent primaries. Mention count is not evidence count."}
-      </p>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3 md:flex-row">
+    <div className="bg-[var(--bg-primary)]">
+      <div className="grid divide-y divide-[var(--border)] md:grid-cols-2 md:divide-x md:divide-y-0">
         <Column
           title={zh ? "互相转述" : "Retellings"}
           nodes={RETOLD}
           zh={zh}
           selected={selected}
-          onSelect={setSelected}
+          onSelect={(id) => setSelected((current) => current === id ? null : id)}
         />
         <Column
           title={zh ? "独立来源" : "Independent sources"}
           nodes={PRIMARY}
           zh={zh}
           selected={selected}
-          onSelect={setSelected}
+          onSelect={(id) => setSelected((current) => current === id ? null : id)}
         />
       </div>
       <LabToolbar>
-        <LabButton onClick={() => setSelected(null)}>{zh ? "收起" : "Clear"}</LabButton>
+        <LabButton disabled={!selected} onClick={() => setSelected(null)}>{zh ? "收起" : "Clear"}</LabButton>
         <span className="text-xs text-[var(--text-secondary)]">
-          {zh ? "点开一条看它引用谁。左边循环引用，右边没有上游。" : "Open a card to see who it cites. The left loops; the right has no upstream."}
+          {zh ? "四条转述，一条循环。两份独立材料。" : "Four retellings, one loop. Two independent sources."}
         </span>
       </LabToolbar>
     </div>

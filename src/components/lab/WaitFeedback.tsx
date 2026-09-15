@@ -16,19 +16,13 @@ function unreliableProgress(t: number): number {
   return Math.min(1, 0.55 + (t - 0.7) * 1.6);
 }
 
-function Panel({
-  mode,
-  reduced,
-}: {
-  mode: Mode;
-  reduced: boolean;
-}) {
+function Panel({ mode }: { mode: Mode }) {
   const zh = useLocale() === "zh";
   const [phase, setPhase] = useState<Phase>("idle");
   const [progress, setProgress] = useState(0);
 
   const start = () => {
-    if (reduced) {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) {
       setProgress(1);
       setPhase("done");
       return;
@@ -48,7 +42,16 @@ function Panel({
       else setPhase("done");
     };
     frame = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(frame);
+    const media = window.matchMedia?.("(prefers-reduced-motion: reduce)");
+    const finish = () => {
+      if (!media?.matches) return;
+      cancelAnimationFrame(frame);
+      setProgress(1);
+      setPhase("done");
+    };
+    media?.addEventListener("change", finish);
+    finish();
+    return () => { cancelAnimationFrame(frame); media?.removeEventListener("change", finish); };
   }, [phase]);
   const shown =
     mode === "real" ? progress : mode === "unreliable" ? unreliableProgress(progress) : 0;
@@ -68,7 +71,7 @@ function Panel({
         : zh ? "完成" : "Done";
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 rounded-xl border border-[var(--border)] bg-[var(--bg-card)] p-4">
+    <div className="flex min-w-0 flex-col gap-3 p-4">
       <h4 className="text-sm font-medium text-[var(--text-primary)]">{label}</h4>
       <p className="text-xs leading-relaxed text-[var(--text-secondary)]">
         {mode === "real"
@@ -79,7 +82,7 @@ function Panel({
       </p>
       {mode !== "none" && (
         <div
-          className="h-2 overflow-hidden rounded-full bg-[var(--bg-primary)]"
+          className="h-2 shrink-0 overflow-hidden rounded-full bg-[var(--bg-card)]"
           role="progressbar"
           aria-valuemin={0}
           aria-valuemax={100}
@@ -96,6 +99,7 @@ function Panel({
         {status}
       </output>
       <LabButton
+        className="min-h-11"
         onClick={start}
         disabled={phase === "running"}
       >
@@ -107,30 +111,21 @@ function Panel({
 
 export default function WaitFeedback({ onReadyChange }: NewDemoProps) {
   const zh = useLocale() === "zh";
-  const reduced =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
   useEffect(() => {
     onReadyChange?.(true);
     return () => onReadyChange?.(false);
   }, [onReadyChange]);
 
   return (
-    <div className="flex h-full flex-col bg-[var(--bg-primary)]">
-      <p className="border-b border-[var(--border)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-        {zh
-          ? "实验：同样三秒等待，三种反馈。不是真实操作，不会提交任何东西。"
-          : "Experiment: the same three-second wait, three kinds of feedback. Nothing is submitted."}
-      </p>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-auto p-3 md:flex-row">
-        <Panel mode="real" reduced={reduced} />
-        <Panel mode="none" reduced={reduced} />
-        <Panel mode="unreliable" reduced={reduced} />
+    <div className="bg-[var(--bg-primary)]">
+      <div className="grid divide-y divide-[var(--border)] md:grid-cols-3 md:divide-x md:divide-y-0">
+        <Panel mode="real" />
+        <Panel mode="none" />
+        <Panel mode="unreliable" />
       </div>
       <LabToolbar>
         <span className="text-xs text-[var(--text-secondary)]">
-          {zh ? "键盘可到达每一块的按钮。减弱动态时直接完成。" : "Every button is keyboard reachable. Reduced motion finishes immediately."}
+          {zh ? "三秒实验，不会提交任何数据。" : "A three-second experiment. No data is submitted."}
         </span>
       </LabToolbar>
     </div>

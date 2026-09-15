@@ -19,6 +19,14 @@ vi.mock("./LabDemoEnhance", () => ({
 afterEach(cleanup);
 
 describe("LabGallery", () => {
+  it("lets ordinary DOM experiments size to their content", async () => {
+    locale = "zh";
+    render(await LabGallery());
+    for (const id of ["wait", "stream", "sources", "afteroff"] as const) {
+      const figure = screen.getByRole("heading", { name: zh.lab.demos[id].title }).closest("figure")!;
+      expect(figure.lastElementChild?.className).not.toMatch(/h-\[/);
+    }
+  });
   it.each(["zh", "en"] as const)("SSRs approved explanations and all seventeen posters in %s without a runtime", async (language) => {
     locale = language;
     render(await LabGallery());

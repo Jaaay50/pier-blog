@@ -1,5 +1,5 @@
 import { getTranslations } from "next-intl/server";
-import { LAB_DEMOS } from "./lab-demos";
+import { EXPERIENCE_DEMO_IDS, LAB_DEMOS } from "./lab-demos";
 import { LabDemoEnhance } from "./LabDemoEnhance";
 
 /** Explanations and posters remain in server HTML, independent of interactive runtimes. */
@@ -22,7 +22,7 @@ export async function LabGallery() {
               <p className="mt-3 text-sm leading-relaxed text-[var(--text-secondary)]">{t(`demos.${demo.id}.tech`)}</p>
             )}
           </figcaption>
-          <div className={`relative ${demo.tall ? "h-[560px]" : "h-[480px]"}`}>
+          <div className={`relative ${(EXPERIENCE_DEMO_IDS as readonly string[]).includes(demo.id) ? "" : demo.tall ? "h-[560px]" : "h-[480px]"}`}>
             <LabDemoEnhance id={demo.id} still={demo.still} alt={t(`demos.${demo.id}.stillAlt`)} />
           </div>
         </figure>

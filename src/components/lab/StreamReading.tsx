@@ -29,10 +29,8 @@ export default function StreamReading({ onReadyChange }: NewDemoProps) {
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(false);
   const parts = useMemo(() => units(text, mode, zh), [text, mode, zh]);
-  const reduced =
-    typeof window !== "undefined" &&
-    typeof window.matchMedia === "function" &&
-    window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const prefersReducedMotion = () =>
+    typeof window.matchMedia === "function" && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   useEffect(() => {
     onReadyChange?.(true);
@@ -47,22 +45,18 @@ export default function StreamReading({ onReadyChange }: NewDemoProps) {
 
   useEffect(() => {
     if (!playing || index >= parts.length) return;
-    const delay = mode === "char" ? 28 : mode === "sentence" ? 420 : 0;
-    const timer = window.setTimeout(() => setIndex((value) => value + 1), delay);
+    const reduced = prefersReducedMotion();
+    const delay = reduced ? 0 : mode === "char" ? 28 : mode === "sentence" ? 420 : 0;
+    const timer = window.setTimeout(() => setIndex((value) => reduced ? parts.length : value + 1), delay);
     return () => window.clearTimeout(timer);
   }, [playing, index, parts.length, mode]);
 
-  const shown = reduced ? text : parts.slice(0, index).join("");
-  const done = reduced || index >= parts.length;
+  const shown = parts.slice(0, index).join("");
+  const done = index >= parts.length;
 
   return (
-    <div className="flex h-full flex-col bg-[var(--bg-primary)]">
-      <p className="border-b border-[var(--border)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-        {zh
-          ? "实验：三种出现方式，正文相同。可暂停、重置，不强迫追赶。"
-          : "Experiment: three arrival modes, identical copy. Pause and reset; nothing chases you."}
-      </p>
-      <div className="min-h-0 flex-1 overflow-auto px-5 py-6">
+    <div className="bg-[var(--bg-primary)]">
+      <div className="min-h-48 px-5 py-6">
         <p className="max-w-xl text-base leading-relaxed text-[var(--text-primary)]" aria-live="polite">
           {shown || (zh ? "尚未开始。" : "Not started.")}
         </p>
@@ -77,7 +71,10 @@ export default function StreamReading({ onReadyChange }: NewDemoProps) {
             {value === "char" ? (zh ? "逐字" : "Glyph") : value === "sentence" ? (zh ? "逐句" : "Sentence") : zh ? "整段" : "All at once"}
           </LabButton>
         ))}
-        <LabButton onClick={() => setPlaying((value) => !value)} disabled={done && playing}>
+        <LabButton onClick={() => {
+          if (prefersReducedMotion()) { setIndex(parts.length); setPlaying(false); }
+          else setPlaying((value) => !value);
+        }} disabled={done}>
           {playing && !done ? (zh ? "暂停" : "Pause") : zh ? "播放" : "Play"}
         </LabButton>
         <LabButton

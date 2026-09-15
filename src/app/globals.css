@@ -2201,6 +2201,34 @@ html[data-density="comfortable"] {
   }
 }
 
+/* Keep the poster under the first frame until the runtime fade has finished. */
+.lab-demo-poster {
+  visibility: visible;
+}
+.lab-demo-runtime {
+  opacity: 0;
+  transition: opacity 220ms ease-out;
+}
+.lab-demo-canvas[data-ready="true"] > .lab-demo-runtime {
+  opacity: 1;
+}
+.lab-demo-canvas[data-ready="true"] > .lab-demo-poster {
+  visibility: hidden;
+  transition: visibility 0s 220ms;
+}
+.lab-poster-dark { display: none; }
+.dark .lab-poster-dark { display: block; }
+.dark .lab-poster-light { display: none; }
+.lab-afteroff-backdrop {
+  background: radial-gradient(circle at 30% 20%, var(--accent-soft), transparent 55%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .lab-demo-runtime,
+  .lab-demo-canvas[data-ready="true"] > .lab-demo-poster {
+    transition: none;
+  }
+}
+
 @keyframes afteroff-glow {
   50% { opacity: 0.18; }
 }

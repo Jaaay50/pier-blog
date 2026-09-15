@@ -3,6 +3,14 @@ import { describe, expect, it } from "vitest";
 
 const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
 
+describe("lab first-frame handoff", () => {
+  it("only fades a rendered runtime, retaining the poster until the fade ends", () => {
+    expect(css).toMatch(/\.lab-demo-runtime\s*\{\s*opacity: 0;\s*transition: opacity 220ms ease-out;/);
+    expect(css).toMatch(/\.lab-demo-canvas\[data-ready="true"\] > \.lab-demo-poster\s*\{\s*visibility: hidden;\s*transition: visibility 0s 220ms;/);
+    expect(css).toMatch(/\.dark \.lab-poster-light\s*\{ display: none; \}/);
+  });
+});
+
 describe("site layout widths", () => {
   it("separates the shared navigation shell from the wider currents workspace", () => {
     expect(css).toMatch(/\.site-shell\s*\{[^}]*max-width:\s*1440px;/);
