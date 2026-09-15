@@ -15,6 +15,8 @@ describe("GET /llms.txt", () => {
     expect(body).toContain("https://ethanpier.com/feed.xml");
     expect(body).toContain("/zh/blog/");
     expect(body).toContain("/en/currents/agent");
+    expect(body).toContain("ten interactive experiments");
+    expect(body).not.toContain("seventeen interactive experiments");
     expect(body.length).toBeGreaterThan(400);
   });
 });

@@ -2219,26 +2219,9 @@ html[data-density="comfortable"] {
 .lab-poster-dark { display: none; }
 .dark .lab-poster-dark { display: block; }
 .dark .lab-poster-light { display: none; }
-.lab-afteroff-backdrop {
-  background: radial-gradient(circle at 30% 20%, var(--accent-soft), transparent 55%);
-}
 @media (prefers-reduced-motion: reduce) {
   .lab-demo-runtime,
   .lab-demo-canvas[data-ready="true"] > .lab-demo-poster {
     transition: none;
-  }
-}
-
-@keyframes afteroff-glow {
-  50% { opacity: 0.18; }
-}
-
-.afteroff-glow {
-  animation: afteroff-glow 3s ease-in-out infinite;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .afteroff-glow {
-    animation: none;
   }
 }

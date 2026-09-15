@@ -34,8 +34,8 @@ function reply(command: string, zh: boolean): { text: string; href?: string } {
   if (token === "ls") {
     return {
       text: zh
-        ? "流体 物理 流场 粒子 形变 shader SDF 布料 寻路 Raft 频谱 几何 等待 流式 来源 关掉之后"
-        : "fluid physics flow particles morph shader sdf cloth pathfinding raft audio geometry wait stream sources afteroff",
+        ? "流体 物理 流场 粒子 形变 shader SDF 云间 布料 几何"
+        : "fluid physics flow particles morph shader sdf cloudsea cloth geometry",
     };
   }
   if (token === "now") {
