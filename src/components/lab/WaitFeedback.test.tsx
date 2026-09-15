@@ -15,7 +15,7 @@ describe("WaitFeedback", () => {
         <WaitFeedback isDark onReadyChange={vi.fn()} />
       </NextIntlClientProvider>,
     );
-    expect(screen.getByText(/不是真实操作/)).toBeTruthy();
+    expect(screen.getByText(/不会提交任何数据/)).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "等待三秒" })).toHaveLength(3);
   });
 

@@ -5,11 +5,10 @@ import { useLocale } from "next-intl";
 import { LabButton, LabToolbar } from "./LabControls";
 import type { NewDemoProps } from "./new-demo-types";
 
-export default function AfterOff({ isDark, onReadyChange }: NewDemoProps) {
+export default function AfterOff({ onReadyChange }: NewDemoProps) {
   const zh = useLocale() === "zh";
   const [animation, setAnimation] = useState(true);
-  const [pointerLayer, setPointerLayer] = useState(true);
-  const [webglLayer, setWebglLayer] = useState(true);
+  const [background, setBackground] = useState(true);
   const [name, setName] = useState("");
   const [submitted, setSubmitted] = useState("");
 
@@ -26,31 +25,14 @@ export default function AfterOff({ isDark, onReadyChange }: NewDemoProps) {
   };
 
   return (
-    <div className="relative flex h-full flex-col bg-[var(--bg-primary)]">
-      {webglLayer && (
+    <div className="relative bg-[var(--bg-primary)]">
+      {background && (
         <div
           aria-hidden
-          className={`pointer-events-none absolute inset-0 opacity-40 ${animation ? "afteroff-glow" : ""}`}
-          style={{
-            background: isDark
-              ? "radial-gradient(circle at 30% 20%, rgba(106,155,204,0.35), transparent 55%)"
-              : "radial-gradient(circle at 30% 20%, rgba(217,119,87,0.28), transparent 55%)",
-          }}
+          className={`lab-afteroff-backdrop pointer-events-none absolute inset-0 opacity-40 ${animation ? "afteroff-glow" : ""}`}
         />
       )}
-      {pointerLayer && (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          data-pointer-deco=""
-        />
-      )}
-      <p className="relative border-b border-[var(--border)] px-4 py-3 text-xs leading-relaxed text-[var(--text-secondary)]">
-        {zh
-          ? "实验：关掉动画、指针装饰或 WebGL 层之后，下面的表单仍可完成。焦点不会被锁住。"
-          : "Experiment: turn off animation, the pointer deco, or the WebGL layer. The form still completes. Focus is never trapped."}
-      </p>
-      <form className="relative z-10 flex min-h-0 flex-1 flex-col gap-4 p-5" onSubmit={onSubmit}>
+      <form className="relative z-10 flex flex-col gap-4 p-5" onSubmit={onSubmit}>
         <label className="flex flex-col gap-2 text-sm text-[var(--text-primary)]">
           {zh ? "给这艘船起个名字" : "Name this boat"}
           <input
@@ -62,22 +44,21 @@ export default function AfterOff({ isDark, onReadyChange }: NewDemoProps) {
           />
         </label>
         <LabButton type="submit" className="self-start px-4 py-2">{zh ? "完成" : "Finish"}</LabButton>
-        <output className="text-sm text-[var(--text-secondary)]" aria-live="polite">
+        <output className="text-sm text-[var(--text-secondary)] [overflow-wrap:anywhere]" aria-live="polite">
           {submitted
             ? zh ? `已记下：${submitted}` : `Recorded: ${submitted}`
             : zh ? "还没有提交。" : "Nothing submitted yet."}
         </output>
       </form>
       <LabToolbar>
-        <LabButton aria-pressed={!animation} onClick={() => setAnimation((value) => !value)}>
-          {zh ? "关闭动画" : "Animation off"} {animation ? "ON" : "OFF"}
-        </LabButton>
-        <LabButton aria-pressed={!pointerLayer} onClick={() => setPointerLayer((value) => !value)}>
-          {zh ? "指针装饰" : "Pointer deco"} {pointerLayer ? "ON" : "OFF"}
-        </LabButton>
-        <LabButton aria-pressed={!webglLayer} onClick={() => setWebglLayer((value) => !value)}>
-          {zh ? "WebGL 层" : "WebGL layer"} {webglLayer ? "ON" : "OFF"}
-        </LabButton>
+        <label className="flex min-h-11 items-center gap-2 px-2 text-sm text-[var(--text-primary)]">
+          <input type="checkbox" checked={animation} onChange={(event) => setAnimation(event.target.checked)} className="accent-[var(--accent)]" />
+          {zh ? "动画" : "Animation"}
+        </label>
+        <label className="flex min-h-11 items-center gap-2 px-2 text-sm text-[var(--text-primary)]">
+          <input type="checkbox" checked={background} onChange={(event) => setBackground(event.target.checked)} className="accent-[var(--accent)]" />
+          {zh ? "CSS 背景光" : "CSS background glow"}
+        </label>
       </LabToolbar>
     </div>
   );
