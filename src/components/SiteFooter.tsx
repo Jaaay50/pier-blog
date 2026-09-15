@@ -86,6 +86,15 @@ export function SiteFooter() {
               >
                 {t('cloudborne')} ↗
               </a>
+              <a
+                href="https://api.cloudborne.cn/"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${t('cloudborneRelay')} (${t('opensInNewWindow')})`}
+                className="inline-flex min-h-11 max-w-full items-center gap-2 text-sm text-[var(--text-secondary)] transition-colors hover:text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+              >
+                {t('cloudborneRelay')} ↗
+              </a>
             </div>
           </div>
         </div>

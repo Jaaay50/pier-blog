@@ -54,6 +54,13 @@ describe("SiteFooter", () => {
     expect(cloudborne.textContent).toBe("Cloudborne 独立站 ↗");
     expect(cloudborne.className).toContain("min-h-11");
 
+    const cloudborneRelay = screen.getByRole("link", { name: /Cloudborne 中转站/ });
+    expect(cloudborneRelay.getAttribute("href")).toBe("https://api.cloudborne.cn/");
+    expect(cloudborneRelay.getAttribute("target")).toBe("_blank");
+    expect(cloudborneRelay.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(cloudborneRelay.textContent).toBe("Cloudborne 中转站 ↗");
+    expect(cloudborneRelay.className).toContain("min-h-11");
+
     const externalLinks = screen.getByText("外部链接").nextElementSibling;
     expect(externalLinks?.className).toContain("flex-col");
     expect(externalLinks?.className).toContain("items-start");
