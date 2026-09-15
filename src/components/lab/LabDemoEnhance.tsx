@@ -5,11 +5,7 @@ import { useTheme } from "next-themes";
 import { useLocale } from "next-intl";
 import dynamic from "next/dynamic";
 import { useWebGLQuality } from "@/lib/webgl";
-import WaitFeedback from "./WaitFeedback";
-import StreamReading from "./StreamReading";
-import SourceIndependence from "./SourceIndependence";
-import AfterOff from "./AfterOff";
-import { EXPERIENCE_DEMO_IDS, type LabDemoId } from "./lab-demos";
+import { type LabDemoId } from "./lab-demos";
 
 const ParticlePlayground = dynamic(() => import("./ParticlePlayground"), { ssr: false });
 const ShaderMixer = dynamic(() => import("./ShaderMixer"), { ssr: false });
@@ -21,11 +17,7 @@ const Morph3D = dynamic(() => import("./Morph3D"), { ssr: false });
 const SdfRaymarch = dynamic(() => import("./SdfRaymarch"), { ssr: false });
 const CloudSeaTrain = dynamic(() => import("./CloudSeaTrain"), { ssr: false });
 const TearableCloth = dynamic(() => import("./TearableCloth"), { ssr: false });
-const PathfindingLab = dynamic(() => import("./PathfindingLab"), { ssr: false });
-const RaftLab = dynamic(() => import("./RaftLab"), { ssr: false });
-const AudioSpectrum = dynamic(() => import("./AudioSpectrum"), { ssr: false });
 const GeometryLab = dynamic(() => import("./GeometryLab"), { ssr: false });
-const EXPERIENCE = new Set<string>(EXPERIENCE_DEMO_IDS);
 const WEBGL_DEMOS = new Set(["fluid", "particles", "shader", "morph", "sdf", "cloudsea"]);
 
 class DemoBoundary extends Component<{ children: ReactNode; onError: () => void }, { failed: boolean }> {
@@ -41,33 +33,7 @@ const DARK_DYE: [number, number, number][] = [[0.42, 0.61, 0.8], [0.55, 0.5, 0.8
 
 type DemoProps = { id: LabDemoId; still: string; alt: string };
 
-export function LabDemoEnhance(props: DemoProps) {
-  return EXPERIENCE.has(props.id) ? <LabDomDemo id={props.id} /> : <LabCanvasDemo {...props} />;
-}
-
-function LabDomDemo({ id }: { id: LabDemoId }) {
-  const zh = useLocale() === "zh";
-  const [failed, setFailed] = useState(false);
-  const [generation, setGeneration] = useState(0);
-  const demos: Partial<Record<LabDemoId, ReactNode>> = {
-    wait: <WaitFeedback isDark={false} />,
-    stream: <StreamReading isDark={false} />,
-    sources: <SourceIndependence isDark={false} />,
-    afteroff: <AfterOff isDark={false} />,
-  };
-
-  return (
-    <div className="relative bg-[var(--bg-primary)]" data-demo={id} data-ready={!failed} data-renderer="dom">
-      <DemoBoundary key={generation} onError={() => setFailed(true)}>{demos[id]}</DemoBoundary>
-      {failed && <div role="status" className="p-5 text-sm text-[var(--text-primary)]">
-        <p>{zh ? "演示无法运行，请重试。" : "Unable to run this demo. Please retry."}</p>
-        <button type="button" className={`mt-3 ${controlClass}`} onClick={() => { setFailed(false); setGeneration((value) => value + 1); }}>{zh ? "重试" : "Retry"}</button>
-      </div>}
-    </div>
-  );
-}
-
-function LabCanvasDemo({ id, still, alt }: DemoProps) {
+export function LabDemoEnhance({ id, still, alt }: DemoProps) {
   const zh = useLocale() === "zh";
   const { resolvedTheme } = useTheme();
   const quality = useWebGLQuality();
@@ -122,7 +88,7 @@ function LabCanvasDemo({ id, still, alt }: DemoProps) {
   const isDark = resolvedTheme === "dark";
   const canRun = availability;
   const active = canRun && nearView && !failed;
-  const hasOwnReset = ["sdf", "cloudsea", "cloth", "pathfinding", "raft", "audio", "geometry"].includes(id);
+  const hasOwnReset = ["sdf", "cloudsea", "cloth", "geometry"].includes(id);
   const showOverlayReset = canRun && nearView && (!hasOwnReset || !ready || failed);
   let content: ReactNode = null;
 
@@ -158,9 +124,6 @@ function LabCanvasDemo({ id, still, alt }: DemoProps) {
     if (id === "sdf") content = <SdfRaymarch isDark={isDark} onReadyChange={onReadyChange} />;
     if (id === "cloudsea") content = <CloudSeaTrain isDark={isDark} onReadyChange={onReadyChange} quality={quality} />;
     if (id === "cloth") content = <TearableCloth isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "pathfinding") content = <PathfindingLab isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "raft") content = <RaftLab isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "audio") content = <AudioSpectrum isDark={isDark} onReadyChange={onReadyChange} />;
     if (id === "geometry") content = <GeometryLab isDark={isDark} onReadyChange={onReadyChange} />;
 
   }

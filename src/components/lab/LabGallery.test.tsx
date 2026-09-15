@@ -19,21 +19,13 @@ vi.mock("./LabDemoEnhance", () => ({
 afterEach(cleanup);
 
 describe("LabGallery", () => {
-  it("lets ordinary DOM experiments size to their content", async () => {
-    locale = "zh";
-    render(await LabGallery());
-    for (const id of ["wait", "stream", "sources", "afteroff"] as const) {
-      const figure = screen.getByRole("heading", { name: zh.lab.demos[id].title }).closest("figure")!;
-      expect(figure.lastElementChild?.className).not.toMatch(/h-\[/);
-    }
-  });
-  it.each(["zh", "en"] as const)("SSRs approved explanations and all seventeen posters in %s without a runtime", async (language) => {
+  it.each(["zh", "en"] as const)("SSRs approved explanations and all ten posters in %s without a runtime", async (language) => {
     locale = language;
     render(await LabGallery());
     const figures = document.querySelectorAll("figure");
     const messages = language === "zh" ? zh.lab : en.lab;
-    expect(figures).toHaveLength(17);
-    expect(screen.getAllByRole("img")).toHaveLength(17);
+    expect(figures).toHaveLength(10);
+    expect(screen.getAllByRole("img")).toHaveLength(10);
     LAB_DEMOS.forEach((demo, index) => {
       const copy = messages.demos[demo.id];
       const figure = figures[index] as HTMLElement;
@@ -47,6 +39,6 @@ describe("LabGallery", () => {
       expect(within(figure).getByText(copy.layer).className).toContain("text-base font-medium");
       expect(figure.textContent).not.toContain(`demos.${demo.id}.`);
     });
-    expect(messages.metaDescription).toMatch(language === "zh" ? /^十七个/ : /^Seventeen/);
+    expect(messages.metaDescription).toMatch(language === "zh" ? /^十个/ : /^Ten/);
   });
 });
