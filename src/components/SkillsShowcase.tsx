@@ -140,7 +140,7 @@ export function SkillsShowcase({ title, skills }: SkillsShowcaseProps) {
                       speed={0.25}
                       particleColors={
                         isDark
-                          ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
+                          ? ["#6a9bcc", "#8ab4dd", "#ffffff"]
                           : ["#d97757", "#d4a27f", "#3d3d3a"]
                       }
                       moveParticlesOnHover={quality?.mouseInteraction}
@@ -192,7 +192,7 @@ export function SkillsShowcase({ title, skills }: SkillsShowcaseProps) {
                     <Aurora
                       colorStops={
                         isDark
-                          ? ["#6a9bcc", "#8b7fcc", "#a78bfa"]
+                          ? ["#6a9bcc", "#8ab4dd", "#c5d8eb"]
                           : ["#d97757", "#e8c4a0", "#c6613f"]
                       }
                       amplitude={1.4}
@@ -204,7 +204,7 @@ export function SkillsShowcase({ title, skills }: SkillsShowcaseProps) {
                     className="absolute inset-0"
                     style={{
                       background: isDark
-                        ? "linear-gradient(120deg, rgba(106,155,204,0.3), rgba(139,127,204,0.2), rgba(167,139,250,0.25))"
+                        ? "linear-gradient(120deg, rgba(106,155,204,0.3), rgba(138,180,221,0.2), rgba(197,216,235,0.25))"
                         : "linear-gradient(120deg, rgba(217,119,87,0.3), rgba(232,196,160,0.25), rgba(198,97,63,0.2))",
                     }}
                   />
@@ -241,7 +241,7 @@ export function SkillsShowcase({ title, skills }: SkillsShowcaseProps) {
                 <GradientText
                   colors={
                     isDark
-                      ? ["#6a9bcc", "#8b7fcc", "#a78bfa", "#6a9bcc"]
+                      ? ["#6a9bcc", "#8ab4dd", "#c5d8eb", "#6a9bcc"]
                       : ["#d97757", "#c6613f", "#d4a27f", "#d97757"]
                   }
                   animationSpeed={4}
@@ -253,7 +253,7 @@ export function SkillsShowcase({ title, skills }: SkillsShowcaseProps) {
                 {/* 微型色板：hover 时依次点亮 */}
                 <div className="flex gap-2">
                   {(isDark
-                    ? ["#0f0f0f", "#1a1a1a", "#6a9bcc", "#8b7fcc", "#f5f5f5"]
+                    ? ["#0f0f0f", "#1a1a1a", "#6a9bcc", "#8ab4dd", "#f5f5f5"]
                     : ["#faf9f5", "#f0eee6", "#d97757", "#d4a27f", "#3d3d3a"]
                   ).map((c, i) => (
                     <motion.span

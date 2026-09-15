@@ -21,7 +21,7 @@ export function SiteFooter() {
     <footer className="relative mt-auto overflow-hidden border-t border-[var(--border)]">
       {/* Π glyph 水印：右下角极淡 */}
       <div className="pointer-events-none absolute -bottom-6 -right-4" aria-hidden>
-        <PierGlyph size={140} className="text-[var(--text-muted)] opacity-[0.04]" />
+        <PierGlyph size={140} className="text-[var(--text-muted)] opacity-[0.09]" />
       </div>
       <div className="site-shell mx-auto py-12">
         {/* Three-column grid */}

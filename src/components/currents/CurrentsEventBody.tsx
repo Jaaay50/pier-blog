@@ -43,8 +43,8 @@ interface EventPageLabels {
 /** 生命周期标签色阶（与热点页 HotCard 保持一致） */
 const STATUS_CLASS: Record<CurrentsHotStatus, string> = {
   new: "border-[var(--border)] text-[var(--text-muted)]",
-  rising: "border-[var(--accent)]/40 text-[var(--accent)]/80",
-  peak: "score-badge-high border-[var(--accent)]/60 font-semibold text-[var(--accent)]",
+  rising: "border-[var(--data)]/40 text-[var(--data)]/80",
+  peak: "score-badge-high border-[var(--data)]/60 font-semibold text-[var(--data)]",
   cooling: "border-[var(--border-hover)] text-[var(--text-secondary)]",
   ended: "border-[var(--border)] text-[var(--text-muted)]",
   active: "border-[var(--border)] text-[var(--text-muted)]",

@@ -18,7 +18,7 @@ export default async function NotFound() {
       <section className="relative flex flex-1 items-center justify-center overflow-hidden px-6 py-24">
         {/* 水印 glyph：桥下灯点微光 */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden>
-          <PierGlyph size={320} glow className="text-[var(--text-muted)] opacity-[0.05]" />
+          <PierGlyph size={320} glow className="text-[var(--text-muted)] opacity-[0.08]" />
         </div>
 
         <div className="relative z-10 text-center">

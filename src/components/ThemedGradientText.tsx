@@ -3,7 +3,7 @@ import GradientText from "@/components/reactbits/GradientText";
 
 /**
  * 主题感知的渐变文字：
- * - 深色（Kimi）：蓝→紫流光
+ * - 深色（Kimi）：水银蓝流光
  * - 浅色（Claude）：陶土→琥珀暖调
  *
  * 颜色走 CSS 变量（globals.css 中按主题定义），
