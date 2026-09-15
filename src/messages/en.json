@@ -393,7 +393,8 @@
     "tocLabel": "Table of Contents",
     "tocOpen": "Open table of contents",
     "tocClose": "Close table of contents",
-    "copyRestricted": "Text copying is restricted here — code blocks and links still work"
+    "copyRestricted": "Text copying is restricted here — code blocks and links still work",
+    "leaveALine": "Finished reading? Leave a line in a bottle"
   },
   "portfolio": {
     "label": "Portfolio",
@@ -413,6 +414,7 @@
     "label": "About Me",
     "title": "Ashore",
     "intro": "Full-stack engineer. What interests me most is what's left when you turn a thing off — the animation, the mouse, the 3D that never starts.",
+    "nowEntry": "What I'm doing now →",
     "technicalStack": "Technical Stack",
     "experience": "Experience",
     "getInTouch": "Get in Touch",
@@ -577,19 +579,18 @@
     "label": "Present",
     "title": "Now",
     "subtitle": "Short, kept current. Not a resume.",
-    "metaDescription": "What Ethan Pier is doing now, what recently shipped, and what this site will not do.",
+    "metaDescription": "What Ethan Pier is doing now, and what this site will not do.",
     "updated": "Updated {date}",
+    "letter": "These days I am taking the lamp out of the site-wide accent. The footer gained the Cloudborne relay. Automatic updates for the model leaderboard still wait on one controlled production run.",
     "doingTitle": "Doing",
     "shippedTitle": "Recently shipped",
     "notTitle": "Deliberately not",
     "doing": [
-      "Daily automatic updates for the Currents model leaderboard, still waiting on one controlled production run.",
-      "Making the six rooms of this site exact: the hero particles, the lab experiments, the bottle coast."
+      "Making the rooms feel like one person lives here: Now, Ashore, and the lamp at the end of an essay.",
+      "Daily automatic updates for the Currents model leaderboard, still waiting on one controlled production run."
     ],
     "shipped": [
-      "Bottles: a pixel coast, Hong Kong time, four night loops.",
-      "Lab SDF lighting brought back to a studio product shot.",
-      "The hero particle title no longer flashes a solid serif first frame."
+      "The footer now links to the Cloudborne relay."
     ],
     "not": [
       "Article comments.",

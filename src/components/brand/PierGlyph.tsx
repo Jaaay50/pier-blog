@@ -1,7 +1,7 @@
 /**
  * Π glyph：桥墩品牌符号。
  * 构型：一道横梁 + 两根入水桥桩（衬线桩脚外撇）+ 两桩之间负空间悬一颗灯点。
- * 灯点 = var(--accent)；结构线 = currentColor（跟随文字色，双主题自动适配）。
+ * 灯点 = var(--lamp)；结构线 = currentColor（跟随文字色，双主题自动适配）。
  * viewBox 0 0 48 48。
  */
 export function PierGlyph({
@@ -44,9 +44,9 @@ export function PierGlyph({
       />
       {/* 桩间灯点：悬在负空间中央偏上（水面之上） */}
       {glow && (
-        <circle cx="24" cy="24" r="5" fill="var(--accent)" opacity="0.25" />
+        <circle cx="24" cy="24" r="5" fill="var(--lamp)" opacity="0.25" />
       )}
-      <circle cx="24" cy="24" r="2.2" fill="var(--accent)" />
+      <circle cx="24" cy="24" r="2.2" fill="var(--lamp)" />
     </svg>
   );
 }

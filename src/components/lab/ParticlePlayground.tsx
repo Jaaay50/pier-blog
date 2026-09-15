@@ -47,7 +47,7 @@ export default function ParticlePlayground({
   const zh = useLocale() === "zh";
 
   const colors = isDark
-    ? ["#6a9bcc", "#8b7fcc", "#ffffff"]
+    ? ["#6a9bcc", "#8ab4dd", "#ffffff"]
     : ["#d97757", "#d4a27f", "#3d3d3a"];
 
   const sliders: {

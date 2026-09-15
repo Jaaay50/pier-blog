@@ -19,8 +19,8 @@ const STATUS_LABEL_KEY: Record<CurrentsHotStatus, string> = {
 /** 生命周期标签色阶：新 = muted，升温/高峰 = accent 递强，降温/已结束 = 回落，观察中 = 最弱 */
 const STATUS_CLASS: Record<CurrentsHotStatus, string> = {
   new: "border-[var(--border)] text-[var(--text-muted)]",
-  rising: "border-[var(--accent)]/40 text-[var(--accent)]/80",
-  peak: "score-badge-high border-[var(--accent)]/60 font-semibold text-[var(--accent)]",
+  rising: "border-[var(--data)]/40 text-[var(--data)]/80",
+  peak: "score-badge-high border-[var(--data)]/60 font-semibold text-[var(--data)]",
   cooling: "border-[var(--border-hover)] text-[var(--text-secondary)]",
   ended: "border-[var(--border)] text-[var(--text-muted)]",
   active: "border-[var(--border)] text-[var(--text-muted)]",

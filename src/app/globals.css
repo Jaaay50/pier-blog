@@ -17,10 +17,12 @@
   --text-secondary: #3d3d3a;  /* Body */
   --text-muted: #87867f;      /* Cloud dark */
 
-  --accent: #d97757;          /* Clay */
+  --accent: #d97757;          /* Clay — 行动：链接、按钮、焦点 */
   --accent-hover: #c6613f;    /* Clay deep */
   --accent-contrast: #141413;  /* accent 实心底上的 AA 文本色 */
   --accent-soft: rgba(217, 119, 87, 0.16);
+  --lamp: #d97757;            /* 签名灯：字标、Π、水线、文章结尾、选区 */
+  --data: #5c5c56;            /* 数据墨：热力图、雷达、分数 */
   /* 正文面色块专用（Callout info 底 / 代码高亮行）：钉住 10.7 前强度，
      不跟随 ambient 提亮，避免阅读面加重 */
   --accent-soft-block: rgba(217, 119, 87, 0.1);
@@ -45,6 +47,13 @@
     0 8px 24px rgba(20, 20, 19, 0.06);
   --currents-shadow-sticky: 0 4px 16px rgba(20, 20, 19, 0.05);
   --site-nav-height: 57px;  /* SSR fallback；Navbar 挂载后写入实测高度 */
+
+  /* 垂直节奏：区块 / 标题到正文 / 卡片内 / 标签到标题 */
+  --space-block: 4rem;
+  --space-block-wide: 6rem;
+  --space-stack: 1.5rem;
+  --space-card: 1.5rem;
+  --space-label: 1rem;
 
   /* 语义化模式变量 */
   --glow-color: rgba(217, 119, 87, 0.12);
@@ -73,11 +82,13 @@
   --text-secondary: #a1a1a1;
   --text-muted: #6b6b6b;
 
-  --accent: #6a9bcc;          /* Tech blue */
+  --accent: #6a9bcc;          /* Tech blue — 行动 */
   --accent-hover: #8ab4dd;
   --accent-contrast: #0f0f0f;  /* accent 实心底上的 AA 文本色 */
   --accent-soft: rgba(106, 155, 204, 0.18);
   --accent-soft-block: rgba(106, 155, 204, 0.12);
+  --lamp: #8ab4dd;            /* 夜灯：比行动色略亮的水银 */
+  --data: #8a8a8a;            /* 数据墨 */
 
   --border: #222222;
   --border-hover: #333333;
@@ -100,12 +111,12 @@
   --glow-color: rgba(106, 155, 204, 0.25);
   --shadow-card: 0 0 0 transparent;
   --shadow-card-hover: 0 0 24px var(--glow-color);
-  --gradient-brand: linear-gradient(135deg, #6a9bcc 0%, #8b7fcc 50%, #a78bfa 100%);
+  --gradient-brand: linear-gradient(135deg, #6a9bcc 0%, #8ab4dd 50%, #c5d8eb 100%);
 
-  /* 主题渐变文字三色 */
+  /* 主题渐变文字三色：水银蓝，不走紫 */
   --gradient-text-1: #6a9bcc;
-  --gradient-text-2: #8b7fcc;
-  --gradient-text-3: #a78bfa;
+  --gradient-text-2: #8ab4dd;
+  --gradient-text-3: #c5d8eb;
 
   /* 深色下 display 仍用衬线，但由组件层控制字重 */
 }
@@ -582,12 +593,12 @@ html.custom-cursor-on body {
   pointer-events: none;
 }
 
-/* 主 tittle：升高 0.15em、比正常大、accent 填充 */
+/* 主 tittle：升高 0.15em、比正常大、灯色填充 */
 .pier-tittle-core {
   top: -0.22em;
   width: 0.17em;
   height: 0.17em;
-  background: var(--accent);
+  background: var(--lamp);
   transform: translateX(-50%);
   transition: transform 0.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.4s ease;
 }
@@ -599,7 +610,7 @@ html.custom-cursor-on body {
   top: -0.22em;
   width: 0.09em;
   height: 0.09em;
-  background: var(--accent);
+  background: var(--lamp);
   opacity: 0;
   transform: translateX(-50%);
   transition: transform 0.55s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.35s ease;
@@ -683,8 +694,59 @@ html[lang="zh"] .prose h4 {
 }
 
 ::selection {
-  background: var(--accent);
+  background: var(--lamp);
   color: var(--bg-primary);
+}
+
+.page-hero-quiet {
+  position: relative;
+  overflow: hidden;
+  padding-block: var(--space-block);
+}
+
+@media (min-width: 768px) {
+  .page-hero-quiet {
+    padding-block: var(--space-block-wide);
+  }
+}
+
+.article-signature {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  margin-block: 3.5rem 0;
+  color: var(--text-muted);
+}
+
+.article-signature-mark {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+.article-signature-link {
+  font-size: 0.875rem;
+  color: var(--accent);
+  text-underline-offset: 0.18em;
+}
+
+.article-signature-link:hover {
+  color: var(--accent-hover);
+}
+
+.now-letter {
+  padding-bottom: 6rem;
+}
+
+.now-date {
+  font-family: var(--font-dancing), cursive;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-muted);
+}
+
+.now-letter h2 {
+  margin-bottom: var(--space-label);
 }
 
 /* Scrollbar */
@@ -1877,7 +1939,7 @@ html[data-density="comfortable"] {
 
 /* 高分评分徽章强调 */
 .score-badge-high {
-  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  background: color-mix(in srgb, var(--data) 12%, transparent);
   font-weight: 700;
 }
 

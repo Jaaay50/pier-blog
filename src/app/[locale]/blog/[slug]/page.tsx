@@ -12,6 +12,7 @@ import { safeJsonLd } from "@/lib/json-ld";
 import { ScrollProgress } from "@/components/ScrollProgress";
 import { SiteFooter } from "@/components/SiteFooter";
 import { BlogProseGuard } from "@/components/BlogProseGuard";
+import { ArticleSignature } from "@/components/ArticleSignature";
 import { locales } from "@/i18n/config";
 import { SITE_URL, pageMetadata } from "@/lib/metadata";
 
@@ -218,6 +219,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
             {/* MDX Content */}
             <BlogProseGuard>{content}</BlogProseGuard>
+            <ArticleSignature leaveLabel={t("leaveALine")} />
           </div>
         </article>
 
@@ -242,7 +244,7 @@ export default async function BlogPostPage({ params }: PageProps) {
 
       {/* 相关阅读 */}
       {related.length > 0 && (
-        <section className="py-16">
+        <section className="py-[var(--space-block-wide)]">
           <div className="site-content">
             <h2 className="mb-8 text-2xl font-bold tracking-tight">
               {t("related")}

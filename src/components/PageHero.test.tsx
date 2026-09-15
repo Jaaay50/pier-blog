@@ -43,6 +43,7 @@ describe("PageHero", () => {
       expect(gradient.style.backgroundSize).toBe("300% 100%");
       expect(gradient.parentElement?.className).toContain("font-medium");
       expect(container.querySelector(".site-content")).toBeTruthy();
+      expect(container.querySelector(".reading-column")).toBeNull();
       expect(container.querySelector("header")?.className).toContain("py-12 md:py-20");
       expect(container.querySelector("[data-intensity]")?.getAttribute("data-intensity")).toBe("0.6");
       expect(container.querySelector("[data-speed]")?.getAttribute("data-speed")).toBe("0.6");
@@ -54,5 +55,17 @@ describe("PageHero", () => {
     const html = renderToStaticMarkup(<PageHero label="" title="<script>alert(1)</script>" description="" />);
     expect(html).toContain("&lt;script&gt;");
     expect(html).not.toContain("<script>");
+  });
+
+  it("quiet hero uses paper, reading column, and no fluid background", () => {
+    const { container } = render(
+      <PageHero label="此刻" title="现在" description="短、常更新。不是履历。" quiet />,
+    );
+    expect(container.querySelector(".page-hero-quiet")).toBeTruthy();
+    expect(container.querySelector(".reading-column")).toBeTruthy();
+    expect(container.querySelector(".site-content")).toBeNull();
+    expect(container.querySelector("[data-intensity]")).toBeNull();
+    expect(screen.getByRole("heading", { level: 1, name: "现在" }).className).toContain("font-display");
+    expect(screen.getByRole("heading", { level: 1, name: "现在" }).className).not.toContain("bg-clip-text");
   });
 });

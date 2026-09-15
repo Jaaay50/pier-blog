@@ -114,9 +114,9 @@ export function SkillRadar({ axes, size = 320, className = "" }: SkillRadarProps
         >
           <polygon
             points={polygonPoints}
-            fill="var(--accent)"
+            fill="var(--data)"
             fillOpacity={0.16}
-            stroke="var(--accent)"
+            stroke="var(--data)"
             strokeWidth={2}
             strokeLinejoin="round"
           />
@@ -130,7 +130,7 @@ export function SkillRadar({ axes, size = 320, className = "" }: SkillRadarProps
             cy={p.y}
             r={hovered === i ? 6 : 4}
             fill="var(--bg-primary)"
-            stroke="var(--accent)"
+            stroke="var(--data)"
             strokeWidth={2}
             style={{ cursor: "pointer" }}
             initial={reduced ? false : { opacity: 0 }}
