@@ -12,6 +12,7 @@ import { WebVitals } from "@/components/WebVitals";
 import { SpeculationRules } from "@/components/SpeculationRules";
 import { ParticleGateScript } from "@/components/ParticleGate";
 import { DENSITY_SCRIPT } from "@/lib/csp";
+import { SiteTrafficBeacon } from "@/components/SiteTrafficBeacon";
 import { locales, type Locale } from "@/i18n/config";
 import { localizedMetadata, SITE_URL } from "@/lib/site-metadata";
 import "../globals.css";
@@ -140,6 +141,7 @@ export default async function LocaleLayout({ children, params }: LocaleLayoutPro
               <CustomCursor />
               <PerformanceMonitor />
               <WebVitals />
+              <SiteTrafficBeacon />
               <div className="relative">{children}</div>
             </AnimationProvider>
           </ThemeProvider>
