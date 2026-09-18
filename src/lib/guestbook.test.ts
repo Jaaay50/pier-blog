@@ -29,8 +29,9 @@ describe("guestbook message guards", () => {
   });
 
   it("列表契约拒绝半成品", () => {
-    expect(isGuestbookListResponse({ schemaVersion: 1, entries: [], nextCursor: null })).toBe(true);
-    expect(isGuestbookListResponse({ schemaVersion: 1, entries: [{ id: "1" }], nextCursor: null })).toBe(false);
+    expect(isGuestbookListResponse({ schemaVersion: 2, entries: [], nextCursor: null })).toBe(true);
+    expect(isGuestbookListResponse({ schemaVersion: 1, entries: [], nextCursor: null })).toBe(false);
+    expect(isGuestbookListResponse({ schemaVersion: 2, entries: [{ id: "1" }], nextCursor: null })).toBe(false);
   });
 });
 
@@ -38,11 +39,11 @@ describe("guestbook HTTP", () => {
   it("GET 列表走 no-store 并校验契约", async () => {
     const fetchMock = vi.fn(() =>
       jsonResponse(200, {
-        schemaVersion: 1,
+        schemaVersion: 2,
         entries: [
           {
             id: "11111111-1111-4111-8111-111111111111",
-            nickname: "Visitor_ab12",
+            signature: null,
             message: "潮水留下的字",
             createdAt: "2026-09-09T14:00:00.000Z",
           },
@@ -60,7 +61,7 @@ describe("guestbook HTTP", () => {
 
   it("传 revalidate 时走 ISR，不带 no-store（否则整个路由会被拖成动态渲染）", async () => {
     const fetchMock = vi.fn(() =>
-      jsonResponse(200, { schemaVersion: 1, entries: [], nextCursor: null }),
+      jsonResponse(200, { schemaVersion: 2, entries: [], nextCursor: null }),
     );
     vi.stubGlobal("fetch", fetchMock);
     await fetchGuestbookEntries({ limit: 50, revalidate: 15 });
@@ -78,7 +79,7 @@ describe("guestbook HTTP", () => {
         ok: true,
         entry: {
           id: "22222222-2222-4222-8222-222222222222",
-          nickname: "Visitor_cd34",
+          signature: "林林",
           message: "漂来一只瓶子",
           createdAt: "2026-09-09T14:01:00.000Z",
         },
@@ -90,12 +91,14 @@ describe("guestbook HTTP", () => {
         message: "  漂来一只瓶子  ",
         locale: "zh",
         turnstileToken: "token",
+        signature: "林林",
       }),
-    ).resolves.toMatchObject({ ok: true, entry: { message: "漂来一只瓶子" } });
+    ).resolves.toMatchObject({ ok: true, entry: { message: "漂来一只瓶子", signature: "林林" } });
     expect(JSON.parse(String((fetchMock.mock.calls[0] as unknown as [string, RequestInit])[1].body))).toEqual({
       message: "漂来一只瓶子",
       locale: "zh",
       turnstileToken: "token",
+      signature: "林林",
     });
 
     vi.stubGlobal("fetch", vi.fn(() => jsonResponse(429, { error: "rate_limited", retryAfterSeconds: 120 })));

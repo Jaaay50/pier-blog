@@ -5,13 +5,13 @@ export const GUESTBOOK_MESSAGE_MAX = 500;
 
 export interface GuestbookEntry {
   id: string;
-  nickname: string;
+  signature: string | null;
   message: string;
   createdAt: string;
 }
 
 export interface GuestbookListResponse {
-  schemaVersion: 1;
+  schemaVersion: 2;
   entries: GuestbookEntry[];
   nextCursor: string | null;
 }
@@ -29,19 +29,22 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 export function isGuestbookEntry(value: unknown): value is GuestbookEntry {
   if (!isRecord(value)) return false;
+  const signatureOk =
+    value.signature === null ||
+    (typeof value.signature === "string" && value.signature.length > 0);
   return (
     typeof value.id === "string" &&
     value.id.length > 0 &&
-    typeof value.nickname === "string" &&
-    value.nickname.length > 0 &&
+    signatureOk &&
     typeof value.message === "string" &&
-    typeof value.createdAt === "string"
+    typeof value.createdAt === "string" &&
+    !("nickname" in value)
   );
 }
 
 export function isGuestbookListResponse(value: unknown): value is GuestbookListResponse {
   if (!isRecord(value)) return false;
-  if (value.schemaVersion !== 1 || !Array.isArray(value.entries)) return false;
+  if (value.schemaVersion !== 2 || !Array.isArray(value.entries)) return false;
   if (value.nextCursor !== null && typeof value.nextCursor !== "string") return false;
   return value.entries.every(isGuestbookEntry);
 }
@@ -124,6 +127,7 @@ export async function submitGuestbookEntry(
     locale: "zh" | "en";
     turnstileToken: string;
     website?: string;
+    signature?: string | null;
   },
   signal?: AbortSignal,
 ): Promise<GuestbookCreateResponse> {
@@ -140,6 +144,7 @@ export async function submitGuestbookEntry(
         locale: params.locale,
         turnstileToken: params.turnstileToken,
         ...(params.website ? { website: params.website } : {}),
+        ...(params.signature ? { signature: params.signature } : {}),
       }),
     });
   } catch {

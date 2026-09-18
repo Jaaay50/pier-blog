@@ -22,11 +22,11 @@ vi.mock("@/components/SiteFooter", () => ({ SiteFooter: () => <footer /> }));
 vi.mock("@/components/webgl/FluidBackground", () => ({ FluidBackground: () => null }));
 vi.mock("@/lib/guestbook", () => ({
   fetchGuestbookEntries: async () => ({
-    schemaVersion: 1,
+    schemaVersion: 2,
     entries: [
       {
         id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-        nickname: "Visitor_ab12",
+        signature: null,
         message: "tide mark",
         createdAt: "2026-09-09T12:00:00.000Z",
       },
