@@ -14,6 +14,7 @@ import {
   submitGuestbookEntry,
   type GuestbookEntry,
 } from "@/lib/guestbook";
+import { GUESTBOOK_SIGNATURE_MAX, parseGuestbookSignature } from "@/lib/guestbook-signature";
 
 interface GuestbookBoardProps {
   locale: string;
@@ -48,8 +49,10 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
   const [entries, setEntries] = useState<GuestbookEntry[]>(initialEntries);
   const [loadError, setLoadError] = useState(initialError);
   const [message, setMessage] = useState("");
+  const [signature, setSignature] = useState("");
   const [state, setState] = useState<SubmitState>("idle");
   const [validationError, setValidationError] = useState<"required" | "tooLong" | null>(null);
+  const [signatureError, setSignatureError] = useState(false);
   const [turnstileToken, setTurnstileToken] = useState("");
   const [pickedId, setPickedId] = useState<string | null>(null);
   const [retryAfterSeconds, setRetryAfterSeconds] = useState<number | null>(null);
@@ -127,7 +130,13 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
       setValidationError(invalid);
       return;
     }
+    const parsedSignature = parseGuestbookSignature(signature);
+    if (!parsedSignature.ok) {
+      setSignatureError(true);
+      return;
+    }
     setValidationError(null);
+    setSignatureError(false);
     const honeypot = honeypotRef.current?.value ?? "";
     submittingRef.current = true;
     setState("submitting");
@@ -137,6 +146,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         locale: normalizedLocale,
         turnstileToken,
         ...(honeypot !== "" ? { website: honeypot } : {}),
+        ...(parsedSignature.value ? { signature: parsedSignature.value } : {}),
       });
       resetTurnstile();
       if (result.kept === false) {
@@ -144,6 +154,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         return;
       }
       setMessage("");
+      setSignature("");
       if (result.entry) {
         setEntries((current) =>
           current.some((entry) => entry.id === result.entry!.id)
@@ -164,6 +175,9 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         setState("error-verification");
       } else if (err instanceof CurrentsApiError && err.code === "verification_unavailable") {
         setState("error-verification-unavailable");
+      } else if (err instanceof CurrentsApiError && err.code === "invalid_guestbook") {
+        setSignatureError(true);
+        setState("idle");
       } else {
         setState("error-generic");
       }
@@ -203,7 +217,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
             }`}
           >
             <p className="flex flex-wrap items-baseline gap-x-3 gap-y-1 text-xs text-[var(--text-muted)]">
-              <span className="font-medium text-[var(--text-secondary)]">{entry.nickname}</span>
+              <span className="font-medium text-[var(--text-secondary)]">{entry.signature ?? t("anonymous")}</span>
               <time dateTime={entry.createdAt}>{fmtDateTime(entry.createdAt, normalizedLocale)}</time>
             </p>
             <p className="mt-2 whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)]">
@@ -256,7 +270,7 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
             onClick={(event) => event.stopPropagation()}
           >
             <p id="guestbook-read-title" className="shrink-0 text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">{t("letterTitle")}</p>
-            <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.nickname}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
+            <p className="mt-3 flex shrink-0 flex-wrap items-baseline gap-x-3 text-xs text-[var(--text-muted)]"><span className="font-medium text-[var(--text-secondary)]">{picked.signature ?? t("anonymous")}</span><time dateTime={picked.createdAt}>{fmtDateTime(picked.createdAt, normalizedLocale)}</time></p>
             <p tabIndex={0} className="mt-2 min-h-0 overflow-y-auto overscroll-contain whitespace-pre-wrap [overflow-wrap:anywhere] text-sm leading-relaxed text-[var(--text-primary)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]">{picked.message}</p>
             <button type="button" className="mt-4 shrink-0 self-start text-sm text-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2" onClick={closeLetter}>{t("closeCard")}</button>
           </aside>
@@ -268,6 +282,31 @@ export function GuestbookBoard({ locale, initialEntries, initialError = false }:
         className="guestbook-coastal-form relative mx-auto mt-8 max-w-3xl space-y-4 rounded-lg border border-[var(--border)] bg-[var(--bg-card)]/90 p-5 backdrop-blur-md"
         data-testid="guestbook-form"
       >
+        <label htmlFor="guestbook-signature" className="block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+          {t("signatureLabel")}
+        </label>
+        <input
+          id="guestbook-signature"
+          data-testid="guestbook-signature"
+          type="text"
+          value={signature}
+          maxLength={GUESTBOOK_SIGNATURE_MAX}
+          autoComplete="off"
+          disabled={state === "submitting" || rateLimited}
+          aria-invalid={signatureError}
+          aria-describedby={signatureError ? "guestbook-signature-validation" : undefined}
+          onChange={(event) => {
+            setSignature(event.target.value);
+            if (signatureError) setSignatureError(false);
+            if (state === "success" || state === "success-duplicate") setState("idle");
+          }}
+          className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm text-[var(--text-primary)] focus-visible:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+        />
+        {signatureError && (
+          <p id="guestbook-signature-validation" className="text-sm text-[var(--text-secondary)]" role="alert">
+            {t("signatureInvalid")}
+          </p>
+        )}
         <label htmlFor="guestbook-message" className="block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
           {t("messageLabel")}
         </label>
