@@ -48,6 +48,9 @@ const labels: FeedbackLabels = {
   },
   messageLabel: "补充说明（选填）",
   messagePlaceholder: "可简单描述问题所在…",
+  contactLabel: "联系方式",
+  contactPlaceholder: "邮箱、微信或 QQ",
+  contactRequired: "请留下邮箱、微信或 QQ。",
   submit: "提交",
   submitting: "提交中…",
   success: "已收到，感谢反馈。",
@@ -97,6 +100,16 @@ describe("FeedbackForm", () => {
     expect(submit.disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     expect(submit.disabled).toBe(false);
+    expect(screen.getByLabelText("联系方式")).toBeTruthy();
+  });
+
+  it("不填联系方式无法提交", async () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("button", { name: "反馈问题" }));
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    fireEvent.click(screen.getByRole("button", { name: "提交" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("请留下邮箱、微信或 QQ。");
+    expect(submitMock).not.toHaveBeenCalled();
   });
 
   it("成功提交正确 payload，写 localStorage；同类别禁用但其他类别仍可提交", async () => {
@@ -106,6 +119,7 @@ describe("FeedbackForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     fireEvent.click(screen.getByRole("radio", { name: "失效链接" }));
     fireEvent.change(screen.getByLabelText("补充说明（选填）"), { target: { value: "  链接 404  " } });
+    fireEvent.change(screen.getByLabelText("联系方式"), { target: { value: "wechat_id-01" } });
     fireEvent.change(document.querySelector('input[name="website"]')!, { target: { value: "" } });
     fireEvent.click(screen.getByRole("button", { name: "提交" }));
 
@@ -115,6 +129,7 @@ describe("FeedbackForm", () => {
       targetId: "event-1",
       category: "broken_link",
       message: "链接 404",
+      contact: "wechat_id-01",
       locale: "zh",
       turnstileToken: "test-turnstile-token",
     });
@@ -137,6 +152,7 @@ describe("FeedbackForm", () => {
     renderForm();
     fireEvent.click(screen.getByRole("button", { name: "反馈问题" }));
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    fireEvent.change(screen.getByLabelText("联系方式"), { target: { value: "reader@example.com" } });
     fireEvent.change(document.querySelector('input[name="website"]')!, { target: { value: "https://bot.example" } });
     fireEvent.click(screen.getByRole("button", { name: "提交" }));
     await waitFor(() => expect(submitMock).toHaveBeenCalledOnce());
@@ -152,6 +168,7 @@ describe("FeedbackForm", () => {
     renderForm();
     fireEvent.click(screen.getByRole("button", { name: "反馈问题" }));
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    fireEvent.change(screen.getByLabelText("联系方式"), { target: { value: "reader@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "提交" }));
     expect((await screen.findByRole("alert")).textContent).toContain(expected);
     expect((screen.getByRole("button", { name: "提交" }) as HTMLButtonElement).disabled).toBe(true);
@@ -169,6 +186,7 @@ describe("FeedbackForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     const message = screen.getByLabelText("补充说明（选填）") as HTMLTextAreaElement;
     fireEvent.change(message, { target: { value: "请保留这段正文" } });
+    fireEvent.change(screen.getByLabelText("联系方式"), { target: { value: "reader@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "提交" }));
 
     expect((await screen.findByRole("alert")).textContent).toContain(expected);
@@ -184,6 +202,7 @@ it.each(["item", "event"] as const)("%s keeps the submission locked when verific
   const {container} = renderForm(target);
   fireEvent.click(screen.getByRole("button", {name:"反馈问题"}));
   fireEvent.change(screen.getByLabelText("补充说明（选填）"), {target:{value:"saved draft"}});
+  fireEvent.change(screen.getByLabelText("联系方式"), {target:{value:"reader@example.com"}});
   fireEvent.click(screen.getByRole("button", {name:"Verify"}));
   fireEvent.submit(container.querySelector("form")!);
   fireEvent.click(screen.getByRole("button", {name:"Turnstile error"}));

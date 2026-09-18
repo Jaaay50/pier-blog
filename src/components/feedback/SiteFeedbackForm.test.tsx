@@ -60,6 +60,9 @@ const labels: SiteFeedbackLabels = {
   messageLabel: "详细描述",
   messagePlaceholder: "发生了什么？",
   messageRequired: "请至少填写 4 个字符的描述。",
+  contactLabel: "联系方式",
+  contactPlaceholder: "邮箱、微信或 QQ",
+  contactRequired: "请留下邮箱、微信或 QQ。",
   submit: "提交反馈",
   submitting: "提交中…",
   success: "已收到，感谢反馈。",
@@ -91,6 +94,7 @@ describe("SiteFeedbackForm", () => {
     const submit = screen.getByRole("button", { name: "提交反馈" }) as HTMLButtonElement;
     const message = screen.getByLabelText("详细描述") as HTMLTextAreaElement;
     fireEvent.change(message, { target: { value: "  页面提交失败  " } });
+    fireEvent.change(screen.getByLabelText("联系方式"), { target: { value: "reader@example.com" } });
     expect(submit.disabled).toBe(true);
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     expect(submit.disabled).toBe(false);
@@ -100,6 +104,7 @@ describe("SiteFeedbackForm", () => {
     expect(submitMock).toHaveBeenCalledWith({
       category: "product_bug",
       message: "页面提交失败",
+      contact: "reader@example.com",
       locale: "zh",
       pagePath: "/zh/feedback",
       turnstileToken: "site-turnstile-token",
@@ -116,6 +121,7 @@ describe("SiteFeedbackForm", () => {
     render(<SiteFeedbackForm locale="zh" labels={labels} />);
     const message = screen.getByLabelText("详细描述") as HTMLTextAreaElement;
     fireEvent.change(message, { target: { value: "请保留这段反馈" } });
+    fireEvent.change(screen.getByLabelText("联系方式"), { target: { value: "reader@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     fireEvent.click(screen.getByRole("button", { name: "提交反馈" }));
 
@@ -128,6 +134,7 @@ describe("SiteFeedbackForm", () => {
   it("token 过期或 widget 错误时重置并阻止提交", () => {
     render(<SiteFeedbackForm locale="zh" labels={labels} />);
     fireEvent.change(screen.getByLabelText("详细描述"), { target: { value: "一段有效反馈" } });
+    fireEvent.change(screen.getByLabelText("联系方式"), { target: { value: "reader@example.com" } });
     fireEvent.click(screen.getByRole("button", { name: "Verify" }));
     fireEvent.click(screen.getByRole("button", { name: "Expire" }));
     expect(turnstileResetMock).toHaveBeenCalledOnce();
@@ -139,6 +146,16 @@ describe("SiteFeedbackForm", () => {
     fireEvent.click(screen.getByRole("button", { name: "重新验证" }));
     expect(turnstileResetMock).toHaveBeenCalledTimes(2);
   });
+
+  it("不填联系方式无法提交",
+    async () => {
+    render(<SiteFeedbackForm locale="zh" labels={labels} />);
+    fireEvent.change(screen.getByLabelText("详细描述"), { target: { value: "一段有效反馈" } });
+    fireEvent.click(screen.getByRole("button", { name: "Verify" }));
+    fireEvent.click(screen.getByRole("button", { name: "提交反馈" }));
+    expect((await screen.findByRole("alert")).textContent).toContain("请留下邮箱、微信或 QQ。");
+    expect(submitMock).not.toHaveBeenCalled();
+  });
 });
 
 it("keeps an in-flight site submission locked across widget error and renewed verification", async () => {
@@ -146,6 +163,7 @@ it("keeps an in-flight site submission locked across widget error and renewed ve
   submitMock.mockImplementation(() => new Promise(done => { resolve = done; }));
   const {container} = render(<SiteFeedbackForm locale="zh" labels={labels}/>);
   fireEvent.change(screen.getByLabelText("详细描述"), {target:{value:"saved draft"}});
+  fireEvent.change(screen.getByLabelText("联系方式"), {target:{value:"reader@example.com"}});
   fireEvent.click(screen.getByRole("button", {name:"Verify"}));
   fireEvent.submit(container.querySelector("form")!);
   fireEvent.click(screen.getByRole("button", {name:"Turnstile error"}));

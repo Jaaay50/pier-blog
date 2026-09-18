@@ -5,6 +5,7 @@ import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/Turnst
 import {
   submitSiteFeedback,
   sanitizeFeedbackPagePath,
+  isFeedbackContactReady,
   SITE_FEEDBACK_CATEGORIES,
   CurrentsApiError,
   type SiteFeedbackCategory,
@@ -21,6 +22,9 @@ export interface SiteFeedbackLabels {
   messageLabel: string;
   messagePlaceholder: string;
   messageRequired: string;
+  contactLabel: string;
+  contactPlaceholder: string;
+  contactRequired: string;
   submit: string;
   submitting: string;
   success: string;
@@ -78,8 +82,10 @@ export function SiteFeedbackForm({ locale, initialCategory, labels }: SiteFeedba
     return () => clearTimeout(timer);
   }, []);
   const [message, setMessage] = useState("");
+  const [contact, setContact] = useState("");
   const [state, setState] = useState<SubmitState>("idle");
   const [validationError, setValidationError] = useState(false);
+  const [contactError, setContactError] = useState(false);
   const [submittedKeys, setSubmittedKeys] = useState<Set<string>>(new Set());
   const [turnstileToken, setTurnstileToken] = useState("");
   const honeypotRef = useRef<HTMLInputElement>(null);
@@ -100,11 +106,17 @@ export function SiteFeedbackForm({ locale, initialCategory, labels }: SiteFeedba
     if (submittingRef.current || state === "submitting" || alreadyReported || turnstileToken === "") return;
 
     const trimmed = message.trim();
+    const trimmedContact = contact.trim();
     if (trimmed.length < 4) {
       setValidationError(true);
       return;
     }
+    if (!isFeedbackContactReady(trimmedContact)) {
+      setContactError(true);
+      return;
+    }
     setValidationError(false);
+    setContactError(false);
 
     // 入口来源页面：仅保留路径，剥掉 query/hash/任何潜在敏感参数。
     // 注意：这是入口上下文而非用户描述的对象页面，随提交自动附带。
@@ -119,6 +131,7 @@ export function SiteFeedbackForm({ locale, initialCategory, labels }: SiteFeedba
       const result = await submitSiteFeedback({
         category,
         message: trimmed,
+        contact: trimmedContact,
         locale: normalizedLocale,
         turnstileToken,
         ...(pagePath ? { pagePath } : {}),
@@ -127,6 +140,7 @@ export function SiteFeedbackForm({ locale, initialCategory, labels }: SiteFeedba
       markFeedbackSubmittedKey(window.localStorage, storageKey);
       setSubmittedKeys(readFeedbackSubmittedKeys(window.localStorage));
       setMessage("");
+      setContact("");
       resetTurnstile();
       setState(result.duplicate ? "success-duplicate" : "success");
     } catch (err: unknown) {
@@ -222,6 +236,36 @@ export function SiteFeedbackForm({ locale, initialCategory, labels }: SiteFeedba
             {validationError && (
               <p id="site-feedback-validation" className="mt-1 text-sm text-[var(--text-secondary)]" role="alert">
                 {labels.messageRequired}
+              </p>
+            )}
+          </div>
+
+          <div>
+            <label
+              htmlFor="site-feedback-contact"
+              className="mb-2 block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]"
+            >
+              {labels.contactLabel}
+            </label>
+            <input
+              id="site-feedback-contact"
+              type="text"
+              autoComplete="off"
+              disabled={state === "submitting"}
+              value={contact}
+              onChange={(e) => {
+                setContact(e.target.value);
+                if (contactError) setContactError(false);
+              }}
+              placeholder={labels.contactPlaceholder}
+              maxLength={120}
+              aria-invalid={contactError}
+              aria-describedby={contactError ? "site-feedback-contact-validation" : undefined}
+              className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm leading-relaxed text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus-visible:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+            />
+            {contactError && (
+              <p id="site-feedback-contact-validation" className="mt-1 text-sm text-[var(--text-secondary)]" role="alert">
+                {labels.contactRequired}
               </p>
             )}
           </div>

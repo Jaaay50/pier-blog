@@ -156,6 +156,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
         locale: "en",
         turnstileToken: "turnstile-token",
         website: "bot-value",
+        contact: "reader@example.com",
       }),
     ).resolves.toEqual({ ok: true });
 
@@ -172,6 +173,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
       locale: "en",
       turnstileToken: "turnstile-token",
       website: "bot-value",
+      contact: "reader@example.com",
     });
   });
 
@@ -179,7 +181,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
     const fetchMock = vi.fn(() => jsonResponse(200, { ok: true, duplicate: true }));
     vi.stubGlobal("fetch", fetchMock);
     await expect(
-      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", message: "  ", locale: "zh", turnstileToken: "token" }),
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", message: "  ", locale: "zh", turnstileToken: "token", contact: "reader@example.com" }),
     ).resolves.toEqual({ ok: true, duplicate: true });
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(JSON.parse(String(init.body))).not.toHaveProperty("message");
@@ -187,7 +189,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
 
   it.each([400, 404, 429, 500])("HTTP %i → CurrentsApiError 保留 status", async (status) => {
     mockFetch(() => jsonResponse(status, { error: "failed" }));
-    const err = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" })
+    const err = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token", contact: "reader@example.com" })
       .catch((e: unknown) => e);
     expect(err).toBeInstanceOf(CurrentsApiError);
     expect((err as CurrentsApiError).status).toBe(status);
@@ -196,19 +198,19 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
 
   it("网络失败 → status=null；200 非 JSON/错误契约 → invalid-json", async () => {
     mockFetch(() => Promise.reject(new TypeError("fetch failed")));
-    const network = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" })
+    const network = await submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token", contact: "reader@example.com" })
       .catch((e: unknown) => e);
     expect(network).toBeInstanceOf(CurrentsApiError);
     expect((network as CurrentsApiError).status).toBeNull();
 
     mockFetch(() => new Response("not json", { status: 200 }));
     await expect(
-      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" }),
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token", contact: "reader@example.com" }),
     ).rejects.toMatchObject({ name: "CurrentsApiError", message: "invalid-json", status: 200 });
 
     mockFetch(() => jsonResponse(200, { ok: false }));
     await expect(
-      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token" }),
+      submitFeedback({ targetType: "item", targetId: "item-1", category: "other", locale: "zh", turnstileToken: "token", contact: "reader@example.com" }),
     ).rejects.toMatchObject({ message: "invalid-json", status: 200 });
   });
 
@@ -221,6 +223,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
       locale: "zh",
       pagePath: "/zh/feedback",
       turnstileToken: "site-token",
+      contact: "reader@example.com",
     });
     const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
     expect(JSON.parse(String(init.body))).toMatchObject({
@@ -235,6 +238,7 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
       message: "details",
       locale: "en",
       turnstileToken: "expired-token",
+      contact: "reader@example.com",
     })).rejects.toMatchObject({ status: 503, code: "verification_unavailable" });
   });
 });
@@ -242,8 +246,8 @@ describe("submitFeedback：公开写入端点客户端契约", () => {
 describe("feedback deadlines and response trust boundary", () => {
   afterEach(() => vi.restoreAllMocks());
   const submit = (target: "site" | "item" | "event", signal?: AbortSignal) => target === "site"
-    ? submitSiteFeedback({ category: "other", message: "details", locale: "zh", turnstileToken: "token" }, signal)
-    : submitFeedback({ targetType: target, targetId: "fixture-1", category: "other", locale: "en", turnstileToken: "token" }, signal);
+    ? submitSiteFeedback({ category: "other", message: "details", locale: "zh", turnstileToken: "token", contact: "reader@example.com" }, signal)
+    : submitFeedback({ targetType: target, targetId: "fixture-1", category: "other", locale: "en", turnstileToken: "token", contact: "reader@example.com" }, signal);
 
   it.each(["site", "item", "event"] as const)("%s aborts a hanging connection and never automatically retries", async (target) => {
     const deadline = new AbortController();
