@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { TurnstileWidget, type TurnstileWidgetHandle } from "@/components/TurnstileWidget";
 import {
   submitFeedback,
+  isFeedbackContactReady,
   FEEDBACK_CATEGORIES,
   CurrentsApiError,
   type CurrentsFeedbackCategory,
@@ -21,6 +22,9 @@ export interface FeedbackLabels {
   categories: Record<CurrentsFeedbackCategory, string>;
   messageLabel: string;
   messagePlaceholder: string;
+  contactLabel: string;
+  contactPlaceholder: string;
+  contactRequired: string;
   submit: string;
   submitting: string;
   success: string;
@@ -59,6 +63,8 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
   const [open, setOpen] = useState(false);
   const [category, setCategory] = useState<CurrentsFeedbackCategory>("content_error");
   const [message, setMessage] = useState("");
+  const [contact, setContact] = useState("");
+  const [contactError, setContactError] = useState(false);
   const [state, setState] = useState<SubmitState>("idle");
   const [turnstileToken, setTurnstileToken] = useState("");
   // 已提交类别集合只在打开面板时读取一次（客户端交互后才会用到，无水合分歧）
@@ -94,6 +100,13 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
     e.preventDefault();
     if (submittingRef.current || state === "submitting" || alreadyReported || turnstileToken === "") return;
 
+    const trimmedContact = contact.trim();
+    if (!isFeedbackContactReady(trimmedContact)) {
+      setContactError(true);
+      return;
+    }
+    setContactError(false);
+
     // honeypot：bot 自动填表时带上，后端静默丢弃；正常用户永远为空
     const honeypot = honeypotRef.current?.value ?? "";
 
@@ -105,6 +118,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
         targetId,
         category,
         message: message.trim() || undefined,
+        contact: trimmedContact,
         locale: normalizedLocale,
         turnstileToken,
         ...(honeypot !== "" ? { website: honeypot } : {}),
@@ -112,6 +126,7 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
       markFeedbackSubmittedKey(window.localStorage, storageKey);
       setSubmittedKeys(readFeedbackSubmittedKeys(window.localStorage));
       setMessage("");
+      setContact("");
       resetTurnstile();
       setState("success");
     } catch (err: unknown) {
@@ -213,6 +228,33 @@ export function FeedbackForm({ targetType, targetId, locale, labels }: FeedbackF
                   rows={3}
                   className="w-full resize-none rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus-visible:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
                 />
+              </div>
+
+              <div>
+                <label htmlFor={`feedback-contact-${targetId}`} className="mb-2 block text-xs font-medium uppercase tracking-widest text-[var(--text-muted)]">
+                  {labels.contactLabel}
+                </label>
+                <input
+                  id={`feedback-contact-${targetId}`}
+                  type="text"
+                  autoComplete="off"
+                  disabled={state === "submitting"}
+                  value={contact}
+                  onChange={(e) => {
+                    setContact(e.target.value);
+                    if (contactError) setContactError(false);
+                  }}
+                  placeholder={labels.contactPlaceholder}
+                  maxLength={120}
+                  aria-invalid={contactError}
+                  aria-describedby={contactError ? `feedback-contact-validation-${targetId}` : undefined}
+                  className="w-full rounded-lg border border-[var(--border)] bg-transparent px-3 py-2 text-sm text-[var(--text-primary)] placeholder:text-[var(--text-muted)] transition-colors focus-visible:border-[var(--accent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+                />
+                {contactError && (
+                  <p id={`feedback-contact-validation-${targetId}`} className="mt-1 text-sm text-[var(--text-secondary)]" role="alert">
+                    {labels.contactRequired}
+                  </p>
+                )}
               </div>
 
               {/* honeypot：视觉隐藏 + tabIndex -1，正常用户不可达 */}
