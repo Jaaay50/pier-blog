@@ -20,7 +20,10 @@
     "label": "渡口",
     "title": "漂瓶",
     "subtitle": "路过的人可以把一句话装进瓶子，推到潮水里。",
-    "metaDescription": "Ethan Pier 的公开留言墙：匿名漂瓶，拾取一条别人留下的话。",
+    "metaDescription": "Ethan Pier 的公开留言墙：可以署名，也可以不留名。拾取一条别人留下的话。",
+    "signatureLabel": "署名",
+    "signatureInvalid": "这个署名不能用。",
+    "anonymous": "匿名",
     "messageLabel": "写下你的话",
     "messagePlaceholder": "潮水会把这句话送到岸边…",
     "messageRequired": "请至少写下 4 个字符。",
@@ -178,9 +181,12 @@
     "feedbackCategoryOther": "其他",
     "feedbackMessageLabel": "补充说明（选填）",
     "feedbackMessagePlaceholder": "可简单描述问题所在…",
+    "feedbackContactLabel": "联系方式",
+    "feedbackContactPlaceholder": "邮箱、微信或 QQ",
+    "feedbackContactRequired": "请留下邮箱、微信或 QQ。",
     "feedbackSubmit": "提交",
     "feedbackSubmitting": "提交中…",
-    "feedbackSuccess": "已收到，感谢反馈。",
+    "feedbackSuccess": "已收到。联系方式不会出现在公开页。",
     "feedbackAlreadyReported": "此类型已反馈过",
     "feedbackErrorRateLimit": "提交过于频繁，请稍后再试。",
     "feedbackErrorNetwork": "网络异常，请重试。",
@@ -393,7 +399,8 @@
     "tocLabel": "本文目录",
     "tocOpen": "打开本文目录",
     "tocClose": "关闭本文目录",
-    "copyRestricted": "正文复制已限制，代码块与链接仍可复制"
+    "copyRestricted": "正文复制已限制，代码块与链接仍可复制",
+    "leaveALine": "读完了，去漂瓶留一句"
   },
   "portfolio": {
     "label": "作品集",
@@ -413,6 +420,7 @@
     "label": "关于我",
     "title": "岸",
     "intro": "全栈工程师。我更在意一件东西关掉之后还剩下什么——动画关掉，鼠标推开，三维起不来的时候。",
+    "nowEntry": "现在在做什么 →",
     "technicalStack": "技术栈",
     "experience": "工作经历",
     "getInTouch": "联系我",
@@ -467,6 +475,7 @@
     "now": "现在",
     "feedback": "反馈",
     "cloudborne": "Cloudborne 独立站",
+    "cloudborneRelay": "Cloudborne 中转站",
     "opensInNewWindow": "新窗口打开"
   },
   "theme": {
@@ -495,7 +504,7 @@
     "label": "实验室",
     "title": "船坞",
     "subtitle": "从第一性原理出发的交互实验——WebGL shader、物理引擎、算法可视化，全部零依赖手写。",
-    "metaDescription": "十六个从零手写的交互实验：WebGL shader、物理模拟、流场、算法可视化，以及等待、阅读、来源与降级。每个演示关掉三维之后，仍留有能读的静帧与说明。",
+    "metaDescription": "十个交互实验：WebGL shader、物理模拟、流场与算法可视化。每个演示关掉三维之后，仍留有能读的静帧与说明。",
     "viewSource": "查看源码",
     "reducedMotion": "已按系统偏好停用动效",
     "webglUnavailable": "当前设备不支持 WebGL，展示静态预览",
@@ -542,6 +551,13 @@
         "tech": "WebGL · ogl · 零依赖",
         "stillAlt": "蓝紫色粒子组成起伏的参数曲面。"
       },
+      "cloudsea": {
+        "title": "云间列车",
+        "desc": "日落云海中的悬索桥与蒸汽列车。分层高度场云、矢量栅格化的桥和车，可实时调整取景、速度与云层起伏。",
+        "layer": "片元着色器按 mdb《Up in the Cloud Sea》与 Tianxiu Zhou 的 WebGL 移植结构重写：蓝噪声采样、分层 FBM 高度场、列车与桥的矢量栅格化。参数绑定与页面接入在本地完成。",
+        "tech": "WebGL2 · GLSL · 蓝噪声",
+        "stillAlt": "橙红层积云下，一座悬索桥横在画面中下方，蒸汽从列车烟囱升起。"
+      },
       "sdf": {
         "title": "SDF 光线步进",
         "desc": "通过距离场组合与切除球、盒和环面，实时调整形体、光源与材质，观察软阴影和反射。",
@@ -556,61 +572,12 @@
         "tech": "Canvas 2D · XPBD · Web Worker",
         "stillAlt": "固定节点之间的网状布料，悬在球形障碍上方。"
       },
-      "pathfinding": {
-        "title": "寻路实验",
-        "desc": "在同一张可编辑障碍地图上，对比 A* 与 Dijkstra 的访问顺序和最短路径，支持播放与单步查看。",
-        "layer": "搜索前沿、Manhattan 启发式、距离更新与路径回溯均直接实现；两种算法共享四邻接、单位代价网格。",
-        "tech": "SVG · A* · Dijkstra",
-        "stillAlt": "同一障碍地图中的 A* 和 Dijkstra 搜索结果。"
-      },
-      "raft": {
-        "title": "Raft 共识模拟",
-        "desc": "在五节点模拟中观察选举、日志复制与多数派提交，停止节点或切分网络，查看状态如何变化。",
-        "layer": "投票、任期比较、日志冲突回退与多数派提交规则均直接实现，以确定性离散轮次演示 Raft，而非运行真实分布式网络。",
-        "tech": "TypeScript · SVG · Raft 模拟",
-        "stillAlt": "五节点网络，展示选主、日志复制与多数派提交。"
-      },
-      "audio": {
-        "title": "声音与频谱",
-        "desc": "切换振荡器波形，调整频率、增益和低通截止频率，同时观察时域波形与频谱；声音由播放按钮启动。",
-        "layer": "音频节点连接、参数控制与波形绘制在组件中直接实现；振荡、滤波和频谱分析交给浏览器原生 Web Audio API。",
-        "tech": "Web Audio API · AnalyserNode · Canvas 2D",
-        "stillAlt": "静音状态的时域基线与空频谱。"
-      },
       "geometry": {
         "title": "Voronoi / Delaunay",
         "desc": "添加、移动或删除采样点，实时查看 Voronoi 区域与 Delaunay 三角剖分如何随点集变化。",
         "layer": "Bowyer–Watson 三角剖分与等距半平面裁剪均直接实现，分别生成三角网和有界 Voronoi 区域。",
         "tech": "SVG · Bowyer–Watson · 半平面裁剪",
         "stillAlt": "采样点划分的 Voronoi 区域与 Delaunay 三角网。"
-      },
-      "wait": {
-        "title": "等待反馈",
-        "desc": "同样三秒等待：真实进度、无反馈、不可靠进度。标成实验，不是真实操作。",
-        "layer": "比较的是反馈本身。减弱动态时直接完成，键盘可以到达每一块。",
-        "tech": "DOM · 计时 · 无障碍",
-        "stillAlt": "三块并排的等待面板：平滑进度、空白等待、乱跳的进度条。"
-      },
-      "stream": {
-        "title": "流式阅读",
-        "desc": "同一段回答逐字、逐句或整段出现。内容一致，可暂停和重置。",
-        "layer": "不强迫追赶动画。三种模式切换时正文保持同一句话。",
-        "tech": "DOM · 定时器 · aria-live",
-        "stillAlt": "同一段文字以逐字、逐句和整段三种方式出现。"
-      },
-      "sources": {
-        "title": "来源独立性",
-        "desc": "左边四家互相转述；右边两份独立材料。转述数量不是独立证据数量。",
-        "layer": "关系可点开解释。不把转述次数当成独立来源数。",
-        "tech": "DOM · 引用图",
-        "stillAlt": "左侧成团的转述节点，右侧两份分开的一手来源。"
-      },
-      "afteroff": {
-        "title": "关掉之后",
-        "desc": "关掉动画、指针装饰或 WebGL 层，下面的表单仍然能完成。",
-        "layer": "焦点不锁住。每一种降级都保留可完成的主流程。",
-        "tech": "DOM · 降级开关",
-        "stillAlt": "前景是可用的表单，背景是已经关掉的着色器层。"
       }
     }
   },
@@ -618,19 +585,18 @@
     "label": "此刻",
     "title": "现在",
     "subtitle": "短、常更新。不是履历。",
-    "metaDescription": "Ethan Pier 现在在做的事、最近落地的事，以及明确不做的事。",
+    "metaDescription": "Ethan Pier 现在在做的事，以及明确不做的事。",
     "updated": "更新于 {date}",
+    "letter": "这几天把灯从全站主题色里抽出来。页脚多了一条中转站。模型榜的自动更新还在等一次受控的生产定时跑通。",
     "doingTitle": "正在做",
     "shippedTitle": "最近落地",
     "notTitle": "明确不做",
     "doing": [
-      "潮汐模型榜的每日自动更新，还在等一次受控的生产定时跑通。",
-      "把这个站的六个房间做准：首页粒子、船坞实验、漂瓶海岸。"
+      "让这个站更像同一个人住的：现在、岸、文章结尾那盏灯。",
+      "潮汐模型榜的每日自动更新，还在等一次受控的生产定时跑通。"
     ],
     "shipped": [
-      "漂瓶留言墙：像素海岸、香港时间、夜间四条循环片。",
-      "船坞 SDF 收成影棚产品照。",
-      "首页粒子标题不再闪实体衬线字。"
+      "页脚外部链接加入 Cloudborne 中转站。"
     ],
     "not": [
       "文章页评论。",
@@ -655,7 +621,7 @@
   },
   "feedbackPage": {
     "title": "反馈",
-    "subtitle": "产品问题、功能建议、信源建议或 Agent 接入问题，都可以直接告诉我们。匿名提交，不需要账号。",
+    "subtitle": "产品问题、功能建议或接入问题可以直接告诉我。请留下邮箱、微信或 QQ，方便处理完后联系你。漂瓶可以署名，也可以不留名。",
     "categoryLabel": "反馈类型",
     "categoryProductBug": "产品问题",
     "categoryFeatureRequest": "功能建议",
@@ -665,9 +631,12 @@
     "messageLabel": "详细描述",
     "messagePlaceholder": "发生了什么？你希望看到什么？如果是问题，附上触发步骤会很有帮助…",
     "messageRequired": "请至少填写 4 个字符的描述。",
+    "contactLabel": "联系方式",
+    "contactPlaceholder": "邮箱、微信或 QQ",
+    "contactRequired": "请留下邮箱、微信或 QQ。",
     "submit": "提交反馈",
     "submitting": "提交中…",
-    "success": "已收到，感谢反馈。",
+    "success": "已收到。联系方式不会出现在公开页。",
     "successDuplicate": "已收到（与刚才的提交相同，已自动去重）。",
     "alreadyReported": "该类型的反馈刚才已提交过。",
     "errorRateLimit": "提交过于频繁，请稍后再试。",

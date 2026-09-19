@@ -36,10 +36,15 @@ describe("NowPage", () => {
   it.each(["zh", "en"] as const)("renders the %s short status without adding a nav entry", async (locale) => {
     mocks.locale = locale;
     const messages = locale === "zh" ? zh : en;
-    render(await NowPage({ params: Promise.resolve({ locale }) }));
+    const { container } = render(await NowPage({ params: Promise.resolve({ locale }) }));
     expect(screen.getByRole("heading", { name: messages.now.title })).toBeTruthy();
+    expect(screen.getByText(messages.now.letter)).toBeTruthy();
     expect(screen.getByText(messages.now.doing[0])).toBeTruthy();
     expect(screen.getByText(messages.now.not[0])).toBeTruthy();
+    expect(screen.queryByText(messages.now.shipped[0])).toBeNull();
     expect(screen.queryByRole("navigation")).toBeTruthy();
+    expect(container.querySelector(".reading-column")).toBeTruthy();
+    expect(container.querySelector(".page-hero-quiet")).toBeTruthy();
+    expect(container.querySelector("[data-intensity]")).toBeNull();
   });
 });

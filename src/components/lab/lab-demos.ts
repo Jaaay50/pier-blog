@@ -6,18 +6,10 @@ export const LAB_DEMO_IDS = [
   "morph",
   "shader",
   "sdf",
+  "cloudsea",
   "cloth",
-  "pathfinding",
-  "raft",
-  "audio",
   "geometry",
-  "wait",
-  "stream",
-  "sources",
-  "afteroff",
 ] as const;
-
-export const EXPERIENCE_DEMO_IDS = ["wait", "stream", "sources", "afteroff"] as const;
 
 export type LabDemoId = (typeof LAB_DEMO_IDS)[number];
 
@@ -37,13 +29,7 @@ export const LAB_DEMOS: LabDemoMeta[] = [
   { id: "morph", still: "/lab/morph.webp" },
   { id: "shader", still: "/lab/shader.webp", tall: true, full: true },
   { id: "sdf", still: "/lab/sdf.webp", tall: true, full: true },
+  { id: "cloudsea", still: "/lab/cloudsea.webp", tall: true, full: true },
   { id: "cloth", still: "/lab/cloth.webp" },
   { id: "geometry", still: "/lab/geometry.webp" },
-  { id: "pathfinding", still: "/lab/pathfinding.webp", tall: true, full: true },
-  { id: "raft", still: "/lab/raft.webp", tall: true, full: true },
-  { id: "audio", still: "/lab/audio.webp", full: true },
-  { id: "wait", still: "/lab/wait.webp", full: true },
-  { id: "stream", still: "/lab/stream.webp", full: true },
-  { id: "sources", still: "/lab/sources.webp", full: true },
-  { id: "afteroff", still: "/lab/afteroff.webp", full: true },
 ];

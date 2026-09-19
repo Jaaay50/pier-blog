@@ -23,6 +23,14 @@ vi.mock("@/i18n/navigation", () => ({
   ),
 }));
 
+vi.mock("@/components/TransitionLink", () => ({
+  TransitionLink: ({ href, children, ...props }: React.ComponentProps<"a">) => (
+    <a href={String(href)} {...props}>
+      {children}
+    </a>
+  ),
+}));
+
 vi.mock("@/components/Navbar", () => ({
   Navbar: () => <nav>navbar</nav>,
 }));
@@ -73,6 +81,7 @@ describe("BlogPostPage", () => {
 
     expect(screen.getByText("article-body")).toBeTruthy();
     expect(screen.getByText("site-footer")).toBeTruthy();
+    expect(screen.getByRole("link", { name: "leaveALine" }).getAttribute("href")).toBe("/guestbook");
     expect(screen.queryByRole("heading", { name: "留言" })).toBeNull();
     expect(screen.queryByRole("heading", { name: "Comments" })).toBeNull();
     expect(container.querySelector("script[src*='giscus']")).toBeNull();

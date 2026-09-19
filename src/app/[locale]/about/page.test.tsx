@@ -15,6 +15,16 @@ vi.mock("next-intl/server", () => ({
     return key.split(".").reduce<unknown>((value, part) => (value as Record<string, unknown>)[part], source.about) as string;
   },
 }));
+vi.mock("@/i18n/navigation", () => ({
+  Link: ({ href, children, ...props }: React.ComponentProps<"a">) => (
+    <a href={String(href)} {...props}>{children}</a>
+  ),
+}));
+vi.mock("@/components/TransitionLink", () => ({
+  TransitionLink: ({ href, children, ...props }: React.ComponentProps<"a">) => (
+    <a href={String(href)} {...props}>{children}</a>
+  ),
+}));
 vi.mock("@/components/Navbar", () => ({ Navbar: () => <nav /> }));
 vi.mock("@/components/SiteFooter", () => ({ SiteFooter: () => <footer /> }));
 vi.mock("@/components/webgl/FluidBackground", () => ({ FluidBackground: () => null }));
@@ -38,9 +48,12 @@ describe("AboutPage content boundaries", () => {
     expect(screen.getAllByText(messages.about.intro)).toHaveLength(1);
     expect(screen.getByText(messages.about.intro).closest("header")).toBeNull();
     expect(container.querySelector("header")?.textContent).not.toContain(messages.about.intro);
+    expect(container.querySelector(".page-hero-quiet")).toBeTruthy();
+    expect(screen.getByRole("link", { name: messages.about.nowEntry }).getAttribute("href")).toBe("/now");
     expect(screen.getByText(messages.about.cloudborneDescription)).toBeTruthy();
     expect(screen.getByText(messages.about.experiences.role1Desc)).toBeTruthy();
     expect(screen.queryByText(messages.about.contactPrompt)).toBeNull();
+    expect(screen.queryByText(messages.about.getInTouch)).toBeNull();
     expect(screen.getByRole("link", { name: messages.about.sendEmail }).getAttribute("href")).toBe("mailto:ethan_pier@icloud.com");
   });
 });

@@ -513,6 +513,7 @@ export interface SubmitFeedbackParams {
   turnstileToken: string;
   /** honeypot：正常用户永远不填；非空时后端静默丢弃 */
   website?: string;
+  contact: string;
 }
 
 export interface SubmitSiteFeedbackParams {
@@ -525,6 +526,13 @@ export interface SubmitSiteFeedbackParams {
   pagePath?: string;
   /** honeypot：正常用户永远不填；非空时后端静默丢弃 */
   website?: string;
+  contact: string;
+}
+
+/** 前端先挡空值和长度；最终以后端 400 invalid_feedback 为准。 */
+export function isFeedbackContactReady(value: string): boolean {
+  const trimmed = value.trim();
+  return trimmed.length >= 3 && trimmed.length <= 120;
 }
 
 /**
@@ -598,22 +606,24 @@ async function postFeedback(
 }
 
 export function submitSiteFeedback(
-  { category, message, locale, turnstileToken, pagePath, website }: SubmitSiteFeedbackParams,
+  { category, message, locale, turnstileToken, pagePath, website, contact }: SubmitSiteFeedbackParams,
   signal?: AbortSignal,
 ): Promise<{ ok: true; duplicate?: boolean }> {
   return postFeedback({
     targetType: "site", category, message: message.trim(), locale, turnstileToken,
+    contact: contact.trim(),
     ...(pagePath ? { pagePath } : {}),
     ...(website ? { website } : {}),
   }, signal);
 }
 
 export function submitFeedback(
-  { targetType, targetId, category, message, locale, turnstileToken, website }: SubmitFeedbackParams,
+  { targetType, targetId, category, message, locale, turnstileToken, website, contact }: SubmitFeedbackParams,
   signal?: AbortSignal,
 ): Promise<{ ok: true; duplicate?: boolean }> {
   return postFeedback({
     targetType, targetId, category, locale, turnstileToken,
+    contact: contact.trim(),
     ...(message && message.trim() !== "" ? { message: message.trim() } : {}),
     ...(website ? { website } : {}),
   }, signal);

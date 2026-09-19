@@ -210,7 +210,7 @@ const FEATURE_PAGE_DEFS: Record<
     {
       id: "now",
       title: "现在",
-      description: "此刻在做的事、最近落地的事，以及明确不做的事",
+      description: "此刻在做的事，以及明确不做的事",
       keywords: NOW_PAGE_KEYWORDS,
       href: "/now",
     },
@@ -289,7 +289,7 @@ const FEATURE_PAGE_DEFS: Record<
     {
       id: "now",
       title: "Now",
-      description: "What is in progress, what recently shipped, and what this site will not do",
+      description: "What is in progress, and what this site will not do",
       keywords: NOW_PAGE_KEYWORDS,
       href: "/now",
     },

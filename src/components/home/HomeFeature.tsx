@@ -6,8 +6,8 @@ export function HomeFeature({ locale, feature = homeEditorial }: { locale: strin
   const copy = feature.copy[editorialLocale(locale)];
 
   return (
-    <section aria-labelledby="home-feature-title" className="site-content relative py-20 md:py-24">
-      <p className="mb-4 text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
+    <section aria-labelledby="home-feature-title" className="site-content relative py-[var(--space-block)] md:py-[var(--space-block-wide)]">
+      <p className="mb-[var(--space-label)] text-xs font-semibold uppercase tracking-[0.18em] text-[var(--accent)]">
         {copy.label}
       </p>
       <h2 id="home-feature-title" className="font-display mb-6 max-w-3xl text-3xl font-semibold tracking-tight md:text-5xl">

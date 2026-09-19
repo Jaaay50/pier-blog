@@ -18,7 +18,7 @@ export function ScoreBadge({ score }: { score: number | null }) {
 
   const tierClass =
     score >= 80
-      ? "score-badge-high border-[var(--accent)]/60 text-[var(--accent)]"
+      ? "score-badge-high border-[var(--data)]/60 text-[var(--data)]"
       : score >= 65
         ? "border-[var(--border-hover)] text-[var(--text-secondary)]"
         : "border-[var(--border)] text-[var(--text-muted)]";

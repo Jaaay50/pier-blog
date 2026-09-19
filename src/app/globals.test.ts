@@ -3,6 +3,34 @@ import { describe, expect, it } from "vitest";
 
 const css = readFileSync(new URL("./globals.css", import.meta.url), "utf8");
 
+describe("lab first-frame handoff", () => {
+  it("only fades a rendered runtime, retaining the poster until the fade ends", () => {
+    expect(css).toMatch(/\.lab-demo-runtime\s*\{\s*opacity: 0;\s*transition: opacity 220ms ease-out;/);
+    expect(css).toMatch(/\.lab-demo-canvas\[data-ready="true"\] > \.lab-demo-poster\s*\{\s*visibility: hidden;\s*transition: visibility 0s 220ms;/);
+    expect(css).toMatch(/\.dark \.lab-poster-light\s*\{ display: none; \}/);
+  });
+});
+
+describe("identity tokens", () => {
+  it("splits lamp, action, and data roles and keeps dark titles off purple", () => {
+    expect(css).toMatch(/:root\s*\{[^}]*--lamp:\s*#d97757;/);
+    expect(css).toMatch(/:root\s*\{[^}]*--data:\s*#5c5c56;/);
+    expect(css).toMatch(/\.dark\s*\{[^}]*--lamp:\s*#8ab4dd;/);
+    expect(css).toMatch(/\.dark\s*\{[^}]*--gradient-text-2:\s*#8ab4dd;/);
+    expect(css).toMatch(/\.dark\s*\{[^}]*--gradient-text-3:\s*#c5d8eb;/);
+    expect(css).not.toMatch(/--gradient-text-2:\s*#8b7fcc/);
+    expect(css).not.toMatch(/--gradient-text-3:\s*#a78bfa/);
+    expect(css).toMatch(/\.pier-tittle-core\s*\{[^}]*background:\s*var\(--lamp\)/);
+    expect(css).toMatch(/::selection\s*\{[^}]*background:\s*var\(--lamp\)/);
+  });
+
+  it("defines a vertical rhythm scale for rooms", () => {
+    expect(css).toMatch(/--space-block:\s*4rem/);
+    expect(css).toMatch(/--space-block-wide:\s*6rem/);
+    expect(css).toMatch(/\.page-hero-quiet\s*\{[^}]*padding-block:\s*var\(--space-block\)/);
+  });
+});
+
 describe("site layout widths", () => {
   it("separates the shared navigation shell from the wider currents workspace", () => {
     expect(css).toMatch(/\.site-shell\s*\{[^}]*max-width:\s*1440px;/);

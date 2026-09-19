@@ -10,7 +10,7 @@ export function RecentArticles({ title, posts, readMore, locale }: {
   if (posts.length === 0) return null;
 
   return (
-    <section aria-labelledby="home-articles-title" className="site-content py-16 md:py-24">
+    <section aria-labelledby="home-articles-title" className="site-content py-[var(--space-block)] md:py-[var(--space-block-wide)]">
       <h2 id="home-articles-title" className="font-display mb-8 text-3xl font-semibold tracking-tight md:text-4xl">{title}</h2>
       <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
         {posts.map((post) => (
