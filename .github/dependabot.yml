@@ -9,6 +9,15 @@ updates:
       time: "03:30"
       timezone: Asia/Shanghai
     open-pull-requests-limit: 5
+    ignore:
+      # Production deploy CLI is an exact pin. Bump only in a dedicated
+      # PR that re-verifies token-last injection and no anonymous fallback.
+      - dependency-name: vercel
+      # Stay on Vitest 4 until a dedicated major migration. Patch/minor
+      # updates for 4.x remain allowed.
+      - dependency-name: vitest
+        update-types:
+          - version-update:semver-major
 
   - package-ecosystem: github-actions
     directory: /
