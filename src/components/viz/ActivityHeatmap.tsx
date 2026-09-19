@@ -38,7 +38,7 @@ function seededLevel(date: Date): number {
  * Phase 6：GitHub 风格活动热力图（零依赖）。
  * - 文章发布日固定为最高强度，其余日期确定性伪随机填充
  * - 格子按周列 stagger 淡入；hover 显示日期 + 强度
- * - 颜色走 --accent 透明度阶梯，自动适配双主题
+ * - 颜色走 --data 透明度阶梯，不占用签名灯
  */
 export function ActivityHeatmap({
   postDates,
@@ -96,7 +96,7 @@ export function ActivityHeatmap({
                 key={cell.date.toISOString()}
                 className="h-3 w-3 shrink-0 cursor-default rounded-[2px]"
                 style={{
-                  backgroundColor: `color-mix(in srgb, var(--accent) ${
+                  backgroundColor: `color-mix(in srgb, var(--data) ${
                     levelOpacity[cell.level] * 100
                   }%, var(--bg-card))`,
                 }}

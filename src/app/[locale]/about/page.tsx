@@ -7,6 +7,7 @@ import { ExperienceJourney } from "@/components/ExperienceJourney";
 import { SkillRadar } from "@/components/viz/SkillRadar";
 import { ActivityHeatmap } from "@/components/viz/ActivityHeatmap";
 import { SiteFooter } from "@/components/SiteFooter";
+import { TransitionLink } from "@/components/TransitionLink";
 import { getAllPosts } from "@/lib/posts";
 import { localizedMetadata, pageJsonLd } from "@/lib/site-metadata";
 import { safeJsonLd } from "@/lib/json-ld";
@@ -97,12 +98,26 @@ export default async function AboutPage({
     <main className="about-page min-h-screen">
       <Navbar />
 
-      <PageHero label={t("label")} title={t("title")} description={t("intro")} />
+      <PageHero label={t("label")} title={t("title")} description={t("intro")} quiet />
 
-      <div className="site-content">
-        <p className="max-w-3xl text-lg leading-relaxed text-[var(--text-secondary)]">
+      <div className="reading-column space-y-8 pb-16">
+        <p className="text-lg leading-relaxed text-[var(--text-secondary)]">
           {t("intro")}
         </p>
+        <div className="flex flex-wrap items-center gap-x-8 gap-y-3">
+          <TransitionLink
+            href="/now"
+            className="inline-flex min-h-11 items-center text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            {t("nowEntry")}
+          </TransitionLink>
+          <a
+            href="mailto:ethan_pier@icloud.com"
+            className="btn-primary inline-flex min-h-11 items-center justify-center rounded-lg px-6 py-3 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            {t("sendEmail")}
+          </a>
+        </div>
       </div>
 
       {/* Skills */}
@@ -180,7 +195,7 @@ export default async function AboutPage({
       {/* Experience（Phase 5：桌面横向滚动叙事 + SVG 路径绘制，移动端竖向降级） */}
       <ExperienceJourney title={t("experience")} experiences={experiences} />
 
-      {/* 独立产品：在经历与联系之间承接“现在正在做什么” */}
+      {/* 独立产品：在经历之后作为外链，不进入第一屏 */}
       <section className="py-16">
         <div className="site-content">
           <div className="card-glass card-glass-hover flex min-w-0 flex-col gap-8 rounded-2xl p-7 md:flex-row md:items-center md:justify-between md:p-9">
@@ -202,27 +217,6 @@ export default async function AboutPage({
             >
               {t("cloudborneVisit")} ↗
             </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Contact */}
-      <section className="py-16">
-        <div className="site-content">
-          <div className="about-contact-panel grid items-center gap-8 rounded-2xl border border-[var(--border)] px-6 py-8 md:grid-cols-[minmax(0,1fr)_auto] md:gap-12 md:px-10 md:py-10">
-            <div className="min-w-0">
-              <h2 className="text-2xl font-bold tracking-tight">
-                {t("getInTouch")}
-              </h2>
-            </div>
-            <div className="md:justify-self-end">
-              <a
-                href="mailto:ethan_pier@icloud.com"
-                className="btn-primary inline-flex min-h-11 w-full items-center justify-center rounded-lg px-6 py-3 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)] md:w-auto"
-              >
-                {t("sendEmail")}
-              </a>
-            </div>
           </div>
         </div>
       </section>

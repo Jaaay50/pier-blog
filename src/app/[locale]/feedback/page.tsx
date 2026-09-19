@@ -26,7 +26,7 @@ export async function generateMetadata({
 }
 
 /**
- * 全局产品反馈页（阶段 C）：匿名提交产品问题 / 功能建议 / 信源建议 / Agent 接入问题。
+ * 全局产品反馈页：产品问题 / 功能建议 / 信源建议 / Agent 接入问题。
  * 与详情页内容纠错共享后端 /v1/feedback 端点（targetType "site"）。
  */
 export default async function FeedbackPage({
@@ -52,6 +52,9 @@ export default async function FeedbackPage({
     messageLabel: t("messageLabel"),
     messagePlaceholder: t("messagePlaceholder"),
     messageRequired: t("messageRequired"),
+    contactLabel: t("contactLabel"),
+    contactPlaceholder: t("contactPlaceholder"),
+    contactRequired: t("contactRequired"),
     submit: t("submit"),
     submitting: t("submitting"),
     success: t("success"),
@@ -74,6 +77,9 @@ export default async function FeedbackPage({
             <h1 className="font-display mb-4 text-4xl font-semibold tracking-tight md:text-5xl">
               {t("title")}
             </h1>
+            <p className="max-w-2xl text-base leading-relaxed text-[var(--text-secondary)]">
+              {t("subtitle")}
+            </p>
           </header>
 
           <section>

@@ -179,24 +179,14 @@ function renderCard(data: OgCardData): ImageResponse {
           ) : null}
         </svg>
 
-        {/* 顶部：站点标识 */}
+        {/* 顶部：站点标识（Π + 灯，不是字母 P） */}
         <div style={{ display: "flex", alignItems: "center", gap: "14px" }}>
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              borderRadius: "10px",
-              background: `linear-gradient(135deg, ${accent.main} 0%, #6a9bcc 100%)`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: "20px",
-              fontWeight: 700,
-              color: "#0a0e1a",
-            }}
-          >
-            P
-          </div>
+          <svg width="40" height="40" viewBox="0 0 48 48" fill="none">
+            <rect x="8" y="10" width="32" height="3.5" rx="1.75" fill="#c5d8eb" />
+            <path d="M15 13.5 V36 M15 36 L12.5 42 M15 36 L17.5 42" stroke="#c5d8eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M33 13.5 V36 M33 36 L30.5 42 M33 36 L35.5 42" stroke="#c5d8eb" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="24" cy="24" r="2.4" fill="#8ab4dd" />
+          </svg>
           <span
             style={{
               color: "#9aa5b5",

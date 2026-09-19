@@ -27,7 +27,7 @@ export function GET() {
     "",
     "- Full-stack engineer · AI-native products",
     "- Strongest public artifact: Currents (潮汐) — multi-source ingestion, bilingual summaries and 0–100 scoring, event-level merge lineage, authenticated MCP server",
-    "- Lab (船坞): sixteen zero-dependency interactive experiments, including waiting, streaming reading, source independence, and what remains after effects are off",
+    "- Lab (船坞): ten interactive experiments, including a cloud-sea train shader, WebGL, physics, and flow fields",
     "- Blog (潮声): personal essays on work, interfaces, waiting, and writing",
     "- Now: a short, dated status page at /now — not a resume, not in the top nav",
     "",

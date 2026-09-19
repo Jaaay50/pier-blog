@@ -44,7 +44,7 @@ const submitMock = vi.mocked(submitGuestbookEntry);
 
 const sample = {
   id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-  nickname: "Visitor_ab12",
+  signature: null as string | null,
   message: "潮水把这句话送上岸",
   createdAt: "2026-09-09T12:00:00.000Z",
 };
@@ -110,7 +110,7 @@ describe("GuestbookBoard", () => {
       ok: true,
       entry: {
         id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-        nickname: "Visitor_cd34",
+        signature: "林林",
         message: "新漂来的瓶子",
         createdAt: "2026-09-09T13:00:00.000Z",
       },
@@ -129,6 +129,46 @@ describe("GuestbookBoard", () => {
     });
     expect(within(screen.getByTestId("guestbook-list")).getByText("新漂来的瓶子")).toBeTruthy();
     expect(screen.getByText("已送到岸边。")).toBeTruthy();
+  });
+
+  it("未署名读卡显示匿名；填写署名后随请求送出", async () => {
+    submitMock.mockResolvedValue({
+      ok: true,
+      entry: {
+        id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        signature: "林林",
+        message: "新漂来的瓶子",
+        createdAt: "2026-09-09T13:00:00.000Z",
+      },
+    });
+    renderBoard();
+    fireEvent.click(screen.getByTestId("guestbook-pick"));
+    expect(screen.getByTestId("guestbook-read-card").textContent).toContain("匿名");
+    expect(screen.getByTestId("guestbook-list").textContent).not.toContain("Visitor_");
+    fireEvent.click(screen.getByText("Verify"));
+    fireEvent.change(screen.getByTestId("guestbook-signature"), { target: { value: "  林林  " } });
+    fireEvent.change(screen.getByTestId("guestbook-message"), { target: { value: "新漂来的瓶子" } });
+    await act(async () => {
+      fireEvent.submit(screen.getByTestId("guestbook-form"));
+    });
+    expect(submitMock.mock.calls[0]?.[0]).toMatchObject({
+      message: "新漂来的瓶子",
+      signature: "林林",
+    });
+    expect(screen.getByTestId("guestbook-read-card").textContent).toContain("林林");
+    expect((screen.getByTestId("guestbook-signature") as HTMLInputElement).value).toBe("");
+  });
+
+  it("站主名署名被前端拒绝且不发请求", async () => {
+    renderBoard();
+    fireEvent.click(screen.getByText("Verify"));
+    fireEvent.change(screen.getByTestId("guestbook-signature"), { target: { value: "Pier" } });
+    fireEvent.change(screen.getByTestId("guestbook-message"), { target: { value: "一句合法留言" } });
+    await act(async () => {
+      fireEvent.submit(screen.getByTestId("guestbook-form"));
+    });
+    expect(submitMock).not.toHaveBeenCalled();
+    expect(screen.getByText("这个署名不能用。")).toBeTruthy();
   });
 
   it("拾取和关闭读卡都不滚动页面", () => {
@@ -230,7 +270,7 @@ describe("GuestbookBoard", () => {
   it("拾取从完整列表抽样，不限于最近三只", () => {
     const older = {
       id: "eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee",
-      nickname: "Visitor_ef56",
+      signature: null,
       message: "更早的瓶子",
       createdAt: "2026-09-08T12:00:00.000Z",
     };

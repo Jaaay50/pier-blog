@@ -5,7 +5,7 @@ import { useTheme } from "next-themes";
 import { useLocale } from "next-intl";
 import dynamic from "next/dynamic";
 import { useWebGLQuality } from "@/lib/webgl";
-import { EXPERIENCE_DEMO_IDS, type LabDemoId } from "./lab-demos";
+import { type LabDemoId } from "./lab-demos";
 
 const ParticlePlayground = dynamic(() => import("./ParticlePlayground"), { ssr: false });
 const ShaderMixer = dynamic(() => import("./ShaderMixer"), { ssr: false });
@@ -15,18 +15,10 @@ const FlowField = dynamic(() => import("./FlowField"), { ssr: false });
 const Morph3D = dynamic(() => import("./Morph3D"), { ssr: false });
 
 const SdfRaymarch = dynamic(() => import("./SdfRaymarch"), { ssr: false });
+const CloudSeaTrain = dynamic(() => import("./CloudSeaTrain"), { ssr: false });
 const TearableCloth = dynamic(() => import("./TearableCloth"), { ssr: false });
-const PathfindingLab = dynamic(() => import("./PathfindingLab"), { ssr: false });
-const RaftLab = dynamic(() => import("./RaftLab"), { ssr: false });
-const AudioSpectrum = dynamic(() => import("./AudioSpectrum"), { ssr: false });
 const GeometryLab = dynamic(() => import("./GeometryLab"), { ssr: false });
-const WaitFeedback = dynamic(() => import("./WaitFeedback"), { ssr: false });
-const StreamReading = dynamic(() => import("./StreamReading"), { ssr: false });
-const SourceIndependence = dynamic(() => import("./SourceIndependence"), { ssr: false });
-const AfterOff = dynamic(() => import("./AfterOff"), { ssr: false });
-
-const EXPERIENCE = new Set<string>(EXPERIENCE_DEMO_IDS);
-const WEBGL_DEMOS = new Set(["fluid", "particles", "shader", "morph", "sdf"]);
+const WEBGL_DEMOS = new Set(["fluid", "particles", "shader", "morph", "sdf", "cloudsea"]);
 
 class DemoBoundary extends Component<{ children: ReactNode; onError: () => void }, { failed: boolean }> {
   state = { failed: false };
@@ -39,7 +31,9 @@ const controlClass = "rounded-lg border border-[var(--border)] bg-[var(--bg-card
 const LIGHT_DYE: [number, number, number][] = [[0.85, 0.47, 0.34], [0.83, 0.64, 0.5], [0.95, 0.75, 0.5]];
 const DARK_DYE: [number, number, number][] = [[0.42, 0.61, 0.8], [0.55, 0.5, 0.8], [0.65, 0.87, 0.97]];
 
-export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: string; alt: string }) {
+type DemoProps = { id: LabDemoId; still: string; alt: string };
+
+export function LabDemoEnhance({ id, still, alt }: DemoProps) {
   const zh = useLocale() === "zh";
   const { resolvedTheme } = useTheme();
   const quality = useWebGLQuality();
@@ -50,6 +44,7 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
   const [ready, setReady] = useState(false);
   const callbackEpoch = useRef(0);
   const [failed, setFailed] = useState(false);
+  const [needsReload, setNeedsReload] = useState(false);
   const [generation, setGeneration] = useState(0);
   const [gravityOn, setGravityOn] = useState(true);
   const [ballCount, setBallCount] = useState(5);
@@ -62,16 +57,14 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
     if (!element) return;
     const observer = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) { setNearView(true); observer.disconnect(); }
-    }, { rootMargin: "200px" });
+    }, { rootMargin: "1000px 0px" });
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
 
   const runToken = useRef(0);
   const availability =
-    !!quality &&
-    (EXPERIENCE.has(id) ||
-      (!quality.reducedMotion && (!WEBGL_DEMOS.has(id) || quality.enabled)));
+    !!quality && !quality.reducedMotion && (!WEBGL_DEMOS.has(id) || quality.enabled);
   const availableRef = useRef(availability);
   useEffect(() => {
     availableRef.current = availability;
@@ -87,15 +80,15 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
       if (!value) setFailed(true);
     });
   }, [generation]);
-  const onError = useCallback(() => onReadyChange(false), [onReadyChange]);
+  const onError = useCallback(() => { setNeedsReload(true); onReadyChange(false); }, [onReadyChange]);
   const reset = () => {
-    callbackEpoch.current++; runToken.current++; setReady(false); setFailed(false); setGeneration(runToken.current);
+    callbackEpoch.current++; runToken.current++; setReady(false); setFailed(false); setNeedsReload(false); setGeneration(runToken.current);
     setGravityOn(true); setBallCount(5); setAttract(true); setFlowHue(200); setAutoRotate(true);
   };
   const isDark = resolvedTheme === "dark";
   const canRun = availability;
   const active = canRun && nearView && !failed;
-  const hasOwnReset = ["sdf", "cloth", "pathfinding", "raft", "audio", "geometry", "wait", "stream", "sources", "afteroff"].includes(id);
+  const hasOwnReset = ["sdf", "cloudsea", "cloth", "geometry"].includes(id);
   const showOverlayReset = canRun && nearView && (!hasOwnReset || !ready || failed);
   let content: ReactNode = null;
 
@@ -129,25 +122,23 @@ export function LabDemoEnhance({ id, still, alt }: { id: LabDemoId; still: strin
     );
     if (id === "shader") content = <ShaderMixer {...shared} labels={{ hue: zh ? "色相" : "Hue", flow: zh ? "流速" : "Flow Speed", turbulence: zh ? "湍流" : "Turbulence", zoom: zh ? "缩放" : "Zoom", randomize: zh ? "随机参数" : "Randomize" }} />;
     if (id === "sdf") content = <SdfRaymarch isDark={isDark} onReadyChange={onReadyChange} />;
+    if (id === "cloudsea") content = <CloudSeaTrain isDark={isDark} onReadyChange={onReadyChange} quality={quality} />;
     if (id === "cloth") content = <TearableCloth isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "pathfinding") content = <PathfindingLab isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "raft") content = <RaftLab isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "audio") content = <AudioSpectrum isDark={isDark} onReadyChange={onReadyChange} />;
     if (id === "geometry") content = <GeometryLab isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "wait") content = <WaitFeedback isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "stream") content = <StreamReading isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "sources") content = <SourceIndependence isDark={isDark} onReadyChange={onReadyChange} />;
-    if (id === "afteroff") content = <AfterOff isDark={isDark} onReadyChange={onReadyChange} />;
 
   }
 
   return (
-    <div ref={host} className="relative h-full w-full bg-[var(--bg-primary)]" data-demo={id} data-ready={ready && active}>
-      {/* eslint-disable-next-line @next/next/no-img-element -- SSR fallback must survive unavailable WebGL. */}
-      <img src={still} alt={alt} width={960} height={540} loading="lazy" className={`absolute inset-0 h-full w-full object-cover ${ready && active ? "invisible" : ""}`} />
-      {active && <div inert={!ready} aria-hidden={!ready} className={`absolute inset-0 ${ready ? "" : "opacity-0"}`}><DemoBoundary key={generation} onError={onError}>{content}</DemoBoundary></div>}
-      {showOverlayReset && <button type="button" onClick={reset} className={`absolute right-3 top-3 z-10 ${controlClass}`} aria-label={`${zh ? "重置演示" : "Reset demo"}: ${id}`}>{failed ? zh ? "重试" : "Retry" : zh ? "重置" : "Reset"}</button>}
-      {failed && <div role="status" className="absolute inset-x-4 bottom-4 rounded-lg bg-[var(--bg-card)] p-3 text-sm text-[var(--text-primary)]">{zh ? "演示无法运行，请重试。" : "Unable to run this demo. Please retry."}</div>}
+    <div ref={host} className="lab-demo-canvas relative h-full w-full bg-[var(--bg-primary)]" data-demo={id} data-ready={ready && active}>
+      <div className="lab-demo-poster absolute inset-0" aria-hidden={ready && active}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- SSR fallbacks survive unavailable WebGL. */}
+        <img src={still} alt={alt} width={960} height={540} loading="eager" fetchPriority="low" decoding="async" className="lab-poster-dark absolute inset-0 h-full w-full object-cover" />
+        {/* eslint-disable-next-line @next/next/no-img-element -- Theme selection happens in CSS before hydration. */}
+        <img src={still.replace(/\.webp$/, "-light.webp")} alt={alt} width={960} height={540} loading="eager" fetchPriority="low" decoding="async" onError={(event) => { if (event.currentTarget.getAttribute("src") !== still) event.currentTarget.src = still; }} className="lab-poster-light absolute inset-0 h-full w-full object-cover" />
+      </div>
+      {active && <div inert={!ready} aria-hidden={!ready} className="lab-demo-runtime absolute inset-0"><DemoBoundary key={generation} onError={onError}>{content}</DemoBoundary></div>}
+      {showOverlayReset && <button type="button" onClick={needsReload ? () => window.location.reload() : reset} className={`absolute right-3 top-3 z-10 ${controlClass}`} aria-label={`${needsReload ? zh ? "刷新页面" : "Reload page" : zh ? "重置演示" : "Reset demo"}: ${id}`}>{needsReload ? zh ? "刷新页面" : "Reload page" : failed ? zh ? "重试" : "Retry" : zh ? "重置" : "Reset"}</button>}
+      {failed && <div role="status" className="absolute inset-x-4 bottom-4 rounded-lg bg-[var(--bg-card)] p-3 text-sm text-[var(--text-primary)]">{needsReload ? zh ? "演示加载失败，请刷新页面。" : "Demo failed to load. Please reload the page." : zh ? "演示无法运行，请重试。" : "Unable to run this demo. Please retry."}</div>}
     </div>
   );
 }
