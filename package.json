@@ -78,7 +78,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@testing-library/react": "^16.3.2",
+    "@testing-library/react": "^16.3.3",
     "@types/dom-view-transitions": "^1.0.6",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^26",
