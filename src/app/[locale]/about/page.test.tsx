@@ -50,6 +50,9 @@ describe("AboutPage content boundaries", () => {
     expect(container.querySelector("header")?.textContent).not.toContain(messages.about.intro);
     expect(container.querySelector(".page-hero-quiet")).toBeTruthy();
     expect(screen.getByRole("link", { name: messages.about.nowEntry }).getAttribute("href")).toBe("/now");
+    expect(screen.getByRole("link", { name: messages.about.leaveANote }).getAttribute("href")).toBe(
+      "https://cloudborne.cn/login?callbackUrl=/inbox",
+    );
     expect(screen.getByText(messages.about.cloudborneDescription)).toBeTruthy();
     expect(screen.getByText(messages.about.experiences.role1Desc)).toBeTruthy();
     expect(screen.queryByText(messages.about.contactPrompt)).toBeNull();

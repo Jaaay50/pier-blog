@@ -112,6 +112,12 @@ export default async function AboutPage({
             {t("nowEntry")}
           </TransitionLink>
           <a
+            href="https://cloudborne.cn/login?callbackUrl=/inbox"
+            className="inline-flex min-h-11 items-center text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
+          >
+            {t("leaveANote")}
+          </a>
+          <a
             href="mailto:ethan_pier@icloud.com"
             className="btn-primary inline-flex min-h-11 items-center justify-center rounded-lg px-6 py-3 font-medium focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--accent)]"
           >
